@@ -59,6 +59,7 @@ select = [
 ignore = [
     "E501",  # line too long (handled by black)
     "S101",  # use of assert detected
+    "B008",  # do not perform function calls in argument defaults (FastAPI Depends is an exception)
 ]
 exclude = [
     ".git",

@@ -85,7 +85,7 @@ async def get_current_user_or_api_key(
 @router.get("/", response_model=DocumentList)
 async def list_documents(
     current_user: dict = Depends(get_current_user_or_api_key),
-):  # noqa: B008
+):
     """ドキュメント一覧を取得"""
     # テスト用のモックデータ
     mock_documents = [
@@ -106,9 +106,9 @@ async def list_documents(
 
 
 @router.post("/", response_model=DocumentResponse, status_code=201)
-async def create_document(  # noqa: B008
+async def create_document(
     document: DocumentCreate,
-    current_user: dict = Depends(get_current_user_or_api_key),  # noqa: B008
+    current_user: dict = Depends(get_current_user_or_api_key),
 ):
     """ドキュメントを作成"""
     # 書き込み権限をチェック
@@ -125,9 +125,9 @@ async def create_document(  # noqa: B008
 
 
 @router.delete("/{document_id}")
-async def delete_document(  # noqa: B008
+async def delete_document(
     document_id: str,
-    current_user: dict = Depends(get_current_user_or_api_key),  # noqa: B008
+    current_user: dict = Depends(get_current_user_or_api_key),
 ):
     """ドキュメントを削除"""
     # 削除権限をチェック（管理者権限必要）
@@ -141,9 +141,9 @@ async def delete_document(  # noqa: B008
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)
-async def get_document(  # noqa: B008
+async def get_document(
     document_id: str,
-    current_user: dict = Depends(get_current_user_or_api_key),  # noqa: B008
+    current_user: dict = Depends(get_current_user_or_api_key),
 ):
     """ドキュメントを取得"""
     # 実装は後で追加
