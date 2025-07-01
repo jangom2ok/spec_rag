@@ -187,7 +187,10 @@ class ResourcePermissionMiddleware:
         from app.core.auth import check_user_resource_permission
 
         return check_user_resource_permission(
-            user_id, self.resource_type, resource_id or "unknown", self.required_permission
+            user_id,
+            self.resource_type,
+            resource_id or "unknown",
+            self.required_permission,
         )
 
 
