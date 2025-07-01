@@ -1,6 +1,5 @@
 """ドキュメントチャンクリポジトリ"""
 
-from typing import List, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,14 +20,14 @@ class DocumentChunkRepository:
         await self.session.refresh(chunk)
         return chunk
 
-    async def get_by_id(self, chunk_id: str) -> Optional[DocumentChunk]:
+    async def get_by_id(self, chunk_id: str) -> DocumentChunk | None:
         """IDでチャンクを取得"""
         result = await self.session.execute(
             sa.select(DocumentChunk).where(DocumentChunk.id == chunk_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_by_document_id(self, document_id: str) -> List[DocumentChunk]:
+    async def get_by_document_id(self, document_id: str) -> list[DocumentChunk]:
         """ドキュメントIDでチャンクを取得"""
         result = await self.session.execute(
             sa.select(DocumentChunk)
@@ -37,7 +36,7 @@ class DocumentChunkRepository:
         )
         return list(result.scalars().all())
 
-    async def get_by_type(self, chunk_type: str) -> List[DocumentChunk]:
+    async def get_by_type(self, chunk_type: str) -> list[DocumentChunk]:
         """チャンクタイプで取得"""
         result = await self.session.execute(
             sa.select(DocumentChunk).where(DocumentChunk.chunk_type == chunk_type)
@@ -78,12 +77,12 @@ class DocumentChunkRepository:
         await self.session.commit()
         return count
 
-    async def search_by_content(self, search_term: str) -> List[DocumentChunk]:
+    async def search_by_content(self, search_term: str) -> list[DocumentChunk]:
         """コンテンツでの検索"""
         query = sa.select(DocumentChunk).where(
             sa.or_(
                 DocumentChunk.title.contains(search_term),
-                DocumentChunk.content.contains(search_term)
+                DocumentChunk.content.contains(search_term),
             )
         )
 
@@ -91,14 +90,12 @@ class DocumentChunkRepository:
         return list(result.scalars().all())
 
     async def get_chunks_by_size_range(
-        self,
-        min_size: int,
-        max_size: int
-    ) -> List[DocumentChunk]:
+        self, min_size: int, max_size: int
+    ) -> list[DocumentChunk]:
         """サイズ範囲でチャンクを取得"""
         query = sa.select(DocumentChunk).where(
             DocumentChunk.content_length >= min_size,
-            DocumentChunk.content_length <= max_size
+            DocumentChunk.content_length <= max_size,
         )
 
         result = await self.session.execute(query)

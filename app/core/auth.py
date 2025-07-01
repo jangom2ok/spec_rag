@@ -2,16 +2,15 @@
 
 import os
 import secrets
-import hashlib
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any, Union
-from enum import Enum
 from dataclasses import dataclass
-import jwt
-from passlib.context import CryptContext
-from fastapi import HTTPException, status
-from pydantic import BaseModel
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Optional
 
+import jwt
+from fastapi import HTTPException, status
+from passlib.context import CryptContext
+from pydantic import BaseModel
 
 # 設定
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
@@ -28,43 +27,46 @@ token_blacklist = set()
 # API Key保存（本番環境ではデータベースを使用）
 api_keys_storage = {}
 
+
 # パスワードハッシュ化関数
 def get_password_hash(password: str) -> str:
     """パスワードをハッシュ化"""
     return pwd_context.hash(password)
+
 
 # ユーザー保存（本番環境ではデータベースを使用）
 users_storage = {
     "test@example.com": {
         "password": get_password_hash("testpassword"),
         "role": "user",
-        "permissions": ["read", "write"]
+        "permissions": ["read", "write"],
     },
     "admin@example.com": {
         "password": get_password_hash("adminpassword"),
         "role": "admin",
-        "permissions": ["read", "write", "delete", "admin"]
+        "permissions": ["read", "write", "delete", "admin"],
     },
     "editor@example.com": {
         "password": get_password_hash("editorpassword"),
         "role": "editor",
-        "permissions": ["read", "write"]
+        "permissions": ["read", "write"],
     },
     "user@example.com": {
         "password": get_password_hash("userpassword"),
         "role": "user",
-        "permissions": ["read"]
+        "permissions": ["read"],
     },
     "manager@example.com": {
         "password": get_password_hash("managerpassword"),
         "role": "manager",
-        "permissions": ["read", "write", "delete"]
-    }
+        "permissions": ["read", "write", "delete"],
+    },
 }
 
 
 class Permission(Enum):
     """権限列挙型"""
+
     READ = "read"
     WRITE = "write"
     DELETE = "delete"
@@ -74,29 +76,32 @@ class Permission(Enum):
 @dataclass
 class Role:
     """ロールクラス"""
+
     name: str
-    permissions: List[Permission]
-    parent: Optional['Role'] = None
+    permissions: list[Permission]
+    parent: Optional["Role"] = None
 
 
 @dataclass
 class ResourcePermission:
     """リソース権限クラス"""
+
     resource_type: str
     resource_id: str
-    permissions: List[str]
+    permissions: list[str]
 
 
 class TokenData(BaseModel):
     """トークンデータモデル"""
+
     sub: str
     role: str
-    permissions: List[str]
+    permissions: list[str]
     exp: datetime
 
 
 # JWT関連関数
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """アクセストークンを生成"""
     to_encode = data.copy()
     if expires_delta:
@@ -134,7 +139,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(email: str, password: str) -> Optional[dict]:
+def authenticate_user(email: str, password: str) -> dict | None:
     """ユーザー認証"""
     user = users_storage.get(email)
     if not user:
@@ -179,7 +184,7 @@ def is_valid_api_key_format(api_key: str) -> bool:
     return True
 
 
-def validate_api_key(api_key: str) -> Optional[dict]:
+def validate_api_key(api_key: str) -> dict | None:
     """API Keyを検証"""
     if not is_valid_api_key_format(api_key):
         return None
@@ -188,12 +193,12 @@ def validate_api_key(api_key: str) -> Optional[dict]:
     test_keys = {
         "ak_test_1234567890abcdef": {
             "user_id": "user123",
-            "permissions": ["read", "write"]
+            "permissions": ["read", "write"],
         },
         "ak_readonly_1234567890abcdef": {
             "user_id": "readonly_user",
-            "permissions": ["read"]
-        }
+            "permissions": ["read"],
+        },
     }
 
     return test_keys.get(api_key)
@@ -204,7 +209,7 @@ def store_api_key(api_key_data: dict) -> None:
     api_keys_storage[api_key_data["key"]] = api_key_data
 
 
-def get_api_key_info(api_key: str) -> Optional[dict]:
+def get_api_key_info(api_key: str) -> dict | None:
     """API Key情報を取得"""
     return api_keys_storage.get(api_key)
 
@@ -216,7 +221,7 @@ def create_api_key_with_expiration(user_id: str, expiration: datetime) -> str:
         "key": api_key,
         "user_id": user_id,
         "expiration": expiration,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow(),
     }
     store_api_key(api_key_data)
     return api_key
@@ -247,17 +252,19 @@ def get_api_key_usage_stats(api_key: str) -> dict:
     return {
         "total_requests": 10,
         "endpoints": ["/v1/documents", "/v1/search"],
-        "last_used": datetime.utcnow()
+        "last_used": datetime.utcnow(),
     }
 
 
 # RBAC関連関数
-def has_permission(user_permissions: List[Permission], required_permission: Permission) -> bool:
+def has_permission(
+    user_permissions: list[Permission], required_permission: Permission
+) -> bool:
     """権限チェック"""
     return required_permission in user_permissions
 
 
-def get_effective_permissions(role: Role) -> List[Permission]:
+def get_effective_permissions(role: Role) -> list[Permission]:
     """ロールの有効権限を取得（継承含む）"""
     permissions = role.permissions.copy()
 
@@ -274,7 +281,7 @@ def check_resource_permission(
     resource_permission: ResourcePermission,
     resource_type: str,
     resource_id: str,
-    required_permission: str
+    required_permission: str,
 ) -> bool:
     """リソース権限をチェック"""
     if resource_permission.resource_type != resource_type:
@@ -291,36 +298,35 @@ def assign_role_to_user(user_id: str, role: str) -> None:
     pass
 
 
-def get_user_roles(user_id: str) -> List[str]:
+def get_user_roles(user_id: str) -> list[str]:
     """ユーザーのロールを取得"""
     # テスト用のモックデータ
     return ["editor"]
 
 
-def create_role(role_name: str, permissions: List[Permission]) -> None:
+def create_role(role_name: str, permissions: list[Permission]) -> None:
     """ロールを作成"""
     # 実装は省略（本番環境ではデータベースに保存）
     pass
 
 
-def get_role_permissions(role_name: str) -> List[Permission]:
+def get_role_permissions(role_name: str) -> list[Permission]:
     """ロールの権限を取得"""
     # テスト用のモックデータ
     return [Permission.READ, Permission.WRITE]
 
 
 def grant_resource_permission(
-    user_id: str,
-    resource_type: str,
-    resource_id: str,
-    permission: str
+    user_id: str, resource_type: str, resource_id: str, permission: str
 ) -> None:
     """リソース権限を付与"""
     # 実装は省略（本番環境ではデータベースに保存）
     pass
 
 
-def check_user_resource_permission(user_id: str, resource_type: str, resource_id: str, permission: str) -> bool:
+def check_user_resource_permission(
+    user_id: str, resource_type: str, resource_id: str, permission: str
+) -> bool:
     """ユーザーのリソース権限をチェック"""
     # テスト用の実装
     # 実際の実装では、データベースからユーザーとリソースの関係を確認
@@ -335,6 +341,7 @@ def check_user_resource_permission(user_id: str, resource_type: str, resource_id
 # デコレーター関数
 def require_permission(required_permission: Permission):
     """権限要求デコレーター"""
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # 実際の実装では現在のユーザー権限をチェック
@@ -344,14 +351,17 @@ def require_permission(required_permission: Permission):
             else:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Insufficient permissions"
+                    detail="Insufficient permissions",
                 )
+
         return wrapper
+
     return decorator
 
 
 def require_role(required_role: str):
     """ロール要求デコレーター"""
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # 実際の実装では現在のユーザーロールをチェック
@@ -360,15 +370,17 @@ def require_role(required_role: str):
                 return func(*args, **kwargs)
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Insufficient role"
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role"
                 )
+
         return wrapper
+
     return decorator
 
 
 def require_resource_permission(resource_type: str, required_permission: str):
     """リソース権限要求デコレーター"""
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # 実際の実装では現在のユーザーのリソース権限をチェック
@@ -376,19 +388,23 @@ def require_resource_permission(resource_type: str, required_permission: str):
             resource_id = kwargs.get("doc_id") or kwargs.get("resource_id")
             user_id = get_current_user_id()
 
-            if check_user_resource_permission(user_id, resource_type, resource_id, required_permission):
+            if check_user_resource_permission(
+                user_id, resource_type, resource_id, required_permission
+            ):
                 return func(*args, **kwargs)
             else:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Insufficient resource permission"
+                    detail="Insufficient resource permission",
                 )
+
         return wrapper
+
     return decorator
 
 
 # ヘルパー関数（実際の実装では依存性注入を使用）
-def get_current_user_permissions() -> List[Permission]:
+def get_current_user_permissions() -> list[Permission]:
     """現在のユーザー権限を取得"""
     # テスト用のモックデータ
     return [Permission.ADMIN, Permission.READ]

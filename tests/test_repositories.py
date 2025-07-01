@@ -1,16 +1,12 @@
 """リポジトリパターンによるCRUD操作のテスト"""
 
-import pytest
-from datetime import datetime
-from typing import List, Optional
 
-import sqlalchemy as sa
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models.database import Base, Document, DocumentChunk
+from app.models.database import Base, Document
 from app.repositories.document_repository import DocumentRepository
-from app.repositories.chunk_repository import DocumentChunkRepository
 
 
 @pytest.fixture
@@ -50,7 +46,7 @@ class TestDocumentRepository:
             content="これはテストコンテンツです。",
             content_hash="abc123hash",
             file_type="markdown",
-            language="ja"
+            language="ja",
         )
 
         created_doc = await document_repo.create(document)
@@ -68,7 +64,7 @@ class TestDocumentRepository:
             source_id="repo/test.md",
             title="テストドキュメント",
             content="コンテンツ",
-            content_hash="hash123"
+            content_hash="hash123",
         )
         created_doc = await document_repo.create(document)
 
@@ -85,7 +81,7 @@ class TestDocumentRepository:
             source_id="repo/test.md",
             title="元のタイトル",
             content="元のコンテンツ",
-            content_hash="original_hash"
+            content_hash="original_hash",
         )
         created_doc = await document_repo.create(document)
 
@@ -104,7 +100,7 @@ class TestDocumentRepository:
             source_id="repo/delete_test.md",
             title="削除テスト",
             content="削除予定",
-            content_hash="delete_hash"
+            content_hash="delete_hash",
         )
         created_doc = await document_repo.create(document)
 

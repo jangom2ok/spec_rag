@@ -1,12 +1,11 @@
 """Milvusコレクションのテスト"""
 
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Any, Dict, List
+from unittest.mock import Mock, patch
+
 import numpy as np
+import pytest
 
 from app.models.milvus import (
-    MilvusCollection,
     DenseVectorCollection,
     SparseVectorCollection,
     VectorData,
@@ -35,8 +34,14 @@ class TestMilvusCollection:
             field_names = [field["name"] for field in fields]
 
             required_fields = [
-                "id", "document_id", "chunk_id", "vector",
-                "chunk_type", "source_type", "language", "created_at"
+                "id",
+                "document_id",
+                "chunk_id",
+                "vector",
+                "chunk_type",
+                "source_type",
+                "language",
+                "created_at",
             ]
             for field_name in required_fields:
                 assert field_name in field_names
@@ -62,8 +67,10 @@ class TestDenseVectorCollection:
     @pytest.fixture
     def mock_milvus_connection(self):
         """Milvusの接続をモック"""
-        with patch("app.models.milvus.connections") as mock_conn, \
-             patch("app.models.milvus.Collection") as mock_collection:
+        with (
+            patch("app.models.milvus.connections") as mock_conn,
+            patch("app.models.milvus.Collection") as mock_collection,
+        ):
 
             mock_conn.connect.return_value = None
             mock_collection_instance = Mock()
@@ -96,9 +103,9 @@ class TestDenseVectorCollection:
         call_args = mock_milvus_connection.insert.call_args[0][0]
 
         assert call_args[0] == ["test-id-1"]  # id
-        assert call_args[1] == ["doc-123"]    # document_id
+        assert call_args[1] == ["doc-123"]  # document_id
         assert call_args[2] == ["chunk-456"]  # chunk_id
-        assert len(call_args[3][0]) == 1024   # vector dimension
+        assert len(call_args[3][0]) == 1024  # vector dimension
         assert call_args[4] == ["paragraph"]  # chunk_type
 
     async def test_dense_vector_search(self, mock_milvus_connection):
@@ -114,9 +121,7 @@ class TestDenseVectorCollection:
         # 検索実行
         query_vector = np.random.random(1024).tolist()
         results = await collection.search(
-            query_vectors=[query_vector],
-            top_k=10,
-            filters={"source_type": "git"}
+            query_vectors=[query_vector], top_k=10, filters={"source_type": "git"}
         )
 
         # 結果確認
@@ -149,8 +154,10 @@ class TestSparseVectorCollection:
     @pytest.fixture
     def mock_milvus_connection(self):
         """Milvusの接続をモック"""
-        with patch("app.models.milvus.connections") as mock_conn, \
-             patch("app.models.milvus.Collection") as mock_collection:
+        with (
+            patch("app.models.milvus.connections") as mock_conn,
+            patch("app.models.milvus.Collection") as mock_collection,
+        ):
 
             mock_conn.connect.return_value = None
             mock_collection_instance = Mock()
@@ -167,8 +174,7 @@ class TestSparseVectorCollection:
             # Sparse Vector特有のフィールド確認
             fields = schema["fields"]
             sparse_field = next(
-                field for field in fields
-                if field["name"] == "sparse_vector"
+                field for field in fields if field["name"] == "sparse_vector"
             )
 
             assert sparse_field["type"] == "SPARSE_FLOAT_VECTOR"
@@ -189,7 +195,9 @@ class TestSparseVectorCollection:
         )
 
         # 挿入実行
-        mock_milvus_connection.insert.return_value = Mock(primary_keys=["sparse-test-1"])
+        mock_milvus_connection.insert.return_value = Mock(
+            primary_keys=["sparse-test-1"]
+        )
 
         result = await collection.insert([vector_data])
 
@@ -198,7 +206,7 @@ class TestSparseVectorCollection:
         call_args = mock_milvus_connection.insert.call_args[0][0]
 
         assert call_args[0] == ["sparse-test-1"]  # id
-        assert call_args[4] == [1000]             # vocabulary_size
+        assert call_args[4] == [1000]  # vocabulary_size
 
     async def test_hybrid_search_preparation(self, mock_milvus_connection):
         """ハイブリッド検索の準備テスト"""
@@ -214,20 +222,22 @@ class TestSparseVectorCollection:
         mock_sparse_result.ids = [["doc-2", "doc-3"]]
         mock_sparse_result.distances = [[0.2, 0.4]]
 
-        with patch.object(dense_collection, 'search', return_value=[mock_dense_result]), \
-             patch.object(sparse_collection, 'search', return_value=[mock_sparse_result]):
+        with (
+            patch.object(dense_collection, "search", return_value=[mock_dense_result]),
+            patch.object(
+                sparse_collection, "search", return_value=[mock_sparse_result]
+            ),
+        ):
 
             # Dense検索
             dense_results = await dense_collection.search(
-                query_vectors=[np.random.random(1024).tolist()],
-                top_k=10
+                query_vectors=[np.random.random(1024).tolist()], top_k=10
             )
 
             # Sparse検索
             sparse_query = {0: 0.5, 10: 0.3}
             sparse_results = await sparse_collection.search(
-                query_vectors=[sparse_query],
-                top_k=10
+                query_vectors=[sparse_query], top_k=10
             )
 
             # 結果確認（ハイブリッド検索の準備）

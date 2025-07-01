@@ -2,21 +2,22 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import JSON, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from sqlalchemy.types import TypeDecorator, String
+from sqlalchemy.types import String, TypeDecorator
 
 
 class UUIDType(TypeDecorator):
     """UUID型のカスタムタイプ"""
+
     impl = String
     cache_ok = True
 
-    def process_bind_param(self, value: Any, dialect: Any) -> Optional[str]:
+    def process_bind_param(self, value: Any, dialect: Any) -> str | None:
         if value is None:
             return value
         elif isinstance(value, uuid.UUID):
@@ -25,7 +26,7 @@ class UUIDType(TypeDecorator):
             return value
         return str(value)
 
-    def process_result_value(self, value: Any, dialect: Any) -> Optional[str]:
+    def process_result_value(self, value: Any, dialect: Any) -> str | None:
         if value is None:
             return value
         return str(value)
@@ -33,6 +34,7 @@ class UUIDType(TypeDecorator):
 
 class Base(DeclarativeBase):
     """SQLAlchemy 2.0の基底クラス"""
+
     pass
 
 
@@ -56,7 +58,7 @@ class Document(Base):
     content_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
     # オプション情報
-    file_type: Mapped[Optional[str]] = mapped_column(sa.String(50), nullable=True)
+    file_type: Mapped[str | None] = mapped_column(sa.String(50), nullable=True)
     language: Mapped[str] = mapped_column(sa.String(10), nullable=False, default="ja")
     status: Mapped[str] = mapped_column(sa.String(20), nullable=False, default="active")
 
@@ -72,13 +74,13 @@ class Document(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    processed_at: Mapped[Optional[datetime]] = mapped_column(
+    processed_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True),
         nullable=True,
     )
 
     # リレーション
-    chunks: Mapped[List["DocumentChunk"]] = relationship(
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
         "DocumentChunk",
         back_populates="document",
         cascade="all, delete-orphan",
@@ -119,12 +121,14 @@ class DocumentChunk(Base):
     # チャンク情報
     chunk_index: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     chunk_type: Mapped[str] = mapped_column(sa.String(20), nullable=False)
-    title: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    title: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     content: Mapped[str] = mapped_column(sa.Text, nullable=False)
     content_length: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    token_count: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    hierarchy_path: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-    chunk_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    token_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    hierarchy_path: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    chunk_metadata: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
 
     # タイムスタンプ
     created_at: Mapped[datetime] = mapped_column(

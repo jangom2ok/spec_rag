@@ -1,18 +1,18 @@
 """ヘルスチェックAPI"""
 
 import time
-import psutil
 from datetime import datetime
-from typing import Dict, Any
-from fastapi import APIRouter, HTTPException
-from sqlalchemy.exc import SQLAlchemyError
-from pymilvus.exceptions import MilvusException
+from typing import Any
 
+import psutil
+from fastapi import APIRouter, HTTPException
+from pymilvus.exceptions import MilvusException
+from sqlalchemy.exc import SQLAlchemyError
 
 router = APIRouter(prefix="/v1/health", tags=["health"])
 
 
-async def check_postgresql_connection() -> Dict[str, Any]:
+async def check_postgresql_connection() -> dict[str, Any]:
     """PostgreSQL接続チェック"""
     try:
         # 実際のDB接続チェックのモック
@@ -21,58 +21,41 @@ async def check_postgresql_connection() -> Dict[str, Any]:
         # await database.engine.execute("SELECT 1")
         response_time = time.time() - start_time
 
-        return {
-            "status": "healthy",
-            "response_time": response_time
-        }
+        return {"status": "healthy", "response_time": response_time}
     except SQLAlchemyError as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "error": str(e)}
 
 
-async def check_milvus_connection() -> Dict[str, Any]:
+async def check_milvus_connection() -> dict[str, Any]:
     """Milvus接続チェック"""
     try:
         # 実際のMilvus接続チェックのモック
         # 実装時にはMilvusクライアントを使用する
-        return {
-            "status": "healthy",
-            "collections": 2  # モック値
-        }
+        return {"status": "healthy", "collections": 2}  # モック値
     except MilvusException as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "error": str(e)}
 
 
-async def get_system_metrics() -> Dict[str, Any]:
+async def get_system_metrics() -> dict[str, Any]:
     """システムメトリクス取得"""
     try:
         return {
             "cpu_usage": psutil.cpu_percent(),
             "memory_usage": psutil.virtual_memory().percent,
-            "disk_usage": psutil.disk_usage('/').percent,
-            "uptime": time.time() - psutil.boot_time()
+            "disk_usage": psutil.disk_usage("/").percent,
+            "uptime": time.time() - psutil.boot_time(),
         }
     except Exception:
-        return {
-            "cpu_usage": 0.0,
-            "memory_usage": 0.0,
-            "disk_usage": 0.0,
-            "uptime": 0.0
-        }
+        return {"cpu_usage": 0.0, "memory_usage": 0.0, "disk_usage": 0.0, "uptime": 0.0}
 
 
-async def get_health_status() -> Dict[str, Any]:
+async def get_health_status() -> dict[str, Any]:
     """基本ヘルスステータス取得"""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "version": "1.0.0",
-        "environment": "development"
+        "environment": "development",
     }
 
 
@@ -92,8 +75,8 @@ async def detailed_health_check():
 
         # 全体のステータス判定
         services_healthy = (
-            postgresql_status["status"] == "healthy" and
-            milvus_status["status"] == "healthy"
+            postgresql_status["status"] == "healthy"
+            and milvus_status["status"] == "healthy"
         )
 
         overall_status = "healthy" if services_healthy else "unhealthy"
@@ -101,12 +84,9 @@ async def detailed_health_check():
         return {
             "status": overall_status,
             "timestamp": datetime.utcnow().isoformat(),
-            "services": {
-                "postgresql": postgresql_status,
-                "milvus": milvus_status
-            },
+            "services": {"postgresql": postgresql_status, "milvus": milvus_status},
             "system": system_metrics,
-            "version": "1.0.0"
+            "version": "1.0.0",
         }
     except Exception as e:
         # エラー時でもservicesフィールドを含める
@@ -115,11 +95,11 @@ async def detailed_health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "services": {
                 "postgresql": {"status": "unhealthy", "error": str(e)},
-                "milvus": {"status": "unhealthy", "error": str(e)}
+                "milvus": {"status": "unhealthy", "error": str(e)},
             },
             "system": await get_system_metrics(),
             "error": str(e),
-            "version": "1.0.0"
+            "version": "1.0.0",
         }
 
 
@@ -132,8 +112,8 @@ async def readiness_probe():
         milvus_status = await check_milvus_connection()
 
         ready = (
-            postgresql_status["status"] == "healthy" and
-            milvus_status["status"] == "healthy"
+            postgresql_status["status"] == "healthy"
+            and milvus_status["status"] == "healthy"
         )
 
         if ready:
@@ -141,19 +121,16 @@ async def readiness_probe():
         else:
             raise HTTPException(
                 status_code=503,
-                detail={"ready": False, "timestamp": datetime.utcnow().isoformat()}
+                detail={"ready": False, "timestamp": datetime.utcnow().isoformat()},
             )
     except Exception:
         raise HTTPException(
             status_code=503,
-            detail={"ready": False, "timestamp": datetime.utcnow().isoformat()}
+            detail={"ready": False, "timestamp": datetime.utcnow().isoformat()},
         )
 
 
 @router.get("/live")
 async def liveness_probe():
     """Liveness Probe - アプリケーションが生存しているかチェック"""
-    return {
-        "alive": True,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return {"alive": True, "timestamp": datetime.utcnow().isoformat()}

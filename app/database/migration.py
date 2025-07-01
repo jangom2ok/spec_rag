@@ -1,39 +1,32 @@
 """データベースマイグレーション管理"""
 
-import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import create_engine
 
 
 class MigrationManager:
     """データベースマイグレーション管理クラス"""
 
-    def __init__(
-        self,
-        database_url: str,
-        migrations_dir: Optional[Path] = None
-    ):
+    def __init__(self, database_url: str, migrations_dir: Path | None = None):
         self.database_url = database_url
         self.migrations_dir = migrations_dir or Path("migrations")
-        self.config: Optional[Config] = None
+        self.config: Config | None = None
 
     def _get_config(self) -> Config:
         """Alembic設定を取得"""
         if self.config is None:
             self.config = create_alembic_config(
-                database_url=self.database_url,
-                migrations_dir=self.migrations_dir
+                database_url=self.database_url, migrations_dir=self.migrations_dir
             )
         return self.config
 
-    async def initialize_migrations(self) -> Dict[str, Any]:
+    async def initialize_migrations(self) -> dict[str, Any]:
         """マイグレーション環境を初期化"""
         config = self._get_config()
 
@@ -44,42 +37,28 @@ class MigrationManager:
             # Alembicの初期化
             command.init(config, str(self.migrations_dir))
 
-            return {
-                "status": "initialized",
-                "migrations_dir": str(self.migrations_dir)
-            }
+            return {"status": "initialized", "migrations_dir": str(self.migrations_dir)}
 
-        return {
-            "status": "already_exists",
-            "migrations_dir": str(self.migrations_dir)
-        }
+        return {"status": "already_exists", "migrations_dir": str(self.migrations_dir)}
 
     async def create_migration(
-        self,
-        message: str,
-        autogenerate: bool = True
-    ) -> Dict[str, Any]:
+        self, message: str, autogenerate: bool = True
+    ) -> dict[str, Any]:
         """新しいマイグレーションファイルを作成"""
         config = self._get_config()
 
         # マイグレーションファイルを作成
-        revision = command.revision(
-            config,
-            message=message,
-            autogenerate=autogenerate
-        )
+        revision = command.revision(config, message=message, autogenerate=autogenerate)
 
         return {
             "revision": revision.revision,
             "message": message,
-            "path": revision.path
+            "path": revision.path,
         }
 
     async def run_migrations(
-        self,
-        revision: str = "head",
-        direction: str = "up"
-    ) -> Dict[str, Any]:
+        self, revision: str = "head", direction: str = "up"
+    ) -> dict[str, Any]:
         """マイグレーションを実行"""
         config = self._get_config()
 
@@ -91,20 +70,16 @@ class MigrationManager:
             else:
                 raise ValueError(f"Invalid direction: {direction}")
 
-            return {
-                "status": "success",
-                "revision": revision,
-                "direction": direction
-            }
+            return {"status": "success", "revision": revision, "direction": direction}
         except Exception as e:
             return {
                 "status": "error",
                 "error": str(e),
                 "revision": revision,
-                "direction": direction
+                "direction": direction,
             }
 
-    async def get_current_revision(self) -> Optional[str]:
+    async def get_current_revision(self) -> str | None:
         """現在のリビジョンを取得"""
         config = self._get_config()
 
@@ -119,19 +94,21 @@ class MigrationManager:
         finally:
             engine.dispose()
 
-    async def get_migration_history(self) -> List[Dict[str, Any]]:
+    async def get_migration_history(self) -> list[dict[str, Any]]:
         """マイグレーション履歴を取得"""
         config = self._get_config()
         script = ScriptDirectory.from_config(config)
 
         history = []
         for revision in script.walk_revisions():
-            history.append({
-                "revision": revision.revision,
-                "down_revision": revision.down_revision,
-                "description": revision.doc,
-                "path": revision.path
-            })
+            history.append(
+                {
+                    "revision": revision.revision,
+                    "down_revision": revision.down_revision,
+                    "description": revision.doc,
+                    "path": revision.path,
+                }
+            )
 
         return history
 
@@ -145,7 +122,7 @@ class MigrationManager:
 
         return current_rev == head_revision
 
-    async def validate_migrations(self) -> Dict[str, Any]:
+    async def validate_migrations(self) -> dict[str, Any]:
         """マイグレーションの整合性を検証"""
         try:
             config = self._get_config()
@@ -154,21 +131,12 @@ class MigrationManager:
             # スクリプトディレクトリの検証
             script.get_revisions("head")
 
-            return {
-                "status": "valid",
-                "message": "All migrations are valid"
-            }
+            return {"status": "valid", "message": "All migrations are valid"}
         except Exception as e:
-            return {
-                "status": "invalid",
-                "error": str(e)
-            }
+            return {"status": "invalid", "error": str(e)}
 
 
-def create_alembic_config(
-    database_url: str,
-    migrations_dir: Path
-) -> Config:
+def create_alembic_config(database_url: str, migrations_dir: Path) -> Config:
     """Alembic設定を作成"""
     config = Config()
 
@@ -186,28 +154,15 @@ def create_alembic_config(
 
 
 def create_migration(
-    config: Config,
-    message: str,
-    autogenerate: bool = True
-) -> Dict[str, Any]:
+    config: Config, message: str, autogenerate: bool = True
+) -> dict[str, Any]:
     """マイグレーションファイルを作成（ユーティリティ関数）"""
-    revision = command.revision(
-        config,
-        message=message,
-        autogenerate=autogenerate
-    )
+    revision = command.revision(config, message=message, autogenerate=autogenerate)
 
-    return {
-        "revision": revision.revision,
-        "message": message,
-        "path": revision.path
-    }
+    return {"revision": revision.revision, "message": message, "path": revision.path}
 
 
-def run_migrations(
-    config: Config,
-    revision: str = "head"
-) -> None:
+def run_migrations(config: Config, revision: str = "head") -> None:
     """マイグレーションを実行（ユーティリティ関数）"""
     command.upgrade(config, revision)
 
@@ -216,7 +171,7 @@ def run_migrations(
 class AsyncMigrationManager:
     """非同期マイグレーション管理"""
 
-    def __init__(self, database_url: str, migrations_dir: Optional[Path] = None):
+    def __init__(self, database_url: str, migrations_dir: Path | None = None):
         self.manager = MigrationManager(database_url, migrations_dir)
 
     async def __aenter__(self):

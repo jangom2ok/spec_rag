@@ -1,11 +1,11 @@
 """認証・認可ミドルウェア"""
 
 import time
-from typing import Optional, List, Dict, Any
 from collections import defaultdict
-from fastapi import Request, HTTPException, status
-from fastapi.responses import JSONResponse
+
 import jwt
+from fastapi import HTTPException, Request, status
+from fastapi.responses import JSONResponse
 
 from app.core.auth import Permission
 
@@ -13,13 +13,13 @@ from app.core.auth import Permission
 class JWTAuthenticationMiddleware:
     """JWT認証ミドルウェア"""
 
-    def authenticate(self, request: Request) -> Optional[dict]:
+    def authenticate(self, request: Request) -> dict | None:
         """JWT認証を実行"""
         authorization = request.headers.get("Authorization")
         if not authorization:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authorization header missing"
+                detail="Authorization header missing",
             )
 
         try:
@@ -27,20 +27,21 @@ class JWTAuthenticationMiddleware:
             if scheme.lower() != "bearer":
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid authentication scheme"
+                    detail="Invalid authentication scheme",
                 )
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authorization header format"
+                detail="Invalid authorization header format",
             )
 
         # トークンブラックリストチェック
         from app.core.auth import is_token_blacklisted, verify_token
+
         if is_token_blacklisted(token):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has been revoked"
+                detail="Token has been revoked",
             )
 
         try:
@@ -48,34 +49,31 @@ class JWTAuthenticationMiddleware:
             return payload
         except jwt.ExpiredSignatureError:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
             )
         except jwt.InvalidTokenError:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
             )
 
 
 class APIKeyAuthenticationMiddleware:
     """API Key認証ミドルウェア"""
 
-    def authenticate(self, request: Request) -> Optional[dict]:
+    def authenticate(self, request: Request) -> dict | None:
         """API Key認証を実行"""
         api_key = request.headers.get("X-API-Key")
         if not api_key:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API key missing"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="API key missing"
             )
 
         from app.core.auth import validate_api_key
+
         api_key_info = validate_api_key(api_key)
         if not api_key_info:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API key"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
             )
 
         return api_key_info
@@ -88,7 +86,7 @@ class CombinedAuthenticationMiddleware:
         self.jwt_middleware = JWTAuthenticationMiddleware()
         self.api_key_middleware = APIKeyAuthenticationMiddleware()
 
-    def authenticate(self, request: Request) -> Optional[dict]:
+    def authenticate(self, request: Request) -> dict | None:
         """複合認証を実行（JWT優先、API Keyフォールバック）"""
         # まずJWT認証を試行
         try:
@@ -104,8 +102,7 @@ class CombinedAuthenticationMiddleware:
 
         # どちらも失敗した場合
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
         )
 
 
@@ -117,14 +114,14 @@ class PermissionMiddleware:
 
     def check_permission(self, request: Request) -> bool:
         """権限をチェック"""
-        user = getattr(request.state, 'user', None)
+        user = getattr(request.state, "user", None)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not authenticated"
+                detail="User not authenticated",
             )
 
-        user_permissions = user.get('permissions', [])
+        user_permissions = user.get("permissions", [])
 
         # 文字列をPermissionに変換
         try:
@@ -133,14 +130,14 @@ class PermissionMiddleware:
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Invalid permission format"
+                detail="Invalid permission format",
             )
 
         from app.core.auth import has_permission
+
         if not has_permission(user_perms, required_perm):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
             )
 
         return True
@@ -154,18 +151,17 @@ class RoleMiddleware:
 
     def check_role(self, request: Request) -> bool:
         """ロールをチェック"""
-        user = getattr(request.state, 'user', None)
+        user = getattr(request.state, "user", None)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not authenticated"
+                detail="User not authenticated",
             )
 
-        user_role = user.get('role')
+        user_role = user.get("role")
         if user_role != self.required_role:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient role"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role"
             )
 
         return True
@@ -180,7 +176,7 @@ class ResourcePermissionMiddleware:
 
     def check_resource_permission(self, request: Request) -> bool:
         """リソース権限をチェック"""
-        user = getattr(request.state, 'user', None)
+        user = getattr(request.state, "user", None)
         if not user:
             return False
 
@@ -189,6 +185,7 @@ class ResourcePermissionMiddleware:
 
         # check_user_resource_permission関数を呼び出し
         from app.core.auth import check_user_resource_permission
+
         return check_user_resource_permission(
             user_id, self.resource_type, resource_id, self.required_permission
         )
@@ -212,7 +209,8 @@ class RateLimitMiddleware:
 
         # 古いリクエスト記録を削除
         self.request_counts[client_id] = [
-            timestamp for timestamp in self.request_counts[client_id]
+            timestamp
+            for timestamp in self.request_counts[client_id]
             if current_time - timestamp < self.window_seconds
         ]
 
@@ -220,7 +218,7 @@ class RateLimitMiddleware:
         if len(self.request_counts[client_id]) >= self.max_requests:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Rate limit exceeded"
+                detail="Rate limit exceeded",
             )
 
         # 現在のリクエストを記録
@@ -261,7 +259,7 @@ class MiddlewareChain:
         """ミドルウェアを追加"""
         self.middleware.append((name, priority))
 
-    def get_ordered_middleware(self) -> List[str]:
+    def get_ordered_middleware(self) -> list[str]:
         """優先度順にミドルウェアを取得"""
         sorted_middleware = sorted(self.middleware, key=lambda x: x[1])
         return [name for name, _ in sorted_middleware]
@@ -270,7 +268,7 @@ class MiddlewareChain:
 class ConditionalMiddleware:
     """条件付きミドルウェア"""
 
-    def __init__(self, skip_paths: List[str] = None):
+    def __init__(self, skip_paths: list[str] = None):
         self.skip_paths = skip_paths or []
 
     def should_skip_authentication(self, request: Request) -> bool:
@@ -291,9 +289,9 @@ class ErrorHandlingMiddleware:
                     "code": "AUTHENTICATION_ERROR",
                     "message": str(exc.detail),
                     "type": "authentication",
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
                 }
-            }
+            },
         )
 
     def handle_authz_error(self, request: Request, exc: HTTPException) -> JSONResponse:
@@ -305,7 +303,7 @@ class ErrorHandlingMiddleware:
                     "code": "AUTHORIZATION_ERROR",
                     "message": str(exc.detail),
                     "type": "authorization",
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
                 }
-            }
+            },
         )

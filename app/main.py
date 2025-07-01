@@ -1,25 +1,21 @@
-from fastapi import FastAPI, Request, HTTPException
+import uuid
+from datetime import datetime
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from fastapi.security.utils import get_authorization_scheme_param
-from datetime import datetime
-import uuid
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from pymilvus.exceptions import MilvusException
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.api.auth import AuthenticationError, admin_router
+from app.api.auth import router as auth_router
+from app.api.documents import router as documents_router
+from app.api.health import router as health_router
+from app.api.search import router as search_router
 from app.core.exceptions import (
     RAGSystemException,
-    DatabaseException,
-    VectorDatabaseException
 )
-from app.api.auth import AuthenticationError
-from app.api.health import router as health_router
-from app.api.documents import router as documents_router
-from app.api.search import router as search_router
-from app.api.auth import router as auth_router
-from app.api.auth import admin_router
 
 
 def create_app() -> FastAPI:
@@ -34,7 +30,7 @@ def create_app() -> FastAPI:
         description="RAG (Retrieval-Augmented Generation) System API",
         openapi_url="/openapi.json",
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
     )
 
     # CORSミドルウェアの設定
@@ -73,11 +69,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": "NOT_FOUND",
                     "message": "Requested resource not found",
-                    "type": "not_found"
+                    "type": "not_found",
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(405)
@@ -88,15 +84,17 @@ def setup_error_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": "METHOD_NOT_ALLOWED",
                     "message": "Method not allowed for this endpoint",
-                    "type": "method_not_allowed"
+                    "type": "method_not_allowed",
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
         return JSONResponse(
             status_code=422,
             content={
@@ -104,11 +102,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                     "code": "VALIDATION_ERROR",
                     "message": "Validation error",
                     "type": "validation_error",
-                    "details": exc.errors()
+                    "details": exc.errors(),
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(HTTPException)
@@ -121,11 +119,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                     "error": {
                         "code": "AUTHENTICATION_ERROR",
                         "message": str(exc.detail),
-                        "type": "authentication"
+                        "type": "authentication",
                     },
                     "timestamp": datetime.utcnow().isoformat(),
-                    "request_id": str(uuid.uuid4())
-                }
+                    "request_id": str(uuid.uuid4()),
+                },
             )
         # 認可関連のHTTPExceptionの場合
         elif exc.status_code == 403:
@@ -135,11 +133,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                     "error": {
                         "code": "AUTHORIZATION_ERROR",
                         "message": str(exc.detail),
-                        "type": "authorization"
+                        "type": "authorization",
                     },
                     "timestamp": datetime.utcnow().isoformat(),
-                    "request_id": str(uuid.uuid4())
-                }
+                    "request_id": str(uuid.uuid4()),
+                },
             )
         # その他のHTTPExceptionはデフォルト処理
         return JSONResponse(
@@ -148,11 +146,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": "HTTP_ERROR",
                     "message": str(exc.detail),
-                    "type": "http_error"
+                    "type": "http_error",
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(SQLAlchemyError)
@@ -164,11 +162,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                     "error": {
                         "code": "CONSTRAINT_VIOLATION",
                         "message": "Database constraint violation",
-                        "type": "constraint_violation"
+                        "type": "constraint_violation",
                     },
                     "timestamp": datetime.utcnow().isoformat(),
-                    "request_id": str(uuid.uuid4())
-                }
+                    "request_id": str(uuid.uuid4()),
+                },
             )
 
         return JSONResponse(
@@ -177,11 +175,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": "DATABASE_ERROR",
                     "message": "Database operation failed",
-                    "type": "database_error"
+                    "type": "database_error",
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(MilvusException)
@@ -192,26 +190,28 @@ def setup_error_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": "VECTOR_DATABASE_ERROR",
                     "message": "Vector database operation failed",
-                    "type": "vector_database_error"
+                    "type": "vector_database_error",
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(AuthenticationError)
-    async def authentication_exception_handler(request: Request, exc: AuthenticationError):
+    async def authentication_exception_handler(
+        request: Request, exc: AuthenticationError
+    ):
         return JSONResponse(
             status_code=exc.status_code,
             content={
                 "error": {
                     "code": exc.error_code,
                     "message": str(exc.detail),
-                    "type": exc.error_type
+                    "type": exc.error_type,
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(RAGSystemException)
@@ -222,11 +222,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": exc.error_code,
                     "message": str(exc),
-                    "type": "rag_system_error"
+                    "type": "rag_system_error",
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
     @app.exception_handler(Exception)
@@ -237,11 +237,11 @@ def setup_error_handlers(app: FastAPI) -> None:
                 "error": {
                     "code": "INTERNAL_SERVER_ERROR",
                     "message": "Internal server error",
-                    "type": "internal_server_error"
+                    "type": "internal_server_error",
                 },
                 "timestamp": datetime.utcnow().isoformat(),
-                "request_id": str(uuid.uuid4())
-            }
+                "request_id": str(uuid.uuid4()),
+            },
         )
 
 

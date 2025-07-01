@@ -1,9 +1,10 @@
 """認証ミドルウェアのテスト"""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
-from fastapi import Request, HTTPException
 
 from app.main import app
 
@@ -21,8 +22,10 @@ class TestAuthenticationMiddleware:
 
         middleware = JWTAuthenticationMiddleware()
 
-        with patch('app.core.auth.verify_token') as mock_verify, \
-             patch('app.core.auth.is_token_blacklisted') as mock_blacklist:
+        with (
+            patch("app.core.auth.verify_token") as mock_verify,
+            patch("app.core.auth.is_token_blacklisted") as mock_blacklist,
+        ):
             mock_verify.return_value = {"sub": "test@example.com", "role": "user"}
             mock_blacklist.return_value = False
 
@@ -34,15 +37,16 @@ class TestAuthenticationMiddleware:
 
     def test_jwt_middleware_invalid_token(self):
         """無効なJWTトークンでのミドルウェアテスト"""
-        from app.core.middleware import JWTAuthenticationMiddleware
         from jwt import InvalidTokenError
+
+        from app.core.middleware import JWTAuthenticationMiddleware
 
         request = MagicMock()
         request.headers = {"Authorization": "Bearer invalid_jwt_token"}
 
         middleware = JWTAuthenticationMiddleware()
 
-        with patch('app.core.auth.verify_token') as mock_verify:
+        with patch("app.core.auth.verify_token") as mock_verify:
             mock_verify.side_effect = InvalidTokenError("Invalid token")
 
             with pytest.raises(HTTPException) as exc_info:
@@ -73,10 +77,10 @@ class TestAuthenticationMiddleware:
 
         middleware = APIKeyAuthenticationMiddleware()
 
-        with patch('app.core.auth.validate_api_key') as mock_validate:
+        with patch("app.core.auth.validate_api_key") as mock_validate:
             mock_validate.return_value = {
                 "user_id": "user123",
-                "permissions": ["read", "write"]
+                "permissions": ["read", "write"],
             }
 
             result = middleware.authenticate(request)
@@ -94,7 +98,7 @@ class TestAuthenticationMiddleware:
 
         middleware = APIKeyAuthenticationMiddleware()
 
-        with patch('app.core.auth.validate_api_key') as mock_validate:
+        with patch("app.core.auth.validate_api_key") as mock_validate:
             mock_validate.return_value = None
 
             with pytest.raises(HTTPException) as exc_info:
@@ -112,8 +116,10 @@ class TestAuthenticationMiddleware:
 
         middleware = CombinedAuthenticationMiddleware()
 
-        with patch('app.core.auth.verify_token') as mock_verify, \
-             patch('app.core.auth.is_token_blacklisted') as mock_blacklist:
+        with (
+            patch("app.core.auth.verify_token") as mock_verify,
+            patch("app.core.auth.is_token_blacklisted") as mock_blacklist,
+        ):
             mock_verify.return_value = {"sub": "test@example.com", "role": "user"}
             mock_blacklist.return_value = False
 
@@ -124,26 +130,26 @@ class TestAuthenticationMiddleware:
 
     def test_combined_auth_fallback_to_api_key(self):
         """複合認証でAPI Keyフォールバックのテスト"""
-        from app.core.middleware import CombinedAuthenticationMiddleware
         from jwt import InvalidTokenError
+
+        from app.core.middleware import CombinedAuthenticationMiddleware
 
         # JWT無効、API Key有効
         request = MagicMock()
         request.headers = {
             "Authorization": "Bearer invalid_jwt_token",
-            "X-API-Key": "ak_test_1234567890abcdef"
+            "X-API-Key": "ak_test_1234567890abcdef",
         }
 
         middleware = CombinedAuthenticationMiddleware()
 
-        with patch('app.core.auth.verify_token') as mock_verify, \
-             patch('app.core.auth.validate_api_key') as mock_validate:
+        with (
+            patch("app.core.auth.verify_token") as mock_verify,
+            patch("app.core.auth.validate_api_key") as mock_validate,
+        ):
 
             mock_verify.side_effect = InvalidTokenError("Invalid token")
-            mock_validate.return_value = {
-                "user_id": "user123",
-                "permissions": ["read"]
-            }
+            mock_validate.return_value = {"user_id": "user123", "permissions": ["read"]}
 
             result = middleware.authenticate(request)
 
@@ -159,10 +165,7 @@ class TestAuthorizationMiddleware:
         from app.core.middleware import PermissionMiddleware
 
         request = MagicMock()
-        request.state.user = {
-            "permissions": ["read", "write"],
-            "role": "editor"
-        }
+        request.state.user = {"permissions": ["read", "write"], "role": "editor"}
 
         middleware = PermissionMiddleware(required_permission="read")
 
@@ -175,10 +178,7 @@ class TestAuthorizationMiddleware:
         from app.core.middleware import PermissionMiddleware
 
         request = MagicMock()
-        request.state.user = {
-            "permissions": ["read"],
-            "role": "user"
-        }
+        request.state.user = {"permissions": ["read"], "role": "user"}
 
         middleware = PermissionMiddleware(required_permission="delete")
 
@@ -195,7 +195,7 @@ class TestAuthorizationMiddleware:
         request = MagicMock()
         request.state.user = {
             "role": "admin",
-            "permissions": ["read", "write", "delete", "admin"]
+            "permissions": ["read", "write", "delete", "admin"],
         }
 
         middleware = RoleMiddleware(required_role="admin")
@@ -209,10 +209,7 @@ class TestAuthorizationMiddleware:
         from app.core.middleware import RoleMiddleware
 
         request = MagicMock()
-        request.state.user = {
-            "role": "user",
-            "permissions": ["read"]
-        }
+        request.state.user = {"role": "user", "permissions": ["read"]}
 
         middleware = RoleMiddleware(required_role="admin")
 
@@ -231,19 +228,16 @@ class TestAuthorizationMiddleware:
         request.path_params = {"document_id": "doc123"}
 
         middleware = ResourcePermissionMiddleware(
-            resource_type="document",
-            required_permission="read"
+            resource_type="document", required_permission="read"
         )
 
-        with patch('app.core.auth.check_user_resource_permission') as mock_check:
+        with patch("app.core.auth.check_user_resource_permission") as mock_check:
             mock_check.return_value = True
 
             result = middleware.check_resource_permission(request)
             assert result is True
 
-            mock_check.assert_called_once_with(
-                "user123", "document", "doc123", "read"
-            )
+            mock_check.assert_called_once_with("user123", "document", "doc123", "read")
 
 
 class TestMiddlewareIntegration:
@@ -258,11 +252,11 @@ class TestMiddlewareIntegration:
         assert response.status_code == 401
 
         # 2. 有効なJWTトークンでアクセス（成功）
-        with patch('app.core.auth.verify_token') as mock_verify:
+        with patch("app.core.auth.verify_token") as mock_verify:
             mock_verify.return_value = {
                 "sub": "test@example.com",
                 "role": "user",
-                "permissions": ["read"]
+                "permissions": ["read"],
             }
 
             headers = {"Authorization": "Bearer valid_jwt_token"}
@@ -274,11 +268,11 @@ class TestMiddlewareIntegration:
         client = TestClient(app)
 
         # 読み取り権限のみのユーザー
-        with patch('app.core.auth.verify_token') as mock_verify:
+        with patch("app.core.auth.verify_token") as mock_verify:
             mock_verify.return_value = {
                 "sub": "readonly@example.com",
                 "role": "user",
-                "permissions": ["read"]
+                "permissions": ["read"],
             }
 
             headers = {"Authorization": "Bearer readonly_token"}
@@ -291,7 +285,7 @@ class TestMiddlewareIntegration:
             document_data = {
                 "title": "Test Document",
                 "content": "Test content",
-                "source_type": "test"
+                "source_type": "test",
             }
             response = client.post("/v1/documents", json=document_data, headers=headers)
             assert response.status_code == 403
@@ -326,7 +320,7 @@ class TestMiddlewareIntegration:
 
         middleware = TokenBlacklistMiddleware()
 
-        with patch('app.core.auth.is_token_blacklisted') as mock_blacklist:
+        with patch("app.core.auth.is_token_blacklisted") as mock_blacklist:
             mock_blacklist.return_value = True
 
             result = middleware.check_blacklist(request)
@@ -361,9 +355,7 @@ class TestMiddlewareConfiguration:
         request.url.path = "/v1/auth/login"
 
         # ログインエンドポイントでは認証不要
-        middleware = ConditionalMiddleware(
-            skip_paths=["/v1/auth/login", "/v1/health"]
-        )
+        middleware = ConditionalMiddleware(skip_paths=["/v1/auth/login", "/v1/health"])
 
         should_skip = middleware.should_skip_authentication(request)
         assert should_skip is True

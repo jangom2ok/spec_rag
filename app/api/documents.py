@@ -1,11 +1,10 @@
 """ドキュメント操作API"""
 
-from typing import Dict, Any, List, Optional, Union
 from enum import Enum
-from fastapi import APIRouter, HTTPException, Depends, Header
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
-from app.api.auth import get_current_user
 from app.core.auth import validate_api_key
 
 router = APIRouter(prefix="/v1/documents", tags=["documents"])
@@ -13,6 +12,7 @@ router = APIRouter(prefix="/v1/documents", tags=["documents"])
 
 class SourceType(str, Enum):
     """ソースタイプのEnum"""
+
     confluence = "confluence"
     jira = "jira"
     test = "test"
@@ -20,6 +20,7 @@ class SourceType(str, Enum):
 
 class DocumentCreate(BaseModel):
     """ドキュメント作成用のモデル"""
+
     title: str
     content: str
     source_type: SourceType
@@ -27,6 +28,7 @@ class DocumentCreate(BaseModel):
 
 class DocumentResponse(BaseModel):
     """ドキュメントレスポンス用のモデル"""
+
     id: str
     title: str
     content: str
@@ -35,12 +37,12 @@ class DocumentResponse(BaseModel):
 
 class DocumentList(BaseModel):
     """ドキュメント一覧レスポンス用のモデル"""
-    documents: List[DocumentResponse]
+
+    documents: list[DocumentResponse]
 
 
 async def get_current_user_or_api_key(
-    authorization: Optional[str] = Header(None),
-    x_api_key: Optional[str] = Header(None)
+    authorization: str | None = Header(None), x_api_key: str | None = Header(None)
 ) -> dict:
     """JWT認証またはAPI Key認証を試行"""
     # API Key認証を先に試行
@@ -50,21 +52,17 @@ async def get_current_user_or_api_key(
             return {
                 "user_id": api_key_info["user_id"],
                 "permissions": api_key_info["permissions"],
-                "auth_type": "api_key"
+                "auth_type": "api_key",
             }
 
     # JWT認証を試行
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
         try:
-            from app.api.auth import oauth2_scheme
-            from app.core.auth import verify_token, is_token_blacklisted, users_storage
+            from app.core.auth import is_token_blacklisted, users_storage, verify_token
 
             if is_token_blacklisted(token):
-                raise HTTPException(
-                    status_code=401,
-                    detail="Token has been revoked"
-                )
+                raise HTTPException(status_code=401, detail="Token has been revoked")
 
             payload = verify_token(token)
             email = payload.get("sub")
@@ -78,10 +76,7 @@ async def get_current_user_or_api_key(
         except Exception:
             pass
 
-    raise HTTPException(
-        status_code=401,
-        detail="Authentication required"
-    )
+    raise HTTPException(status_code=401, detail="Authentication required")
 
 
 @router.get("/", response_model=DocumentList)
@@ -93,52 +88,46 @@ async def list_documents(current_user: dict = Depends(get_current_user_or_api_ke
             id="doc1",
             title="Sample Document 1",
             content="Sample content 1",
-            source_type=SourceType.test
+            source_type=SourceType.test,
         ),
         DocumentResponse(
             id="doc2",
             title="Sample Document 2",
             content="Sample content 2",
-            source_type=SourceType.confluence
-        )
+            source_type=SourceType.confluence,
+        ),
     ]
     return DocumentList(documents=mock_documents)
 
 
 @router.post("/", response_model=DocumentResponse, status_code=201)
 async def create_document(
-    document: DocumentCreate,
-    current_user: dict = Depends(get_current_user_or_api_key)
+    document: DocumentCreate, current_user: dict = Depends(get_current_user_or_api_key)
 ):
     """ドキュメントを作成"""
     # 書き込み権限をチェック
     if "write" not in current_user.get("permissions", []):
-        raise HTTPException(
-            status_code=403,
-            detail="Write permission required"
-        )
+        raise HTTPException(status_code=403, detail="Write permission required")
 
     # 実装は後で追加
     return DocumentResponse(
         id="mock-id",
         title=document.title,
         content=document.content,
-        source_type=document.source_type
+        source_type=document.source_type,
     )
 
 
 @router.delete("/{document_id}")
 async def delete_document(
-    document_id: str,
-    current_user: dict = Depends(get_current_user_or_api_key)
+    document_id: str, current_user: dict = Depends(get_current_user_or_api_key)
 ):
     """ドキュメントを削除"""
     # 削除権限をチェック（管理者権限必要）
-    if "delete" not in current_user.get("permissions", []) and "admin" not in current_user.get("permissions", []):
-        raise HTTPException(
-            status_code=403,
-            detail="Delete permission required"
-        )
+    if "delete" not in current_user.get(
+        "permissions", []
+    ) and "admin" not in current_user.get("permissions", []):
+        raise HTTPException(status_code=403, detail="Delete permission required")
 
     # 実装は後で追加
     return {"message": f"Document {document_id} deleted successfully"}
@@ -146,8 +135,7 @@ async def delete_document(
 
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
-    document_id: str,
-    current_user: dict = Depends(get_current_user_or_api_key)
+    document_id: str, current_user: dict = Depends(get_current_user_or_api_key)
 ):
     """ドキュメントを取得"""
     # 実装は後で追加
@@ -156,6 +144,6 @@ async def get_document(
             id=document_id,
             title="Test Document",
             content="Test content",
-            source_type=SourceType.test
+            source_type=SourceType.test,
         )
     raise HTTPException(status_code=404, detail="Document not found")

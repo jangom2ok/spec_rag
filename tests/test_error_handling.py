@@ -1,21 +1,22 @@
 """エラーハンドリングのテスト"""
 
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from unittest.mock import patch, AsyncMock
-from sqlalchemy.exc import SQLAlchemyError
 from pymilvus.exceptions import MilvusException
+from sqlalchemy.exc import SQLAlchemyError
 
-from app.main import app
 from app.core.exceptions import (
-    RAGSystemException,
-    DatabaseException,
-    VectorDatabaseException,
-    ValidationException,
     AuthenticationException,
-    AuthorizationException
+    AuthorizationException,
+    DatabaseException,
+    RAGSystemException,
+    ValidationException,
+    VectorDatabaseException,
 )
+from app.main import app
 
 
 class TestCustomExceptions:
@@ -104,7 +105,7 @@ class TestErrorHandlers:
         response = client.post(
             "/v1/documents",
             json={"invalid": "data"},
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 422
@@ -116,7 +117,7 @@ class TestErrorHandlers:
 
     def test_500_internal_server_error_handler(self):
         """500内部サーバーエラーハンドラーのテスト"""
-        with patch('app.api.health.get_health_status') as mock_health:
+        with patch("app.api.health.get_health_status") as mock_health:
             mock_health.side_effect = Exception("Internal server error")
 
             client = TestClient(app)
@@ -133,7 +134,7 @@ class TestErrorHandlers:
 class TestDatabaseErrorHandling:
     """データベースエラーハンドリングのテストクラス"""
 
-    @patch('app.repositories.document_repository.DocumentRepository.get_by_id')
+    @patch("app.repositories.document_repository.DocumentRepository.get_by_id")
     def test_database_connection_error(self, mock_get):
         """データベース接続エラーのテスト"""
         mock_get.side_effect = SQLAlchemyError("Connection lost")
@@ -147,26 +148,24 @@ class TestDatabaseErrorHandling:
         assert data["error"]["code"] == "DATABASE_ERROR"
         assert "database" in data["error"]["message"].lower()
 
-    @patch('app.models.milvus.DenseVectorCollection.search')
+    @patch("app.models.milvus.DenseVectorCollection.search")
     def test_vector_database_error(self, mock_search):
         """ベクトルデータベースエラーのテスト"""
         mock_search.side_effect = MilvusException("Milvus connection failed")
 
         client = TestClient(app)
-        response = client.post(
-            "/v1/search",
-            json={"query": "test query", "top_k": 10}
-        )
+        response = client.post("/v1/search", json={"query": "test query", "top_k": 10})
 
         assert response.status_code == 500
         data = response.json()
 
         assert data["error"]["code"] == "VECTOR_DATABASE_ERROR"
 
-    @patch('app.repositories.document_repository.DocumentRepository.create')
+    @patch("app.repositories.document_repository.DocumentRepository.create")
     def test_database_constraint_violation(self, mock_create):
         """データベース制約違反エラーのテスト"""
         from sqlalchemy.exc import IntegrityError
+
         mock_create.side_effect = IntegrityError("", "", "")
 
         client = TestClient(app)
@@ -175,8 +174,8 @@ class TestDatabaseErrorHandling:
             json={
                 "title": "Test Document",
                 "content": "Test content",
-                "source_type": "test"
-            }
+                "source_type": "test",
+            },
         )
 
         assert response.status_code == 409
@@ -209,8 +208,8 @@ class TestValidationErrorHandling:
             json={
                 "title": 123,  # 文字列が期待されるが数値
                 "content": "Test content",
-                "source_type": "test"
-            }
+                "source_type": "test",
+            },
         )
 
         assert response.status_code == 422
@@ -227,8 +226,8 @@ class TestValidationErrorHandling:
             json={
                 "title": "Test Document",
                 "content": "Test content",
-                "source_type": "invalid_type"  # 無効なsource_type
-            }
+                "source_type": "invalid_type",  # 無効なsource_type
+            },
         )
 
         assert response.status_code == 422
@@ -243,7 +242,9 @@ class TestAsyncErrorHandling:
     @pytest.mark.asyncio
     async def test_async_database_error(self):
         """非同期データベースエラーのテスト"""
-        with patch('app.repositories.document_repository.DocumentRepository.get_by_id') as mock_get:
+        with patch(
+            "app.repositories.document_repository.DocumentRepository.get_by_id"
+        ) as mock_get:
             mock_get.side_effect = SQLAlchemyError("Async connection error")
 
             async with AsyncClient(app=app, base_url="http://test") as ac:
@@ -256,10 +257,9 @@ class TestAsyncErrorHandling:
     @pytest.mark.asyncio
     async def test_async_timeout_error(self):
         """非同期タイムアウトエラーのテスト"""
-        import asyncio
 
-        with patch('app.api.health.check_postgresql_connection') as mock_check:
-            mock_check.side_effect = asyncio.TimeoutError("Connection timeout")
+        with patch("app.api.health.check_postgresql_connection") as mock_check:
+            mock_check.side_effect = TimeoutError("Connection timeout")
 
             async with AsyncClient(app=app, base_url="http://test") as ac:
                 response = await ac.get("/v1/health/detailed")
@@ -297,7 +297,7 @@ class TestErrorResponseFormat:
         # 異なるエラータイプで同じ構造が返されることを確認
         responses = [
             client.get("/nonexistent"),  # 404
-            client.post("/v1/health"),   # 405
+            client.post("/v1/health"),  # 405
         ]
 
         for response in responses:

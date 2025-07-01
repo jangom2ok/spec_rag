@@ -1,10 +1,10 @@
 """JWT認証システムのテスト"""
 
-import pytest
-from datetime import datetime, timedelta
-from fastapi.testclient import TestClient
-from unittest.mock import patch
+from datetime import timedelta
+
 import jwt
+import pytest
+from fastapi.testclient import TestClient
 
 from app.main import app
 
@@ -23,7 +23,7 @@ class TestJWTAuthentication:
         assert len(token) > 0
 
         # トークンの構造確認
-        parts = token.split('.')
+        parts = token.split(".")
         assert len(parts) == 3  # header.payload.signature
 
     def test_jwt_token_verification(self):
@@ -78,7 +78,7 @@ class TestJWTAuthentication:
         user_data = {
             "sub": "test@example.com",
             "role": "admin",
-            "permissions": ["read", "write"]
+            "permissions": ["read", "write"],
         }
         token = create_access_token(user_data)
         payload = verify_token(token)
@@ -95,10 +95,7 @@ class TestJWTAuthenticationAPI:
         """ログインエンドポイントのテスト"""
         client = TestClient(app)
 
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
 
         response = client.post("/v1/auth/login", data=login_data)
 
@@ -114,10 +111,7 @@ class TestJWTAuthenticationAPI:
         """無効な認証情報でのログインテスト"""
         client = TestClient(app)
 
-        login_data = {
-            "username": "invalid@example.com",
-            "password": "wrongpassword"
-        }
+        login_data = {"username": "invalid@example.com", "password": "wrongpassword"}
 
         response = client.post("/v1/auth/login", data=login_data)
 
@@ -130,10 +124,7 @@ class TestJWTAuthenticationAPI:
         client = TestClient(app)
 
         # まずログインしてリフレッシュトークンを取得
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         refresh_token = login_response.json()["refresh_token"]
 
@@ -151,10 +142,7 @@ class TestJWTAuthenticationAPI:
         client = TestClient(app)
 
         # ログイン
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -171,10 +159,7 @@ class TestJWTAuthenticationAPI:
         client = TestClient(app)
 
         # ログインしてトークン取得
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -233,10 +218,7 @@ class TestJWTTokenBlacklist:
         client = TestClient(app)
 
         # ログインしてトークン取得
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 

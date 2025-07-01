@@ -1,8 +1,8 @@
 """RBAC権限管理のテスト"""
 
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import patch
+
+from fastapi.testclient import TestClient
 
 from app.main import app
 
@@ -12,7 +12,7 @@ class TestRBACSystem:
 
     def test_role_definition(self):
         """ロール定義のテスト"""
-        from app.core.auth import Role, Permission
+        from app.core.auth import Permission, Role
 
         # 管理者ロール
         admin_role = Role(
@@ -21,8 +21,8 @@ class TestRBACSystem:
                 Permission.READ,
                 Permission.WRITE,
                 Permission.DELETE,
-                Permission.ADMIN
-            ]
+                Permission.ADMIN,
+            ],
         )
 
         assert admin_role.name == "admin"
@@ -32,7 +32,7 @@ class TestRBACSystem:
 
     def test_permission_check(self):
         """権限チェックのテスト"""
-        from app.core.auth import has_permission, Permission
+        from app.core.auth import Permission, has_permission
 
         user_permissions = [Permission.READ, Permission.WRITE]
 
@@ -46,7 +46,7 @@ class TestRBACSystem:
 
     def test_role_hierarchy(self):
         """ロール階層のテスト"""
-        from app.core.auth import get_effective_permissions, Role, Permission
+        from app.core.auth import Permission, Role, get_effective_permissions
 
         # 基本ユーザーロール
         user_role = Role("user", [Permission.READ])
@@ -55,7 +55,9 @@ class TestRBACSystem:
         editor_role = Role("editor", [Permission.WRITE], parent=user_role)
 
         # 管理者ロール（エディター権限を継承）
-        admin_role = Role("admin", [Permission.DELETE, Permission.ADMIN], parent=editor_role)
+        admin_role = Role(
+            "admin", [Permission.DELETE, Permission.ADMIN], parent=editor_role
+        )
 
         # 有効権限の確認
         admin_permissions = get_effective_permissions(admin_role)
@@ -67,20 +69,32 @@ class TestRBACSystem:
 
     def test_resource_based_permissions(self):
         """リソースベース権限のテスト"""
-        from app.core.auth import check_resource_permission, ResourcePermission
+        from app.core.auth import ResourcePermission, check_resource_permission
 
         # ドキュメントリソースの権限
         doc_permission = ResourcePermission(
             resource_type="document",
             resource_id="doc123",
-            permissions=["read", "write"]
+            permissions=["read", "write"],
         )
 
         # 権限チェック
-        assert check_resource_permission(doc_permission, "document", "doc123", "read") is True
-        assert check_resource_permission(doc_permission, "document", "doc123", "write") is True
-        assert check_resource_permission(doc_permission, "document", "doc123", "delete") is False
-        assert check_resource_permission(doc_permission, "document", "doc456", "read") is False
+        assert (
+            check_resource_permission(doc_permission, "document", "doc123", "read")
+            is True
+        )
+        assert (
+            check_resource_permission(doc_permission, "document", "doc123", "write")
+            is True
+        )
+        assert (
+            check_resource_permission(doc_permission, "document", "doc123", "delete")
+            is False
+        )
+        assert (
+            check_resource_permission(doc_permission, "document", "doc456", "read")
+            is False
+        )
 
 
 class TestRBACAPI:
@@ -91,10 +105,7 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # 管理者でログイン
-        login_data = {
-            "username": "admin@example.com",
-            "password": "adminpassword"
-        }
+        login_data = {"username": "admin@example.com", "password": "adminpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -109,10 +120,7 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # 一般ユーザーでログイン
-        login_data = {
-            "username": "user@example.com",
-            "password": "userpassword"
-        }
+        login_data = {"username": "user@example.com", "password": "userpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -129,10 +137,7 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # エディターでログイン
-        login_data = {
-            "username": "editor@example.com",
-            "password": "editorpassword"
-        }
+        login_data = {"username": "editor@example.com", "password": "editorpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -145,7 +150,7 @@ class TestRBACAPI:
         document_data = {
             "title": "Test Document",
             "content": "Test content",
-            "source_type": "test"
+            "source_type": "test",
         }
         response = client.post("/v1/documents", json=document_data, headers=headers)
         assert response.status_code == 201
@@ -159,19 +164,13 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # 管理者でログイン
-        login_data = {
-            "username": "admin@example.com",
-            "password": "adminpassword"
-        }
+        login_data = {"username": "admin@example.com", "password": "adminpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
 
         # ユーザーにロール割り当て
-        role_data = {
-            "user_id": "user123",
-            "role": "editor"
-        }
+        role_data = {"user_id": "user123", "role": "editor"}
         response = client.post("/v1/admin/users/roles", json=role_data, headers=headers)
 
         assert response.status_code == 200
@@ -183,10 +182,7 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # 階層ロールを持つユーザーでログイン
-        login_data = {
-            "username": "manager@example.com",
-            "password": "managerpassword"
-        }
+        login_data = {"username": "manager@example.com", "password": "managerpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -199,7 +195,7 @@ class TestRBACAPI:
         document_data = {
             "title": "Manager Document",
             "content": "Manager content",
-            "source_type": "test"
+            "source_type": "test",
         }
         response = client.post("/v1/documents", json=document_data, headers=headers)
         assert response.status_code == 201
@@ -214,14 +210,14 @@ class TestRBACMiddleware:
 
     def test_permission_decorator(self):
         """権限デコレーターのテスト"""
-        from app.core.auth import require_permission, Permission
+        from app.core.auth import Permission, require_permission
 
         @require_permission(Permission.ADMIN)
         def admin_only_function():
             return "admin access granted"
 
         # 管理者権限を持つユーザー
-        with patch('app.core.auth.get_current_user_permissions') as mock_perms:
+        with patch("app.core.auth.get_current_user_permissions") as mock_perms:
             mock_perms.return_value = [Permission.ADMIN, Permission.READ]
             result = admin_only_function()
             assert result == "admin access granted"
@@ -235,7 +231,7 @@ class TestRBACMiddleware:
             return "admin role access granted"
 
         # 管理者ロールを持つユーザー
-        with patch('app.core.auth.get_current_user_role') as mock_role:
+        with patch("app.core.auth.get_current_user_role") as mock_role:
             mock_role.return_value = "admin"
             result = admin_only_function()
             assert result == "admin role access granted"
@@ -249,7 +245,7 @@ class TestRBACMiddleware:
             return f"reading document {doc_id}"
 
         # ドキュメント読み取り権限を持つユーザー
-        with patch('app.core.auth.check_user_resource_permission') as mock_check:
+        with patch("app.core.auth.check_user_resource_permission") as mock_check:
             mock_check.return_value = True
             result = read_document("doc123")
             assert result == "reading document doc123"
@@ -274,7 +270,7 @@ class TestRBACDatabase:
 
     def test_role_permissions_storage(self):
         """ロール権限保存のテスト"""
-        from app.core.auth import create_role, get_role_permissions, Permission
+        from app.core.auth import Permission, create_role, get_role_permissions
 
         role_name = "custom_role"
         permissions = [Permission.READ, Permission.WRITE]
@@ -289,7 +285,10 @@ class TestRBACDatabase:
 
     def test_resource_permissions_storage(self):
         """リソース権限保存のテスト"""
-        from app.core.auth import grant_resource_permission, check_user_resource_permission
+        from app.core.auth import (
+            check_user_resource_permission,
+            grant_resource_permission,
+        )
 
         user_id = "user123"
         resource_type = "document"
@@ -300,7 +299,9 @@ class TestRBACDatabase:
         grant_resource_permission(user_id, resource_type, resource_id, permission)
 
         # リソース権限確認
-        has_permission = check_user_resource_permission(user_id, resource_type, resource_id, permission)
+        has_permission = check_user_resource_permission(
+            user_id, resource_type, resource_id, permission
+        )
         assert has_permission is True
 
 
@@ -315,16 +316,13 @@ class TestRBACIntegration:
         register_data = {
             "email": "newuser@example.com",
             "password": "newpassword",
-            "role": "user"
+            "role": "user",
         }
         response = client.post("/v1/auth/register", json=register_data)
         assert response.status_code == 201
 
         # 2. ログイン
-        login_data = {
-            "username": "newuser@example.com",
-            "password": "newpassword"
-        }
+        login_data = {"username": "newuser@example.com", "password": "newpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -338,26 +336,22 @@ class TestRBACIntegration:
         assert response.status_code == 403
 
         # 5. 管理者がロール変更
-        admin_login = {
-            "username": "admin@example.com",
-            "password": "adminpassword"
-        }
+        admin_login = {"username": "admin@example.com", "password": "adminpassword"}
         admin_response = client.post("/v1/auth/login", data=admin_login)
         admin_token = admin_response.json()["access_token"]
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
 
-        role_change = {
-            "user_email": "newuser@example.com",
-            "role": "editor"
-        }
-        response = client.put("/v1/admin/users/role", json=role_change, headers=admin_headers)
+        role_change = {"user_email": "newuser@example.com", "role": "editor"}
+        response = client.put(
+            "/v1/admin/users/role", json=role_change, headers=admin_headers
+        )
         assert response.status_code == 200
 
         # 6. 新しい権限でのアクセス
         document_data = {
             "title": "New User Document",
             "content": "Content from upgraded user",
-            "source_type": "test"
+            "source_type": "test",
         }
         response = client.post("/v1/documents", json=document_data, headers=headers)
         assert response.status_code == 201

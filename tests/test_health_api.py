@@ -1,9 +1,10 @@
 """ヘルスチェックAPIのテスト"""
 
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from unittest.mock import AsyncMock, patch
 
 from app.main import app
 
@@ -89,7 +90,7 @@ class TestDetailedHealthCheck:
         assert "postgresql" in services
         assert "milvus" in services
 
-    @patch('app.api.health.check_postgresql_connection')
+    @patch("app.api.health.check_postgresql_connection")
     async def test_postgresql_connection_check(self, mock_pg_check):
         """PostgreSQL接続チェックのテスト"""
         mock_pg_check.return_value = {"status": "healthy", "response_time": 0.05}
@@ -104,7 +105,7 @@ class TestDetailedHealthCheck:
         assert postgresql_status["status"] == "healthy"
         assert "response_time" in postgresql_status
 
-    @patch('app.api.health.check_milvus_connection')
+    @patch("app.api.health.check_milvus_connection")
     async def test_milvus_connection_check(self, mock_milvus_check):
         """Milvus接続チェックのテスト"""
         mock_milvus_check.return_value = {"status": "healthy", "collections": 2}
@@ -123,7 +124,7 @@ class TestDetailedHealthCheck:
 class TestHealthCheckErrorScenarios:
     """ヘルスチェックエラーシナリオのテストクラス"""
 
-    @patch('app.api.health.check_postgresql_connection')
+    @patch("app.api.health.check_postgresql_connection")
     def test_postgresql_connection_failure(self, mock_pg_check):
         """PostgreSQL接続失敗時のテスト"""
         mock_pg_check.side_effect = Exception("Connection failed")
@@ -131,14 +132,16 @@ class TestHealthCheckErrorScenarios:
         client = TestClient(app)
         response = client.get("/v1/health/detailed")
 
-        assert response.status_code == 200  # ヘルスチェックAPIは200を返すが、ステータスで異常を示す
+        assert (
+            response.status_code == 200
+        )  # ヘルスチェックAPIは200を返すが、ステータスで異常を示す
         data = response.json()
 
         assert data["status"] in ["unhealthy", "degraded"]
         postgresql_status = data["services"]["postgresql"]
         assert postgresql_status["status"] == "unhealthy"
 
-    @patch('app.api.health.check_milvus_connection')
+    @patch("app.api.health.check_milvus_connection")
     def test_milvus_connection_failure(self, mock_milvus_check):
         """Milvus接続失敗時のテスト"""
         mock_milvus_check.side_effect = Exception("Milvus connection failed")

@@ -4,7 +4,9 @@
 class RAGSystemException(Exception):
     """RAGシステム基底例外クラス"""
 
-    def __init__(self, message: str, error_code: str = "RAG_SYSTEM_ERROR", status_code: int = 500):
+    def __init__(
+        self, message: str, error_code: str = "RAG_SYSTEM_ERROR", status_code: int = 500
+    ):
         super().__init__(message)
         self.error_code = error_code
         self.status_code = status_code

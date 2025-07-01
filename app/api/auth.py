@@ -1,19 +1,25 @@
 """認証エンドポイント"""
 
 from datetime import datetime, timedelta
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Form
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 
 from app.core.auth import (
-    create_access_token, create_refresh_token, verify_token,
-    authenticate_user, add_token_to_blacklist, get_password_hash,
-    generate_api_key, store_api_key, get_api_key_info, validate_api_key,
-    users_storage, api_keys_storage, is_token_blacklisted
+    add_token_to_blacklist,
+    api_keys_storage,
+    authenticate_user,
+    create_access_token,
+    create_refresh_token,
+    generate_api_key,
+    get_password_hash,
+    is_token_blacklisted,
+    store_api_key,
+    users_storage,
+    verify_token,
 )
-
 
 router = APIRouter(prefix="/v1/auth", tags=["authentication"])
 
@@ -23,6 +29,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
 # Pydanticモデル定義
 class UserRegister(BaseModel):
     """ユーザー登録モデル"""
+
     email: EmailStr
     password: str
     role: str = "user"
@@ -30,6 +37,7 @@ class UserRegister(BaseModel):
 
 class TokenResponse(BaseModel):
     """トークンレスポンスモデル"""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -38,49 +46,53 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     """リフレッシュトークンリクエストモデル"""
+
     refresh_token: str
 
 
 class UserProfile(BaseModel):
     """ユーザープロファイルモデル"""
+
     email: str
     role: str
-    permissions: List[str]
+    permissions: list[str]
 
 
 class APIKeyCreate(BaseModel):
     """API Key作成リクエストモデル"""
+
     name: str
-    permissions: List[str]
+    permissions: list[str]
 
 
 class APIKeyResponse(BaseModel):
     """API Keyレスポンスモデル"""
+
     id: str
     api_key: str
     name: str
-    permissions: List[str]
+    permissions: list[str]
     created_at: datetime
 
 
 class APIKeyList(BaseModel):
     """API Key一覧レスポンスモデル"""
-    api_keys: List[dict]
+
+    api_keys: list[dict]
 
 
 class MessageResponse(BaseModel):
     """メッセージレスポンスモデル"""
+
     message: str
 
 
 # 依存性注入関数
 class AuthenticationError(HTTPException):
     """認証エラー例外"""
+
     def __init__(self, message: str = "Authentication failed"):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=message
-        )
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
         self.error_code = "AUTHENTICATION_ERROR"
         self.error_type = "authentication"
 
@@ -112,14 +124,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 
 
 # 認証エンドポイント
-@router.post("/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED
+)
 async def register_user(user_data: UserRegister):
     """ユーザー登録"""
     # ユーザーが既に存在するかチェック
     if user_data.email in users_storage:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User already exists"
+            status_code=status.HTTP_409_CONFLICT, detail="User already exists"
         )
 
     # パスワードハッシュ化
@@ -139,7 +152,7 @@ async def register_user(user_data: UserRegister):
     users_storage[user_data.email] = {
         "password": hashed_password,
         "role": user_data.role,
-        "permissions": permissions
+        "permissions": permissions,
     }
 
     return MessageResponse(message="User registered successfully")
@@ -156,9 +169,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
                 "error": {
                     "code": "AUTHENTICATION_ERROR",
                     "message": "Incorrect email or password",
-                    "type": "authentication"
+                    "type": "authentication",
                 }
-            }
+            },
         )
 
     # トークンを生成
@@ -167,9 +180,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         data={
             "sub": user["email"],
             "role": user["role"],
-            "permissions": user["permissions"]
+            "permissions": user["permissions"],
         },
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
     )
 
     refresh_token = create_refresh_token(data={"sub": user["email"]})
@@ -178,7 +191,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        expires_in=1800
+        expires_in=1800,
     )
 
 
@@ -191,15 +204,13 @@ async def refresh_token(request: RefreshTokenRequest):
 
         if email is None:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
             )
 
         user = users_storage.get(email)
         if user is None:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
             )
 
         # 新しいアクセストークンを生成
@@ -208,27 +219,28 @@ async def refresh_token(request: RefreshTokenRequest):
             data={
                 "sub": email,
                 "role": user["role"],
-                "permissions": user["permissions"]
+                "permissions": user["permissions"],
             },
-            expires_delta=access_token_expires
+            expires_delta=access_token_expires,
         )
 
         return TokenResponse(
             access_token=access_token,
             refresh_token=request.refresh_token,  # リフレッシュトークンは再利用
             token_type="bearer",
-            expires_in=1800
+            expires_in=1800,
         )
 
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
 
 @router.post("/logout", response_model=MessageResponse)
-async def logout(current_user: dict = Depends(get_current_user), token: str = Depends(oauth2_scheme)):
+async def logout(
+    current_user: dict = Depends(get_current_user), token: str = Depends(oauth2_scheme)
+):
     """ログアウト"""
     # トークンをブラックリストに追加
     add_token_to_blacklist(token)
@@ -242,15 +254,16 @@ async def get_user_profile(current_user: dict = Depends(get_current_user)):
     return UserProfile(
         email=current_user["email"],
         role=current_user["role"],
-        permissions=current_user["permissions"]
+        permissions=current_user["permissions"],
     )
 
 
 # API Key管理エンドポイント
-@router.post("/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_api_key(
-    api_key_data: APIKeyCreate,
-    current_user: dict = Depends(get_current_user)
+    api_key_data: APIKeyCreate, current_user: dict = Depends(get_current_user)
 ):
     """API Key作成"""
     # 管理者権限をチェック（API Key認証の場合は権限リストを直接チェック）
@@ -258,7 +271,7 @@ async def create_api_key(
     if "admin" not in user_permissions and "write" not in user_permissions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin or write permission required"
+            detail="Admin or write permission required",
         )
 
     # API Keyを生成
@@ -271,7 +284,7 @@ async def create_api_key(
         "name": api_key_data.name,
         "permissions": api_key_data.permissions,
         "user_id": current_user["email"],
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow(),
     }
 
     store_api_key(api_key_info)
@@ -281,7 +294,7 @@ async def create_api_key(
         api_key=api_key,
         name=api_key_info["name"],
         permissions=api_key_info["permissions"],
-        created_at=api_key_info["created_at"]
+        created_at=api_key_info["created_at"],
     )
 
 
@@ -302,8 +315,7 @@ async def list_api_keys(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/api-keys/{api_key_id}", response_model=MessageResponse)
 async def revoke_api_key(
-    api_key_id: str,
-    current_user: dict = Depends(get_current_user)
+    api_key_id: str, current_user: dict = Depends(get_current_user)
 ):
     """API Key無効化"""
     # API Keyを検索
@@ -315,17 +327,16 @@ async def revoke_api_key(
 
     if not api_key_to_revoke:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="API key not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
         )
 
     # 所有権をチェック
     api_key_info = api_keys_storage[api_key_to_revoke]
-    if (api_key_info.get("user_id") != current_user["email"] and
-        "admin" not in current_user.get("permissions", [])):
+    if api_key_info.get("user_id") != current_user[
+        "email"
+    ] and "admin" not in current_user.get("permissions", []):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permission denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied"
         )
 
     # API Keyを削除
@@ -337,36 +348,36 @@ async def revoke_api_key(
 # 管理者エンドポイント用の別ルーター
 admin_router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
+
 @admin_router.get("/users")
 async def list_users(current_user: dict = Depends(get_current_user)):
     """ユーザー一覧取得（管理者のみ）"""
     if "admin" not in current_user.get("permissions", []):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin permission required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin permission required"
         )
 
     users = []
     for email, user_info in users_storage.items():
-        users.append({
-            "email": email,
-            "role": user_info["role"],
-            "permissions": user_info["permissions"]
-        })
+        users.append(
+            {
+                "email": email,
+                "role": user_info["role"],
+                "permissions": user_info["permissions"],
+            }
+        )
 
     return {"users": users}
 
 
 @admin_router.post("/users/roles")
 async def assign_user_role(
-    role_data: dict,
-    current_user: dict = Depends(get_current_user)
+    role_data: dict, current_user: dict = Depends(get_current_user)
 ):
     """ユーザーロール割り当て（管理者のみ）"""
     if "admin" not in current_user.get("permissions", []):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin permission required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin permission required"
         )
 
     user_id = role_data.get("user_id")
@@ -379,14 +390,12 @@ async def assign_user_role(
 
 @admin_router.put("/users/role")
 async def change_user_role(
-    role_change: dict,
-    current_user: dict = Depends(get_current_user)
+    role_change: dict, current_user: dict = Depends(get_current_user)
 ):
     """ユーザーロール変更（管理者のみ）"""
     if "admin" not in current_user.get("permissions", []):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin permission required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin permission required"
         )
 
     user_email = role_change.get("user_email")
@@ -394,8 +403,7 @@ async def change_user_role(
 
     if user_email not in users_storage:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # ロールに応じた権限を設定
@@ -420,7 +428,7 @@ async def get_team_info(current_user: dict = Depends(get_current_user)):
     if user_role not in ["manager", "admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Manager or admin permission required"
+            detail="Manager or admin permission required",
         )
 
     return {"team": "development", "members": 5}

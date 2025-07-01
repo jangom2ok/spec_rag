@@ -57,7 +57,7 @@ class TestAppConfiguration:
         """デバッグモードの設定テスト"""
         test_app = create_app()
         # 開発環境ではデバッグモードが有効
-        assert hasattr(test_app, 'debug')
+        assert hasattr(test_app, "debug")
 
     def test_api_prefix(self):
         """APIプレフィックスの設定テスト"""

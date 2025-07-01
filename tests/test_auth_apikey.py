@@ -1,8 +1,6 @@
 """API Key認証のテスト"""
 
-import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
 
 from app.main import app
 
@@ -18,7 +16,7 @@ class TestAPIKeyAuthentication:
 
         assert isinstance(api_key, str)
         assert len(api_key) >= 32  # 最低32文字
-        assert api_key.isalnum() or '-' in api_key or '_' in api_key
+        assert api_key.isalnum() or "-" in api_key or "_" in api_key
 
     def test_api_key_validation(self):
         """API Key検証のテスト"""
@@ -49,19 +47,14 @@ class TestAPIKeyAuthentication:
         valid_formats = [
             "ak_test_1234567890abcdef",
             "ak_prod_abcdef1234567890",
-            "ak_dev_0123456789abcdef"
+            "ak_dev_0123456789abcdef",
         ]
 
         for key in valid_formats:
             assert is_valid_api_key_format(key) is True
 
         # 無効なフォーマット
-        invalid_formats = [
-            "invalid_key",
-            "ak_",
-            "test_1234",
-            "ak_test_short"
-        ]
+        invalid_formats = ["invalid_key", "ak_", "test_1234", "ak_test_short"]
 
         for key in invalid_formats:
             assert is_valid_api_key_format(key) is False
@@ -75,19 +68,13 @@ class TestAPIKeyAuthenticationAPI:
         client = TestClient(app)
 
         # JWT認証でログイン
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
         # API Key作成
         headers = {"Authorization": f"Bearer {access_token}"}
-        api_key_data = {
-            "name": "Test API Key",
-            "permissions": ["read", "write"]
-        }
+        api_key_data = {"name": "Test API Key", "permissions": ["read", "write"]}
         response = client.post("/v1/auth/api-keys", json=api_key_data, headers=headers)
 
         assert response.status_code == 201
@@ -102,10 +89,7 @@ class TestAPIKeyAuthenticationAPI:
         client = TestClient(app)
 
         # JWT認証でログイン
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -123,20 +107,16 @@ class TestAPIKeyAuthenticationAPI:
         client = TestClient(app)
 
         # JWT認証でログイン
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
         # API Key作成
         headers = {"Authorization": f"Bearer {access_token}"}
-        api_key_data = {
-            "name": "Test API Key",
-            "permissions": ["read"]
-        }
-        create_response = client.post("/v1/auth/api-keys", json=api_key_data, headers=headers)
+        api_key_data = {"name": "Test API Key", "permissions": ["read"]}
+        create_response = client.post(
+            "/v1/auth/api-keys", json=api_key_data, headers=headers
+        )
         api_key_id = create_response.json()["id"]
 
         # API Key無効化
@@ -182,7 +162,7 @@ class TestAPIKeyAuthenticationAPI:
         document_data = {
             "title": "Test Document",
             "content": "Test content",
-            "source_type": "test"
+            "source_type": "test",
         }
         response = client.post("/v1/documents", json=document_data, headers=headers)
         assert response.status_code == 403
@@ -195,13 +175,13 @@ class TestAPIKeyManagement:
 
     def test_api_key_storage(self):
         """API Key保存のテスト"""
-        from app.core.auth import store_api_key, get_api_key_info
+        from app.core.auth import get_api_key_info, store_api_key
 
         api_key_data = {
             "key": "ak_test_1234567890abcdef",
             "user_id": "user123",
             "name": "Test Key",
-            "permissions": ["read", "write"]
+            "permissions": ["read", "write"],
         }
 
         store_api_key(api_key_data)
@@ -214,8 +194,9 @@ class TestAPIKeyManagement:
 
     def test_api_key_expiration(self):
         """API Key有効期限のテスト"""
-        from app.core.auth import create_api_key_with_expiration, is_api_key_expired
         from datetime import datetime, timedelta
+
+        from app.core.auth import create_api_key_with_expiration, is_api_key_expired
 
         # 1時間後に期限切れのAPI Key
         expiration = datetime.utcnow() + timedelta(hours=1)
@@ -231,7 +212,7 @@ class TestAPIKeyManagement:
 
     def test_api_key_usage_tracking(self):
         """API Key使用状況追跡のテスト"""
-        from app.core.auth import track_api_key_usage, get_api_key_usage_stats
+        from app.core.auth import get_api_key_usage_stats, track_api_key_usage
 
         api_key = "ak_test_1234567890abcdef"
 

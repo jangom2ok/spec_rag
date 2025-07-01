@@ -3,10 +3,8 @@
 import asyncio
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
-import numpy as np
 from pydantic import BaseModel, Field
 from pymilvus import (
     Collection,
@@ -26,17 +24,17 @@ class VectorData(BaseModel):
     chunk_id: str = Field(..., description="チャンクID")
 
     # Dense vector用
-    vector: Optional[List[float]] = Field(None, description="Dense vector")
+    vector: list[float] | None = Field(None, description="Dense vector")
 
     # Sparse vector用
-    sparse_vector: Optional[Dict[int, float]] = Field(None, description="Sparse vector")
-    vocabulary_size: Optional[int] = Field(None, description="語彙サイズ")
+    sparse_vector: dict[int, float] | None = Field(None, description="Sparse vector")
+    vocabulary_size: int | None = Field(None, description="語彙サイズ")
 
     # メタデータ
-    chunk_type: Optional[str] = Field(None, description="チャンクタイプ")
-    source_type: Optional[str] = Field(None, description="ソースタイプ")
-    language: Optional[str] = Field("ja", description="言語")
-    created_at: Optional[int] = Field(None, description="作成時刻（UnixTime）")
+    chunk_type: str | None = Field(None, description="チャンクタイプ")
+    source_type: str | None = Field(None, description="ソースタイプ")
+    language: str | None = Field("ja", description="言語")
+    created_at: int | None = Field(None, description="作成時刻（UnixTime）")
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -51,17 +49,13 @@ class MilvusCollection(ABC):
         self.host = host
         self.port = port
         self.collection_name = self.get_collection_name()
-        self.collection: Optional[Collection] = None
+        self.collection: Collection | None = None
         self.connect()
 
     def connect(self) -> None:
         """Milvusに接続"""
         try:
-            connections.connect(
-                alias="default",
-                host=self.host,
-                port=self.port
-            )
+            connections.connect(alias="default", host=self.host, port=self.port)
             self._initialize_collection()
         except Exception as e:
             print(f"Milvus接続エラー: {e}")
@@ -72,16 +66,12 @@ class MilvusCollection(ABC):
         if not utility.has_collection(self.collection_name):
             # コレクションが存在しない場合は作成
             schema = self._create_schema()
-            self.collection = Collection(
-                name=self.collection_name,
-                schema=schema
-            )
+            self.collection = Collection(name=self.collection_name, schema=schema)
 
             # インデックスを作成
             index_config = self.get_index_config()
             self.collection.create_index(
-                field_name=self.get_vector_field_name(),
-                index_params=index_config
+                field_name=self.get_vector_field_name(), index_params=index_config
             )
         else:
             # 既存のコレクションを使用
@@ -93,12 +83,12 @@ class MilvusCollection(ABC):
         pass
 
     @abstractmethod
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         """スキーマ定義を取得"""
         pass
 
     @abstractmethod
-    def get_index_config(self) -> Dict[str, Any]:
+    def get_index_config(self) -> dict[str, Any]:
         """インデックス設定を取得"""
         pass
 
@@ -118,40 +108,32 @@ class MilvusCollection(ABC):
                     name=field_config["name"],
                     dtype=DataType.VARCHAR,
                     max_length=field_config["max_length"],
-                    is_primary=field_config.get("is_primary", False)
+                    is_primary=field_config.get("is_primary", False),
                 )
             elif field_config["type"] == "FLOAT_VECTOR":
                 field = FieldSchema(
                     name=field_config["name"],
                     dtype=DataType.FLOAT_VECTOR,
-                    dim=field_config["dim"]
+                    dim=field_config["dim"],
                 )
             elif field_config["type"] == "SPARSE_FLOAT_VECTOR":
                 field = FieldSchema(
-                    name=field_config["name"],
-                    dtype=DataType.SPARSE_FLOAT_VECTOR
+                    name=field_config["name"], dtype=DataType.SPARSE_FLOAT_VECTOR
                 )
             elif field_config["type"] == "INT64":
-                field = FieldSchema(
-                    name=field_config["name"],
-                    dtype=DataType.INT64
-                )
+                field = FieldSchema(name=field_config["name"], dtype=DataType.INT64)
             elif field_config["type"] == "INT32":
-                field = FieldSchema(
-                    name=field_config["name"],
-                    dtype=DataType.INT32
-                )
+                field = FieldSchema(name=field_config["name"], dtype=DataType.INT32)
             else:
                 continue
 
             fields.append(field)
 
         return CollectionSchema(
-            fields=fields,
-            description=f"{schema_dict['name']} collection"
+            fields=fields, description=f"{schema_dict['name']} collection"
         )
 
-    async def insert(self, data: List[VectorData]) -> Dict[str, Any]:
+    async def insert(self, data: list[VectorData]) -> dict[str, Any]:
         """データを挿入"""
         if not self.collection:
             raise RuntimeError("Collection not initialized")
@@ -170,11 +152,11 @@ class MilvusCollection(ABC):
 
     async def search(
         self,
-        query_vectors: List[Union[List[float], Dict[int, float]]],
+        query_vectors: list[list[float] | dict[int, float]],
         top_k: int = 10,
-        filters: Optional[Dict[str, Any]] = None,
-        output_fields: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+        output_fields: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """ベクトル検索"""
         if not self.collection:
             raise RuntimeError("Collection not initialized")
@@ -196,7 +178,7 @@ class MilvusCollection(ABC):
             param=search_params,
             limit=top_k,
             expr=expr,
-            output_fields=output_fields
+            output_fields=output_fields,
         )
 
         await asyncio.sleep(0)  # async化のため
@@ -204,15 +186,17 @@ class MilvusCollection(ABC):
         # 結果を整形
         formatted_results = []
         for result in results:
-            formatted_results.append({
-                "ids": [str(hit.id) for hit in result],
-                "distances": [float(hit.distance) for hit in result],
-                "entities": [hit.entity.to_dict() for hit in result]
-            })
+            formatted_results.append(
+                {
+                    "ids": [str(hit.id) for hit in result],
+                    "distances": [float(hit.distance) for hit in result],
+                    "entities": [hit.entity.to_dict() for hit in result],
+                }
+            )
 
         return formatted_results
 
-    async def delete_by_document_id(self, document_id: str) -> Dict[str, Any]:
+    async def delete_by_document_id(self, document_id: str) -> dict[str, Any]:
         """ドキュメントIDによる削除"""
         if not self.collection:
             raise RuntimeError("Collection not initialized")
@@ -224,11 +208,11 @@ class MilvusCollection(ABC):
         return {"delete_count": result.delete_count}
 
     @abstractmethod
-    def _prepare_insert_data(self, data: List[VectorData]) -> List[List[Any]]:
+    def _prepare_insert_data(self, data: list[VectorData]) -> list[list[Any]]:
         """挿入データの準備"""
         pass
 
-    def _build_filter_expression(self, filters: Dict[str, Any]) -> str:
+    def _build_filter_expression(self, filters: dict[str, Any]) -> str:
         """フィルタ式を構築"""
         expressions = []
         for key, value in filters.items():
@@ -254,64 +238,32 @@ class DenseVectorCollection(MilvusCollection):
     def get_collection_name(self) -> str:
         return "document_vectors_dense"
 
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         return {
             "name": "document_vectors_dense",
             "fields": [
-                {
-                    "name": "id",
-                    "type": "VARCHAR",
-                    "max_length": 36,
-                    "is_primary": True
-                },
-                {
-                    "name": "document_id",
-                    "type": "VARCHAR",
-                    "max_length": 36
-                },
-                {
-                    "name": "chunk_id",
-                    "type": "VARCHAR",
-                    "max_length": 36
-                },
-                {
-                    "name": "vector",
-                    "type": "FLOAT_VECTOR",
-                    "dim": 1024
-                },
-                {
-                    "name": "chunk_type",
-                    "type": "VARCHAR",
-                    "max_length": 20
-                },
-                {
-                    "name": "source_type",
-                    "type": "VARCHAR",
-                    "max_length": 50
-                },
-                {
-                    "name": "language",
-                    "type": "VARCHAR",
-                    "max_length": 10
-                },
-                {
-                    "name": "created_at",
-                    "type": "INT64"
-                }
-            ]
+                {"name": "id", "type": "VARCHAR", "max_length": 36, "is_primary": True},
+                {"name": "document_id", "type": "VARCHAR", "max_length": 36},
+                {"name": "chunk_id", "type": "VARCHAR", "max_length": 36},
+                {"name": "vector", "type": "FLOAT_VECTOR", "dim": 1024},
+                {"name": "chunk_type", "type": "VARCHAR", "max_length": 20},
+                {"name": "source_type", "type": "VARCHAR", "max_length": 50},
+                {"name": "language", "type": "VARCHAR", "max_length": 10},
+                {"name": "created_at", "type": "INT64"},
+            ],
         }
 
-    def get_index_config(self) -> Dict[str, Any]:
+    def get_index_config(self) -> dict[str, Any]:
         return {
             "index_type": "HNSW",
             "metric_type": "COSINE",
-            "params": {"M": 16, "efConstruction": 500}
+            "params": {"M": 16, "efConstruction": 500},
         }
 
     def get_vector_field_name(self) -> str:
         return "vector"
 
-    def _prepare_insert_data(self, data: List[VectorData]) -> List[List[Any]]:
+    def _prepare_insert_data(self, data: list[VectorData]) -> list[list[Any]]:
         """Dense vector用の挿入データを準備"""
         ids = []
         document_ids = []
@@ -336,8 +288,14 @@ class DenseVectorCollection(MilvusCollection):
             created_ats.append(item.created_at)
 
         return [
-            ids, document_ids, chunk_ids, vectors,
-            chunk_types, source_types, languages, created_ats
+            ids,
+            document_ids,
+            chunk_ids,
+            vectors,
+            chunk_types,
+            source_types,
+            languages,
+            created_ats,
         ]
 
 
@@ -347,48 +305,29 @@ class SparseVectorCollection(MilvusCollection):
     def get_collection_name(self) -> str:
         return "document_vectors_sparse"
 
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         return {
             "name": "document_vectors_sparse",
             "fields": [
-                {
-                    "name": "id",
-                    "type": "VARCHAR",
-                    "max_length": 36,
-                    "is_primary": True
-                },
-                {
-                    "name": "document_id",
-                    "type": "VARCHAR",
-                    "max_length": 36
-                },
-                {
-                    "name": "chunk_id",
-                    "type": "VARCHAR",
-                    "max_length": 36
-                },
-                {
-                    "name": "sparse_vector",
-                    "type": "SPARSE_FLOAT_VECTOR"
-                },
-                {
-                    "name": "vocabulary_size",
-                    "type": "INT32"
-                }
-            ]
+                {"name": "id", "type": "VARCHAR", "max_length": 36, "is_primary": True},
+                {"name": "document_id", "type": "VARCHAR", "max_length": 36},
+                {"name": "chunk_id", "type": "VARCHAR", "max_length": 36},
+                {"name": "sparse_vector", "type": "SPARSE_FLOAT_VECTOR"},
+                {"name": "vocabulary_size", "type": "INT32"},
+            ],
         }
 
-    def get_index_config(self) -> Dict[str, Any]:
+    def get_index_config(self) -> dict[str, Any]:
         return {
             "index_type": "SPARSE_INVERTED_INDEX",
             "metric_type": "IP",
-            "params": {"drop_ratio_build": 0.2}
+            "params": {"drop_ratio_build": 0.2},
         }
 
     def get_vector_field_name(self) -> str:
         return "sparse_vector"
 
-    def _prepare_insert_data(self, data: List[VectorData]) -> List[List[Any]]:
+    def _prepare_insert_data(self, data: list[VectorData]) -> list[list[Any]]:
         """Sparse vector用の挿入データを準備"""
         ids = []
         document_ids = []
@@ -406,7 +345,4 @@ class SparseVectorCollection(MilvusCollection):
             sparse_vectors.append(item.sparse_vector)
             vocabulary_sizes.append(item.vocabulary_size)
 
-        return [
-            ids, document_ids, chunk_ids,
-            sparse_vectors, vocabulary_sizes
-        ]
+        return [ids, document_ids, chunk_ids, sparse_vectors, vocabulary_sizes]
