@@ -159,7 +159,7 @@ async def register_user(user_data: UserRegister):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):  # noqa: B008
     """ログイン"""
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -237,8 +237,9 @@ async def refresh_token(request: RefreshTokenRequest):
 
 
 @router.post("/logout", response_model=MessageResponse)
-async def logout(
-    current_user: dict = Depends(get_current_user), token: str = Depends(oauth2_scheme)
+async def logout(  # noqa: B008
+    current_user: dict = Depends(get_current_user),  # noqa: B008
+    token: str = Depends(oauth2_scheme),  # noqa: B008
 ):
     """ログアウト"""
     # トークンをブラックリストに追加
@@ -248,7 +249,7 @@ async def logout(
 
 
 @router.get("/me", response_model=UserProfile)
-async def get_user_profile(current_user: dict = Depends(get_current_user)):
+async def get_user_profile(current_user: dict = Depends(get_current_user)):  # noqa: B008
     """ユーザープロファイル取得"""
     return UserProfile(
         email=current_user["email"],
@@ -261,8 +262,8 @@ async def get_user_profile(current_user: dict = Depends(get_current_user)):
 @router.post(
     "/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED
 )
-async def create_api_key(
-    api_key_data: APIKeyCreate, current_user: dict = Depends(get_current_user)
+async def create_api_key(  # noqa: B008
+    api_key_data: APIKeyCreate, current_user: dict = Depends(get_current_user)  # noqa: B008
 ):
     """API Key作成"""
     # 管理者権限をチェック（API Key認証の場合は権限リストを直接チェック）
@@ -298,7 +299,7 @@ async def create_api_key(
 
 
 @router.get("/api-keys", response_model=APIKeyList)
-async def list_api_keys(current_user: dict = Depends(get_current_user)):
+async def list_api_keys(current_user: dict = Depends(get_current_user)):  # noqa: B008
     """API Key一覧取得"""
     # ユーザーのAPI Keyのみを返す
     user_api_keys = []
@@ -313,8 +314,8 @@ async def list_api_keys(current_user: dict = Depends(get_current_user)):
 
 
 @router.delete("/api-keys/{api_key_id}", response_model=MessageResponse)
-async def revoke_api_key(
-    api_key_id: str, current_user: dict = Depends(get_current_user)
+async def revoke_api_key(  # noqa: B008
+    api_key_id: str, current_user: dict = Depends(get_current_user)  # noqa: B008
 ):
     """API Key無効化"""
     # API Keyを検索
@@ -349,7 +350,7 @@ admin_router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
 
 @admin_router.get("/users")
-async def list_users(current_user: dict = Depends(get_current_user)):
+async def list_users(current_user: dict = Depends(get_current_user)):  # noqa: B008
     """ユーザー一覧取得（管理者のみ）"""
     if "admin" not in current_user.get("permissions", []):
         raise HTTPException(
@@ -370,8 +371,8 @@ async def list_users(current_user: dict = Depends(get_current_user)):
 
 
 @admin_router.post("/users/roles")
-async def assign_user_role(
-    role_data: dict, current_user: dict = Depends(get_current_user)
+async def assign_user_role(  # noqa: B008
+    role_data: dict, current_user: dict = Depends(get_current_user)  # noqa: B008
 ):
     """ユーザーロール割り当て（管理者のみ）"""
     if "admin" not in current_user.get("permissions", []):
@@ -388,8 +389,8 @@ async def assign_user_role(
 
 
 @admin_router.put("/users/role")
-async def change_user_role(
-    role_change: dict, current_user: dict = Depends(get_current_user)
+async def change_user_role(  # noqa: B008
+    role_change: dict, current_user: dict = Depends(get_current_user)  # noqa: B008
 ):
     """ユーザーロール変更（管理者のみ）"""
     if "admin" not in current_user.get("permissions", []):
@@ -421,7 +422,7 @@ async def change_user_role(
 
 
 @admin_router.get("/team")
-async def get_team_info(current_user: dict = Depends(get_current_user)):
+async def get_team_info(current_user: dict = Depends(get_current_user)):  # noqa: B008
     """チーム情報取得（マネージャー以上）"""
     user_role = current_user.get("role")
     if user_role not in ["manager", "admin"]:
