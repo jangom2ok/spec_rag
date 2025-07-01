@@ -101,12 +101,12 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t spec-rag:${{ github.sha }} .
-        docker build -t spec-rag:latest .
+        docker build -t spec_rag:${{ github.sha }} .
+        docker build -t spec_rag:latest .
 
     - name: Test Docker image
       run: |
-        docker run --rm spec-rag:latest python -c "import app.main; print('Docker image works!')"
+        docker run --rm spec_rag:latest python -c "import app.main; print('Docker image works!')"
 
   deploy-staging:
     needs: [test, security-check, docker-build]
