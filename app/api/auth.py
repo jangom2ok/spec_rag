@@ -270,7 +270,7 @@ async def create_api_key(
 ):
     """API Key作成"""
     # 管理者権限をチェック（API Key認証の場合は権限リストを直接チェック）
-    user_permissions = current_user.get("permissions", [])
+    user_permissions = list(current_user.get("permissions", []))
     if "admin" not in user_permissions and "write" not in user_permissions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -419,7 +419,7 @@ async def change_user_role(
 
     # ユーザー情報を更新
     users_storage[user_email]["role"] = new_role
-    users_storage[user_email]["permissions"] = permissions
+    users_storage[user_email]["permissions"] = list(permissions)  # 明示的にlistに変換
 
     return MessageResponse(message="User role updated successfully")
 

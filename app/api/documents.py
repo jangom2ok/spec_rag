@@ -2,6 +2,7 @@
 
 import logging
 from enum import Enum
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -44,7 +45,7 @@ class DocumentList(BaseModel):
 
 async def get_current_user_or_api_key(
     authorization: str | None = Header(None), x_api_key: str | None = Header(None)
-) -> dict:
+) -> dict[str, Any]:
     """JWT認証またはAPI Key認証を試行"""
     # API Key認証を先に試行
     if x_api_key:
@@ -85,7 +86,7 @@ async def get_current_user_or_api_key(
 @router.get("/", response_model=DocumentList)
 async def list_documents(
     current_user: dict = Depends(get_current_user_or_api_key),
-):
+) -> DocumentList:
     """ドキュメント一覧を取得"""
     # テスト用のモックデータ
     mock_documents = [
@@ -109,7 +110,7 @@ async def list_documents(
 async def create_document(
     document: DocumentCreate,
     current_user: dict = Depends(get_current_user_or_api_key),
-):
+) -> DocumentResponse:
     """ドキュメントを作成"""
     # 書き込み権限をチェック
     if "write" not in current_user.get("permissions", []):
@@ -128,7 +129,7 @@ async def create_document(
 async def delete_document(
     document_id: str,
     current_user: dict = Depends(get_current_user_or_api_key),
-):
+) -> dict[str, str]:
     """ドキュメントを削除"""
     # 削除権限をチェック（管理者権限必要）
     if "delete" not in current_user.get(
@@ -144,7 +145,7 @@ async def delete_document(
 async def get_document(
     document_id: str,
     current_user: dict = Depends(get_current_user_or_api_key),
-):
+) -> DocumentResponse:
     """ドキュメントを取得"""
     # 実装は後で追加
     if document_id == "test-id":

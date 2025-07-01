@@ -144,7 +144,7 @@ def authenticate_user(email: str, password: str) -> dict | None:
     user = users_storage.get(email)
     if not user:
         return None
-    if not verify_password(password, user["password"]):
+    if not verify_password(password, str(user["password"])):
         return None
 
     # ユーザー情報にemailを追加して返す

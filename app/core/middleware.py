@@ -187,7 +187,7 @@ class ResourcePermissionMiddleware:
         from app.core.auth import check_user_resource_permission
 
         return check_user_resource_permission(
-            user_id, self.resource_type, resource_id, self.required_permission
+            user_id, self.resource_type, resource_id or "unknown", self.required_permission
         )
 
 
@@ -197,13 +197,13 @@ class RateLimitMiddleware:
     def __init__(self, max_requests: int = 100, window_seconds: int = 60):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self.request_counts = defaultdict(list)
+        self.request_counts: dict[str, list[float]] = defaultdict(list)
 
     def check_rate_limit(self, request: Request) -> bool:
         """レート制限をチェック"""
         # クライアントIPまたはAPI Keyを識別子として使用
         api_key = request.headers.get("X-API-Key")
-        client_id = api_key or request.client.host
+        client_id = api_key or (request.client.host if request.client else "unknown")
 
         current_time = time.time()
 
@@ -270,7 +270,7 @@ class MiddlewareChain:
 class ConditionalMiddleware:
     """条件付きミドルウェア"""
 
-    def __init__(self, skip_paths: list[str] = None):
+    def __init__(self, skip_paths: list[str] | None = None):
         self.skip_paths = skip_paths or []
 
     def should_skip_authentication(self, request: Request) -> bool:

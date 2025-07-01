@@ -36,7 +36,7 @@ class VectorData(BaseModel):
     language: str | None = Field("ja", description="言語")
     created_at: int | None = Field(None, description="作成時刻（UnixTime）")
 
-    def __init__(self, **data):
+    def __init__(self, **data: Any) -> None:
         super().__init__(**data)
         if self.created_at is None:
             self.created_at = int(time.time())
