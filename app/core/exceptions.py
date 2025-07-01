@@ -1,7 +1,7 @@
 """カスタム例外クラス"""
 
 
-class RAGSystemException(Exception):
+class RAGSystemError(Exception):
     """RAGシステム基底例外クラス"""
 
     def __init__(
@@ -12,35 +12,35 @@ class RAGSystemException(Exception):
         self.status_code = status_code
 
 
-class DatabaseException(RAGSystemException):
+class DatabaseException(RAGSystemError):
     """データベース関連の例外"""
 
     def __init__(self, message: str):
         super().__init__(message, error_code="DATABASE_ERROR", status_code=500)
 
 
-class VectorDatabaseException(RAGSystemException):
+class VectorDatabaseException(RAGSystemError):
     """ベクトルデータベース関連の例外"""
 
     def __init__(self, message: str):
         super().__init__(message, error_code="VECTOR_DATABASE_ERROR", status_code=500)
 
 
-class ValidationException(RAGSystemException):
+class ValidationException(RAGSystemError):
     """バリデーション例外"""
 
     def __init__(self, message: str):
         super().__init__(message, error_code="VALIDATION_ERROR", status_code=422)
 
 
-class AuthenticationException(RAGSystemException):
+class AuthenticationException(RAGSystemError):
     """認証例外"""
 
     def __init__(self, message: str):
         super().__init__(message, error_code="AUTHENTICATION_ERROR", status_code=401)
 
 
-class AuthorizationException(RAGSystemException):
+class AuthorizationException(RAGSystemError):
     """認可例外"""
 
     def __init__(self, message: str):

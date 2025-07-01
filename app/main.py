@@ -14,7 +14,7 @@ from app.api.documents import router as documents_router
 from app.api.health import router as health_router
 from app.api.search import router as search_router
 from app.core.exceptions import (
-    RAGSystemException,
+    RAGSystemError,
 )
 
 
@@ -214,8 +214,8 @@ def setup_error_handlers(app: FastAPI) -> None:
             },
         )
 
-    @app.exception_handler(RAGSystemException)
-    async def rag_system_exception_handler(request: Request, exc: RAGSystemException):
+    @app.exception_handler(RAGSystemError)
+    async def rag_system_exception_handler(request: Request, exc: RAGSystemError):
         return JSONResponse(
             status_code=exc.status_code,
             content={

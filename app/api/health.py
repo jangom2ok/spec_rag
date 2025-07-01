@@ -123,11 +123,11 @@ async def readiness_probe():
                 status_code=503,
                 detail={"ready": False, "timestamp": datetime.utcnow().isoformat()},
             )
-    except Exception:
+    except Exception as err:
         raise HTTPException(
             status_code=503,
             detail={"ready": False, "timestamp": datetime.utcnow().isoformat()},
-        )
+        ) from err
 
 
 @router.get("/live")

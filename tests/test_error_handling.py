@@ -12,7 +12,7 @@ from app.core.exceptions import (
     AuthenticationException,
     AuthorizationException,
     DatabaseException,
-    RAGSystemException,
+    RAGSystemError,
     ValidationException,
     VectorDatabaseException,
 )
@@ -24,7 +24,7 @@ class TestCustomExceptions:
 
     def test_rag_system_exception(self):
         """RAGシステム基底例外のテスト"""
-        exception = RAGSystemException("Test error", error_code="TEST_001")
+        exception = RAGSystemError("Test error", error_code="TEST_001")
 
         assert str(exception) == "Test error"
         assert exception.error_code == "TEST_001"

@@ -29,11 +29,11 @@ class JWTAuthenticationMiddleware:
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid authentication scheme",
                 )
-        except ValueError:
+        except ValueError as err:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authorization header format",
-            )
+            ) from err
 
         # トークンブラックリストチェック
         from app.core.auth import is_token_blacklisted, verify_token
@@ -47,14 +47,14 @@ class JWTAuthenticationMiddleware:
         try:
             payload = verify_token(token)
             return payload
-        except jwt.ExpiredSignatureError:
+        except jwt.ExpiredSignatureError as err:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
-            )
-        except jwt.InvalidTokenError:
+            ) from err
+        except jwt.InvalidTokenError as err:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-            )
+            ) from err
 
 
 class APIKeyAuthenticationMiddleware:
@@ -127,11 +127,11 @@ class PermissionMiddleware:
         try:
             required_perm = Permission(self.required_permission)
             user_perms = [Permission(p) for p in user_permissions]
-        except ValueError:
+        except ValueError as err:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Invalid permission format",
-            )
+            ) from err
 
         from app.core.auth import has_permission
 

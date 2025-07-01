@@ -119,8 +119,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         return user_info
     except AuthenticationError:
         raise  # 認証エラーはそのまま再発生
-    except Exception:
-        raise AuthenticationError("Could not validate credentials")
+    except Exception as err:
+        raise AuthenticationError("Could not validate credentials") from err
 
 
 # 認証エンドポイント
@@ -230,11 +230,10 @@ async def refresh_token(request: RefreshTokenRequest):
             token_type="bearer",
             expires_in=1800,
         )
-
-    except Exception:
+    except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
-        )
+        ) from err
 
 
 @router.post("/logout", response_model=MessageResponse)
