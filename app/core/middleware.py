@@ -243,6 +243,7 @@ class TokenBlacklistMiddleware:
             return False
 
         from app.core.auth import is_token_blacklisted
+
         return is_token_blacklisted(token)
 
     def check_blacklist(self, request: Request) -> bool:
