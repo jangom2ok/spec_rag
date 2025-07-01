@@ -1,0 +1,311 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Data Processing & ETL Rules
+
+## データ処理アーキテクチャ
+
+### ETLパイプライン設計
+```
+Source Systems → Extract → Transform → Load → Vector DB
+     ↓              ↓         ↓         ↓        ↓
+   Git/Confluence  Raw Data  Chunks   Embeddings  Milvus
+   Swagger/Sheets  Metadata  Filtered  Metadata   PostgreSQL
+```
+
+### 処理モード
+- **リアルタイム**: Webhook経由での即時処理
+- **バッチ処理**: 定期実行での大量処理
+- **差分処理**: 変更検知による効率的更新
+
+## Extract (抽出) ルール
+
+### ソースシステム別抽出戦略
+```python
+class SourceExtractor:
+    """ソース別抽出インターフェース"""
+
+    def extract_git_documents(self, repo_url: str) -> List[Document]:
+        """Git リポジトリからの抽出"""
+        # Markdown, README, コメントの抽出
+        pass
+
+    def extract_confluence_pages(self, space_key: str) -> List[Document]:
+        """Confluence からの抽出"""
+        # ページ、添付ファイル、コメントの抽出
+        pass
+
+    def extract_swagger_specs(self, spec_url: str) -> List[Document]:
+        """Swagger/OpenAPI からの抽出"""
+        # API仕様、エンドポイント、スキーマの抽出
+        pass
+```
+
+### 抽出データ形式
+```python
+@dataclass
+class RawDocument:
+    source_id: str
+    source_type: str
+    url: str
+    title: str
+    content: str
+    metadata: Dict[str, Any]
+    last_modified: datetime
+    checksum: str  # 変更検知用
+```
+
+### 差分検知ルール
+- **チェックサム**: MD5/SHA256による内容の変更検知
+- **タイムスタンプ**: 最終更新日時による変更検知
+- **バージョン**: ソースシステムのバージョン情報
+
+## Transform (変換) ルール
+
+### テキスト正規化
+```python
+def normalize_text(text: str) -> str:
+    """テキスト正規化処理"""
+    # 1. Unicode正規化 (NFKC)
+    text = unicodedata.normalize('NFKC', text)
+
+    # 2. HTMLタグ除去
+    text = re.sub(r'<[^>]+>', '', text)
+
+    # 3. 余分な空白・改行の除去
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    # 4. 特殊文字の統一
+    text = text.replace('－', '-').replace('～', '~')
+
+    return text
+```
+
+### チャンク分割戦略
+```python
+class SemanticChunker:
+    def __init__(self, max_chunk_size: int = 512, overlap_size: int = 50):
+        self.max_chunk_size = max_chunk_size
+        self.overlap_size = overlap_size
+
+    def chunk_document(self, document: Document) -> List[Chunk]:
+        """セマンティック境界でのチャンク分割"""
+        chunks = []
+
+        # 1. 見出し構造の解析
+        sections = self._parse_structure(document.content)
+
+        # 2. セクション単位での分割
+        for section in sections:
+            section_chunks = self._chunk_section(section)
+            chunks.extend(section_chunks)
+
+        return chunks
+```
+
+### メタデータ抽出
+```python
+def extract_metadata(document: RawDocument) -> Dict[str, Any]:
+    """ドキュメントからメタデータ抽出"""
+    metadata = {
+        "language": detect_language(document.content),
+        "word_count": count_words(document.content),
+        "reading_time": calculate_reading_time(document.content),
+        "complexity": calculate_complexity(document.content),
+        "entities": extract_named_entities(document.content),
+        "keywords": extract_keywords(document.content),
+        "tags": extract_tags(document.content)
+    }
+    return metadata
+```
+
+## Load (ロード) ルール
+
+### ベクトル化処理
+```python
+class VectorProcessor:
+    def __init__(self, model_name: str = "BAAI/BGE-M3"):
+        self.model = SentenceTransformer(model_name)
+
+    def process_chunks(self, chunks: List[Chunk]) -> List[VectorChunk]:
+        """チャンクのベクトル化"""
+        vector_chunks = []
+
+        for chunk in chunks:
+            vectors = self.model.encode(
+                chunk.content,
+                return_dense=True,
+                return_sparse=True,
+                return_multi_vector=True
+            )
+
+            vector_chunk = VectorChunk(
+                chunk_id=chunk.id,
+                dense_vector=vectors['dense'],
+                sparse_vector=vectors['sparse'],
+                multi_vector=vectors['multi_vector'],
+                metadata=chunk.metadata
+            )
+            vector_chunks.append(vector_chunk)
+
+        return vector_chunks
+```
+
+### データベース書き込み
+```python
+async def bulk_insert_vectors(vector_chunks: List[VectorChunk]):
+    """ベクトルの一括挿入"""
+    # 1. PostgreSQLにメタデータ挿入
+    await insert_metadata_batch(vector_chunks)
+
+    # 2. Milvusにベクトル挿入
+    await insert_vectors_batch(vector_chunks)
+
+    # 3. トランザクション管理
+    await commit_transaction()
+```
+
+## データ品質管理
+
+### 品質チェックルール
+```python
+class DataQualityChecker:
+    def validate_document(self, document: Document) -> List[ValidationError]:
+        """ドキュメント品質チェック"""
+        errors = []
+
+        # 1. 必須フィールドチェック
+        if not document.title:
+            errors.append(ValidationError("タイトルが空です"))
+
+        # 2. 内容の妥当性チェック
+        if len(document.content) < 10:
+            errors.append(ValidationError("内容が短すぎます"))
+
+        # 3. 重複チェック
+        if self.is_duplicate(document):
+            errors.append(ValidationError("重複ドキュメントです"))
+
+        return errors
+```
+
+### データ整合性チェック
+- **参照整合性**: 関連データの存在確認
+- **形式整合性**: データ形式の妥当性確認
+- **内容整合性**: データ内容の論理的妥当性確認
+
+## バッチ処理ルール
+
+### スケジューリング
+```python
+# Celery タスク定義
+@celery.task(bind=True, max_retries=3)
+def process_document_batch(self, source_type: str):
+    """バッチ処理タスク"""
+    try:
+        # 1. ソースからドキュメント抽出
+        documents = extract_documents(source_type)
+
+        # 2. 変換処理
+        chunks = transform_documents(documents)
+
+        # 3. ベクトル化・保存
+        vector_chunks = vectorize_chunks(chunks)
+        save_vectors(vector_chunks)
+
+    except Exception as exc:
+        # リトライ処理
+        self.retry(countdown=60, exc=exc)
+```
+
+### バッチ処理の監視
+```python
+BATCH_METRICS = {
+    "processed_documents": "処理済みドキュメント数",
+    "failed_documents": "処理失敗ドキュメント数",
+    "processing_time": "処理時間",
+    "queue_size": "待機中タスク数",
+    "error_rate": "エラー率"
+}
+```
+
+## エラーハンドリング・復旧
+
+### エラー種別と対応
+```python
+class DataProcessingError(Exception):
+    """データ処理エラーの基底クラス"""
+    pass
+
+class ExtractionError(DataProcessingError):
+    """抽出エラー"""
+    # リトライ可能: ネットワークエラー等
+    pass
+
+class TransformationError(DataProcessingError):
+    """変換エラー"""
+    # データ修正が必要: 形式不正等
+    pass
+
+class LoadError(DataProcessingError):
+    """ロードエラー"""
+    # システムエラー: DB接続エラー等
+    pass
+```
+
+### リトライ戦略
+- **指数バックオフ**: 1s, 2s, 4s, 8s...
+- **最大リトライ回数**: 3回
+- **リトライ可能エラー**: ネットワーク、一時的なDBエラー
+- **リトライ不可エラー**: データ形式エラー、認証エラー
+
+### 復旧手順
+```python
+def recovery_process():
+    """障害復旧処理"""
+    # 1. 失敗したタスクの特定
+    failed_tasks = get_failed_tasks()
+
+    # 2. エラー原因の分析
+    for task in failed_tasks:
+        analyze_error(task)
+
+    # 3. データ修正・再処理
+    fix_data_issues()
+    retry_failed_tasks()
+
+    # 4. 整合性チェック
+    validate_data_consistency()
+```
+
+## パフォーマンス最適化
+
+### 並列処理
+```python
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+async def parallel_document_processing(documents: List[Document]):
+    """並列ドキュメント処理"""
+    # CPU集約的な処理はスレッドプールで実行
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        tasks = [
+            loop.run_in_executor(executor, process_document, doc)
+            for doc in documents
+        ]
+        results = await asyncio.gather(*tasks)
+
+    return results
+```
+
+### メモリ最適化
+- **ストリーミング処理**: 大きなファイルの分割処理
+- **ガベージコレクション**: 定期的なメモリ解放
+- **チャンク単位処理**: 一度に処理するデータ量の制限
+
+### I/O最適化
+- **バッチ挿入**: 複数レコードの一括処理
+- **コネクションプール**: データベース接続の再利用
+- **非同期処理**: I/O待機時間の短縮

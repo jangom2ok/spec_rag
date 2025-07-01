@@ -1,0 +1,290 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Testing Strategy Rules
+
+## TDD 開発サイクル
+
+### Red-Green-Refactor サイクル
+1. **Red**: 失敗するテストを書く
+2. **Green**: テストが通る最小限のコードを書く
+3. **Refactor**: コードを改善する
+4. **Repeat**: サイクルを繰り返す
+
+### テスト駆動開発の原則
+- テストファースト: 実装前にテストコードを作成
+- 最小限実装: テストが通る最小限のコードのみ
+- 継続的改善: 小さなサイクルでの継続的改善
+
+## テスト構造・分類
+
+### テストピラミッド
+```
+    /\
+   /  \    E2E Tests (少数)
+  /____\
+ /      \  Integration Tests (中程度)
+/__________\ Unit Tests (大多数)
+```
+
+### テストカテゴリ
+- **Unit Tests**: 個別機能のテスト (80%)
+- **Integration Tests**: システム間連携のテスト (15%)
+- **E2E Tests**: エンドツーエンドのテスト (5%)
+
+## Unit Testing ルール
+
+### テストファイル構成
+```python
+# tests/test_embedding_service.py
+import pytest
+from unittest.mock import Mock, patch
+from src.services.embedding import EmbeddingService
+
+class TestEmbeddingService:
+    def setup_method(self):
+        """各テストメソッド前に実行"""
+        self.service = EmbeddingService()
+
+    def test_generate_dense_vector_success(self):
+        """正常系: Dense Vector生成"""
+        # Given
+        text = "テストドキュメント"
+
+        # When
+        result = self.service.generate_dense_vector(text)
+
+        # Then
+        assert result is not None
+        assert len(result) == 1024
+        assert all(isinstance(x, float) for x in result)
+```
+
+### テスト命名規則
+- **パターン**: `test_<method>_<condition>_<expected>`
+- **例**: `test_search_with_valid_query_returns_results`
+- **日本語**: 必要に応じて日本語での説明を併記
+
+### Arrange-Act-Assert パターン
+```python
+def test_hybrid_search_with_filters():
+    # Arrange (準備)
+    query = "API認証"
+    filters = {"source_type": "swagger"}
+
+    # Act (実行)
+    results = search_service.hybrid_search(query, filters)
+
+    # Assert (検証)
+    assert len(results) > 0
+    assert all(r.source_type == "swagger" for r in results)
+```
+
+## Integration Testing ルール
+
+### データベース統合テスト
+```python
+@pytest.fixture(scope="session")
+def test_database():
+    """テスト用データベース"""
+    # テスト用DBの作成
+    db = create_test_database()
+    yield db
+    # テスト後のクリーンアップ
+    db.drop_all()
+
+def test_document_save_and_retrieve(test_database):
+    # Given
+    document = create_test_document()
+
+    # When
+    saved_doc = document_service.save(document)
+    retrieved_doc = document_service.get(saved_doc.id)
+
+    # Then
+    assert retrieved_doc.title == document.title
+```
+
+### API統合テスト
+```python
+def test_search_api_integration(client):
+    # Given
+    payload = {
+        "query": "テスト検索",
+        "max_results": 10
+    }
+
+    # When
+    response = client.post("/v1/search", json=payload)
+
+    # Then
+    assert response.status_code == 200
+    data = response.json()
+    assert "results" in data
+    assert len(data["results"]) <= 10
+```
+
+## モック・スタブ戦略
+
+### 外部依存のモック化
+```python
+@patch('src.services.embedding.BGEModel')
+def test_embedding_service_with_mock(mock_model):
+    # Given
+    mock_model.encode.return_value = [0.1, 0.2, 0.3]
+    service = EmbeddingService()
+
+    # When
+    result = service.generate_embedding("test")
+
+    # Then
+    mock_model.encode.assert_called_once_with("test")
+    assert result == [0.1, 0.2, 0.3]
+```
+
+### テストダブルの使い分け
+- **Mock**: 呼び出し確認が重要な場合
+- **Stub**: 戻り値のみ重要な場合
+- **Fake**: 実装に近い軽量版
+- **Spy**: 実際の処理 + 呼び出し確認
+
+## テストデータ管理
+
+### Fixture活用
+```python
+@pytest.fixture
+def sample_documents():
+    """テスト用ドキュメント"""
+    return [
+        {
+            "id": "doc-1",
+            "title": "API仕様書",
+            "content": "API仕様の詳細...",
+            "source_type": "swagger"
+        },
+        {
+            "id": "doc-2",
+            "title": "システム設計書",
+            "content": "システム設計の詳細...",
+            "source_type": "confluence"
+        }
+    ]
+```
+
+### Factory Pattern
+```python
+class DocumentFactory:
+    @staticmethod
+    def create_document(**kwargs):
+        defaults = {
+            "id": str(uuid.uuid4()),
+            "title": "テストドキュメント",
+            "content": "テスト内容",
+            "source_type": "test"
+        }
+        defaults.update(kwargs)
+        return Document(**defaults)
+```
+
+## テストカバレッジルール
+
+### カバレッジ目標
+- **全体**: 80% 以上
+- **新規コード**: 90% 以上
+- **重要モジュール**: 95% 以上
+
+### カバレッジ測定
+```bash
+# カバレッジ測定実行
+pytest --cov=src --cov-report=html --cov-report=term
+
+# 不足部分の確認
+pytest --cov=src --cov-report=term-missing
+```
+
+### 除外ルール
+```python
+# .coveragerc
+[run]
+omit =
+    */tests/*
+    */migrations/*
+    */venv/*
+    */settings/local.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    if __name__ == .__main__.:
+```
+
+## パフォーマンステスト
+
+### 検索パフォーマンステスト
+```python
+def test_search_performance():
+    # Given
+    query = "パフォーマンステスト"
+
+    # When
+    start_time = time.time()
+    results = search_service.search(query)
+    end_time = time.time()
+
+    # Then
+    assert len(results) > 0
+    assert (end_time - start_time) < 0.5  # 500ms以内
+```
+
+### 負荷テスト
+```python
+@pytest.mark.performance
+def test_concurrent_search_load():
+    import concurrent.futures
+
+    def search_task():
+        return search_service.search("負荷テスト")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(search_task) for _ in range(100)]
+        results = [f.result() for f in futures]
+
+    assert all(len(r) > 0 for r in results)
+```
+
+## CI/CD テスト自動化
+
+### テスト実行ステップ
+```yaml
+# .github/workflows/test.yml
+- name: Run Unit Tests
+  run: pytest tests/unit/ -v
+
+- name: Run Integration Tests
+  run: pytest tests/integration/ -v
+
+- name: Run E2E Tests
+  run: pytest tests/e2e/ -v --slow
+```
+
+### テスト結果レポート
+- **JUnit XML**: CI/CD システムでの結果表示
+- **HTML レポート**: 詳細な結果確認
+- **カバレッジレポート**: カバレッジの可視化
+
+## テスト品質保証
+
+### テストコードレビュー観点
+- [ ] テストの目的が明確か
+- [ ] テストケースが網羅的か
+- [ ] テストが独立性を保っているか
+- [ ] テストが高速に実行できるか
+
+### テストメンテナンス
+- **定期的な見直し**: 不要なテストの削除
+- **テストの改善**: 可読性・保守性の向上
+- **テストデータ管理**: テストデータの整理・更新

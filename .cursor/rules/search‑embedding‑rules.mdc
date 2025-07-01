@@ -1,0 +1,177 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Search & Embedding Rules
+
+## BGE-M3 埋め込みルール
+
+### モデル設定
+- **モデル名**: `BAAI/BGE-M3`
+- **最大トークン長**: 8192トークン
+- **出力次元**: 1024次元 (Dense Vector)
+- **実行環境**: GPU推奨 (CUDA 11.8+)
+
+### 埋め込み生成ルール
+```python
+# 必須: 3つのベクトルタイプを同時生成
+def generate_embeddings(text: str) -> EmbeddingResult:
+    return {
+        "dense_vector": model.encode(text, return_dense=True),
+        "sparse_vector": model.encode(text, return_sparse=True),
+        "multi_vector": model.encode(text, return_multi_vector=True)
+    }
+```
+
+### バッチ処理最適化
+- **バッチサイズ**: GPU メモリに応じて調整 (推奨: 32-64)
+- **並列処理**: CPU コア数に応じてワーカー数設定
+- **メモリ管理**: 大きなドキュメントは分割処理
+
+## ハイブリッド検索ルール
+
+### 検索戦略
+1. **Dense Vector Search**: セマンティック類似度による検索
+2. **Sparse Vector Search**: キーワードマッチング
+3. **Multi-Vector Search**: 長文での局所的類似度
+4. **RRF融合**: 複数結果の最適統合
+
+### スコアリング計算
+```python
+def calculate_hybrid_score(
+    dense_score: float,
+    sparse_score: float,
+    multi_vector_score: float,
+    weights: Dict[str, float]
+) -> float:
+    return (
+        dense_score * weights["dense"] +
+        sparse_score * weights["sparse"] +
+        multi_vector_score * weights["multi_vector"]
+    )
+```
+
+### 検索パラメータ設定
+- **top_k**: 初期検索結果数 (推奨: 100-200)
+- **rerank_top_k**: 再ランキング後の結果数 (推奨: 10-50)
+- **similarity_threshold**: 最低類似度 (推奨: 0.6以上)
+
+## Milvus Vector Database ルール
+
+### コレクション設計
+```python
+# 必須フィールド定義
+COLLECTION_SCHEMA = {
+    "id": "VARCHAR(36)",      # UUID
+    "dense_vector": "FLOAT_VECTOR(1024)",
+    "sparse_vector": "SPARSE_FLOAT_VECTOR",
+    "document_id": "VARCHAR(36)",
+    "chunk_id": "VARCHAR(36)",
+    "chunk_type": "VARCHAR(50)",
+    "source_type": "VARCHAR(50)",
+    "created_at": "TIMESTAMP",
+    "updated_at": "TIMESTAMP"
+}
+```
+
+### インデックス設定
+- **Dense Vector**: HNSW インデックス (M=16, efConstruction=256)
+- **Sparse Vector**: SPARSE_INVERTED_INDEX
+- **フィルタ**: 各メタデータフィールドにインデックス作成
+
+### パーティション戦略
+- **ソースタイプ別**: confluence, swagger, git, sheets
+- **日付別**: 月次パーティション (大量データ対応)
+- **言語別**: ja, en, multi-language
+
+## テキスト前処理ルール
+
+### チャンク化戦略
+```python
+def semantic_chunking(
+    text: str,
+    max_chunk_size: int = 512,
+    overlap_size: int = 50,
+    split_on_sentences: bool = True
+) -> List[TextChunk]:
+    # セマンティック境界でのチャンク分割
+    # 文章の意味的な区切りを保持
+    pass
+```
+
+### 日本語文書処理
+- **分かち書き**: MeCab または SudachiPy使用
+- **正規化**: NFKC正規化、全角半角統一
+- **ノイズ除去**: HTML タグ、特殊文字の除去
+
+### 多言語対応
+- **言語検出**: langdetect ライブラリ使用
+- **言語別処理**: 言語ごとの最適化された前処理
+- **混在文書**: 言語別チャンク分割
+
+## 検索精度向上ルール
+
+### クエリ拡張
+```python
+def expand_query(query: str) -> List[str]:
+    expanded_queries = []
+    # 1. 同義語展開
+    expanded_queries.extend(get_synonyms(query))
+    # 2. 専門用語展開
+    expanded_queries.extend(get_technical_terms(query))
+    # 3. 略語展開
+    expanded_queries.extend(expand_abbreviations(query))
+    return expanded_queries
+```
+
+### リランキング戦略
+- **Cross-Encoder**: 詳細な関連度評価
+- **多様性制御**: 類似結果の除外
+- **時間的重み**: 新しい文書の優先度向上
+
+### 検索結果フィルタリング
+- **スコア閾値**: 最低関連度の設定
+- **重複除去**: 内容の類似した結果の統合
+- **ソースタイプ**: ユーザー指定による絞り込み
+
+## パフォーマンス最適化ルール
+
+### 埋め込み処理最適化
+- **キャッシュ**: 計算済み埋め込みの再利用
+- **並列処理**: 複数GPUでの分散処理
+- **メモリ効率**: バッチ処理でのメモリ使用量制御
+
+### 検索最適化
+- **インデックス最適化**: 定期的なインデックス再構築
+- **キャッシュ戦略**: 頻繁検索結果のキャッシュ
+- **負荷分散**: 複数検索ノードでの負荷分散
+
+### 監視メトリクス
+```python
+SEARCH_METRICS = {
+    "embedding_latency": "埋め込み生成時間",
+    "search_latency": "検索実行時間",
+    "rerank_latency": "再ランキング時間",
+    "hit_rate": "検索ヒット率",
+    "precision_at_k": "検索精度 (P@K)",
+    "recall_at_k": "検索再現率 (R@K)"
+}
+```
+
+## エラーハンドリング・デバッグ
+
+### 検索エラー対応
+- **タイムアウト**: 段階的タイムアウト設定
+- **インデックス不整合**: 自動修復機能
+- **GPU メモリ不足**: 動的バッチサイズ調整
+
+### デバッグ機能
+- **検索トレース**: 検索過程の詳細ログ
+- **スコア分析**: 各ベクトルタイプの貢献度
+- **結果検証**: 期待結果との比較機能
+
+### 品質保証
+- **A/B テスト**: 検索アルゴリズムの比較
+- **オフライン評価**: 定期的な精度測定
+- **ユーザーフィードバック**: 検索結果の評価収集
