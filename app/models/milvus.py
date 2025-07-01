@@ -218,7 +218,7 @@ class MilvusCollection(ABC):
         for key, value in filters.items():
             if isinstance(value, str):
                 expressions.append(f"{key} == '{value}'")
-            elif isinstance(value, (int, float)):
+            elif isinstance(value, int | float):
                 expressions.append(f"{key} == {value}")
             elif isinstance(value, list):
                 # IN句の場合

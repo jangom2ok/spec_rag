@@ -96,7 +96,7 @@ class TestDenseVectorCollection:
         # 挿入の実行
         mock_milvus_connection.insert.return_value = Mock(primary_keys=["test-id-1"])
 
-        result = await collection.insert([vector_data])
+        await collection.insert([vector_data])
 
         # 呼び出し確認
         mock_milvus_connection.insert.assert_called_once()
@@ -199,7 +199,7 @@ class TestSparseVectorCollection:
             primary_keys=["sparse-test-1"]
         )
 
-        result = await collection.insert([vector_data])
+        await collection.insert([vector_data])
 
         # 呼び出し確認
         mock_milvus_connection.insert.assert_called_once()

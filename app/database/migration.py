@@ -81,7 +81,7 @@ class MigrationManager:
 
     async def get_current_revision(self) -> str | None:
         """現在のリビジョンを取得"""
-        config = self._get_config()
+        # config = self._get_config()
 
         # データベースへの接続を作成
         engine = create_engine(self.database_url)

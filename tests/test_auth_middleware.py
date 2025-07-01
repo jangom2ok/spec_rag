@@ -301,7 +301,7 @@ class TestMiddlewareIntegration:
         middleware = RateLimitMiddleware(max_requests=5, window_seconds=60)
 
         # 制限内のリクエスト
-        for i in range(5):
+        for _ in range(5):
             result = middleware.check_rate_limit(request)
             assert result is True
 

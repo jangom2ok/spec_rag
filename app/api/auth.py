@@ -380,8 +380,8 @@ async def assign_user_role(
             status_code=status.HTTP_403_FORBIDDEN, detail="Admin permission required"
         )
 
-    user_id = role_data.get("user_id")
-    role = role_data.get("role")
+    # user_id = role_data.get("user_id")
+    # role = role_data.get("role")
 
     # 実装は省略（実際にはデータベースを更新）
 

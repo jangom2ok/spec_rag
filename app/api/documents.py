@@ -74,6 +74,7 @@ async def get_current_user_or_api_key(
                     user_info["auth_type"] = "jwt"
                     return user_info
         except Exception:
+            # JWT認証が失敗した場合はAPI Key認証にフォールバック
             pass
 
     raise HTTPException(status_code=401, detail="Authentication required")
