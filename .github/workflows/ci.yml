@@ -17,9 +17,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_spec_rag
+          POSTGRES_USER: ${{ secrets.TEST_POSTGRES_USER || 'postgres' }}
+          POSTGRES_PASSWORD: ${{ secrets.TEST_POSTGRES_PASSWORD || 'postgres' }}
+          POSTGRES_DB: ${{ secrets.TEST_POSTGRES_DB || 'test_spec_rag' }}
         ports:
           - 5432:5432
         options: >-
@@ -75,7 +75,7 @@ jobs:
 
     - name: Run tests with coverage
       env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_spec_rag
+        DATABASE_URL: postgresql://${{ secrets.TEST_POSTGRES_USER || 'postgres' }}:${{ secrets.TEST_POSTGRES_PASSWORD || 'postgres' }}@localhost:5432/${{ secrets.TEST_POSTGRES_DB || 'test_spec_rag' }}
         REDIS_URL: redis://localhost:6379/0
         ENVIRONMENT: test
       run: |
@@ -141,6 +141,10 @@ jobs:
 
     steps:
     - name: Deploy to staging
+      env:
+        POSTGRES_USER: ${{ secrets.STAGING_POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.STAGING_POSTGRES_DB }}
       run: |
         echo "Deploying to staging environment..."
         # ここに実際のデプロイメントコマンドを追加
@@ -153,6 +157,10 @@ jobs:
 
     steps:
     - name: Deploy to production
+      env:
+        POSTGRES_USER: ${{ secrets.PROD_POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.PROD_POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.PROD_POSTGRES_DB }}
       run: |
         echo "Deploying to production environment..."
         # ここに実際のデプロイメントコマンドを追加
