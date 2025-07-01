@@ -198,9 +198,7 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(AuthHTTPError)
-    async def authentication_exception_handler(
-        request: Request, exc: AuthHTTPError
-    ):
+    async def authentication_exception_handler(request: Request, exc: AuthHTTPError):
         return JSONResponse(
             status_code=exc.status_code,
             content={

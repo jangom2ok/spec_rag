@@ -249,7 +249,9 @@ async def logout(  # noqa: B008
 
 
 @router.get("/me", response_model=UserProfile)
-async def get_user_profile(current_user: dict = Depends(get_current_user)):  # noqa: B008
+async def get_user_profile(
+    current_user: dict = Depends(get_current_user),
+):  # noqa: B008
     """ユーザープロファイル取得"""
     return UserProfile(
         email=current_user["email"],
@@ -263,7 +265,8 @@ async def get_user_profile(current_user: dict = Depends(get_current_user)):  # n
     "/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED
 )
 async def create_api_key(  # noqa: B008
-    api_key_data: APIKeyCreate, current_user: dict = Depends(get_current_user)  # noqa: B008
+    api_key_data: APIKeyCreate,
+    current_user: dict = Depends(get_current_user),  # noqa: B008
 ):
     """API Key作成"""
     # 管理者権限をチェック（API Key認証の場合は権限リストを直接チェック）
