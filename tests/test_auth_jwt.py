@@ -55,7 +55,7 @@ class TestJWTAuthentication:
         """無効なJWTトークンのテスト"""
         from app.core.auth import verify_token
 
-        invalid_token = "invalid.token.here"
+        invalid_token = "invalid.token.here"  # noqa: S105
 
         with pytest.raises(jwt.InvalidTokenError):
             verify_token(invalid_token)
@@ -105,7 +105,7 @@ class TestJWTAuthenticationAPI:
         assert "access_token" in data
         assert "refresh_token" in data
         assert "token_type" in data
-        assert data["token_type"] == "bearer"
+        assert data["token_type"] == "bearer"  # noqa: S105
 
     def test_login_invalid_credentials(self):
         """無効な認証情報でのログインテスト"""
@@ -201,7 +201,7 @@ class TestJWTTokenBlacklist:
         """トークンブラックリスト追加のテスト"""
         from app.core.auth import add_token_to_blacklist, is_token_blacklisted
 
-        token = "sample.jwt.token"
+        token = "sample.jwt.token"  # noqa: S105
         add_token_to_blacklist(token)
 
         assert is_token_blacklisted(token) is True
@@ -210,7 +210,7 @@ class TestJWTTokenBlacklist:
         """トークンブラックリスト確認のテスト"""
         from app.core.auth import is_token_blacklisted
 
-        valid_token = "valid.jwt.token"
+        valid_token = "valid.jwt.token"  # noqa: S105
         assert is_token_blacklisted(valid_token) is False
 
     def test_blacklisted_token_rejection(self):

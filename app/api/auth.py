@@ -40,7 +40,7 @@ class TokenResponse(BaseModel):
 
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # noqa: S105
     expires_in: int = 1800  # 30分
 
 
@@ -190,7 +190,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):  # noqa: B008
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        token_type="bearer",
+        token_type="bearer",  # noqa: S106
         expires_in=1800,
     )
 
@@ -227,7 +227,7 @@ async def refresh_token(request: RefreshTokenRequest):
         return TokenResponse(
             access_token=access_token,
             refresh_token=request.refresh_token,  # リフレッシュトークンは再利用
-            token_type="bearer",
+            token_type="bearer",  # noqa: S106
             expires_in=1800,
         )
     except Exception as err:
