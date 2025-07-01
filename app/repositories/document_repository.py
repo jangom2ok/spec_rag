@@ -1,6 +1,5 @@
 """ドキュメントリポジトリ"""
 
-
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -28,9 +27,7 @@ class DocumentRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_source(
-        self, source_type: str, source_id: str
-    ) -> Document | None:
+    async def get_by_source(self, source_type: str, source_id: str) -> Document | None:
         """ソースタイプとIDでドキュメントを取得"""
         result = await self.session.execute(
             sa.select(Document).where(

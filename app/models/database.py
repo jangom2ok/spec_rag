@@ -126,9 +126,7 @@ class DocumentChunk(Base):
     content_length: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     token_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     hierarchy_path: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    chunk_metadata: Mapped[dict[str, Any] | None] = mapped_column(
-        JSON, nullable=True
-    )
+    chunk_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     # タイムスタンプ
     created_at: Mapped[datetime] = mapped_column(
