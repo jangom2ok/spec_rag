@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from pymilvus.exceptions import MilvusException
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app.api.auth import AuthenticationError, admin_router
+from app.api.auth import AuthHTTPError, admin_router
 from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.health import router as health_router
@@ -197,9 +197,9 @@ def setup_error_handlers(app: FastAPI) -> None:
             },
         )
 
-    @app.exception_handler(AuthenticationError)
+    @app.exception_handler(AuthHTTPError)
     async def authentication_exception_handler(
-        request: Request, exc: AuthenticationError
+        request: Request, exc: AuthHTTPError
     ):
         return JSONResponse(
             status_code=exc.status_code,

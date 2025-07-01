@@ -1,5 +1,6 @@
 """ドキュメント操作API"""
 
+import logging
 from enum import Enum
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -73,8 +74,9 @@ async def get_current_user_or_api_key(
                     user_info["email"] = email
                     user_info["auth_type"] = "jwt"
                     return user_info
-        except Exception:
+        except Exception as e:
             # JWT認証が失敗した場合はAPI Key認証にフォールバック
+            logging.debug(f"JWT認証に失敗、API Key認証にフォールバック: {e}")
             pass
 
     raise HTTPException(status_code=401, detail="Authentication required")

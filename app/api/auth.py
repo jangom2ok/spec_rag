@@ -88,7 +88,7 @@ class MessageResponse(BaseModel):
 
 
 # 依存性注入関数
-class AuthenticationError(HTTPException):
+class AuthHTTPError(HTTPException):
     """認証エラー例外"""
 
     def __init__(self, message: str = "Authentication failed"):
@@ -102,25 +102,25 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     try:
         # トークンブラックリストチェック
         if is_token_blacklisted(token):
-            raise AuthenticationError("Token has been revoked")
+            raise AuthHTTPError("Token has been revoked")
 
         payload = verify_token(token)
         email = payload.get("sub")
         if email is None:
-            raise AuthenticationError("Could not validate credentials")
+            raise AuthHTTPError("Could not validate credentials")
 
         user = users_storage.get(email)
         if user is None:
-            raise AuthenticationError("User not found")
+            raise AuthHTTPError("User not found")
 
         # ユーザー情報にemailを追加して返す
         user_info = user.copy()
         user_info["email"] = email
         return user_info
-    except AuthenticationError:
+    except AuthHTTPError:
         raise  # 認証エラーはそのまま再発生
     except Exception as err:
-        raise AuthenticationError("Could not validate credentials") from err
+        raise AuthHTTPError("Could not validate credentials") from err
 
 
 # 認証エンドポイント

@@ -9,12 +9,12 @@ from pymilvus.exceptions import MilvusException
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.exceptions import (
-    AuthenticationException,
-    AuthorizationException,
-    DatabaseException,
+    AuthenticationError,
+    AuthorizationError,
+    DatabaseError,
     RAGSystemError,
-    ValidationException,
-    VectorDatabaseException,
+    ValidationError,
+    VectorDatabaseError,
 )
 from app.main import app
 
@@ -32,7 +32,7 @@ class TestCustomExceptions:
 
     def test_database_exception(self):
         """データベース例外のテスト"""
-        exception = DatabaseException("Database connection failed")
+        exception = DatabaseError("Database connection failed")
 
         assert str(exception) == "Database connection failed"
         assert exception.status_code == 500
@@ -40,28 +40,28 @@ class TestCustomExceptions:
 
     def test_vector_database_exception(self):
         """ベクトルデータベース例外のテスト"""
-        exception = VectorDatabaseException("Milvus connection failed")
+        exception = VectorDatabaseError("Milvus connection failed")
 
         assert str(exception) == "Milvus connection failed"
         assert exception.status_code == 500
 
     def test_validation_exception(self):
         """バリデーション例外のテスト"""
-        exception = ValidationException("Invalid input data")
+        exception = ValidationError("Invalid input data")
 
         assert str(exception) == "Invalid input data"
         assert exception.status_code == 422
 
     def test_authentication_exception(self):
         """認証例外のテスト"""
-        exception = AuthenticationException("Invalid credentials")
+        exception = AuthenticationError("Invalid credentials")
 
         assert str(exception) == "Invalid credentials"
         assert exception.status_code == 401
 
     def test_authorization_exception(self):
         """認可例外のテスト"""
-        exception = AuthorizationException("Access denied")
+        exception = AuthorizationError("Access denied")
 
         assert str(exception) == "Access denied"
         assert exception.status_code == 403
