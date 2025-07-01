@@ -276,7 +276,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "spec-rag"
+name = "spec_rag"
 version = "0.1.0"
 description = "RAG System for System Development Documentation"
 authors = [
@@ -400,7 +400,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t spec-rag:latest .
+        docker build -t spec_rag:latest .
 
     - name: Push to registry
       run: |

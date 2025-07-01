@@ -1,0 +1,198 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Rules - spec_rag
+
+## プロジェクト概要
+
+**目的**: システム開発における仕様書や用語情報を統合管理するRAG（Retrieval-Augmented Generation）サービスを構築し、外部システムに高精度な検索機能を提供する。
+
+**コアスタック**: FastAPI + Milvus + PostgreSQL + BGE-M3 + Celery + Docker/K8s
+
+**主要品質目標**:
+| KPI                     | Target |
+|-------------------------|--------|
+| Search P@5              | ≥ 0.85 |
+| Embedding throughput    | ≥ 250 docs/s (A100) |
+| API 95-percentile <T₉₅> | ≤ 300 ms |
+| System Availability     | ≥ 99.9% |
+
+## 技術スタック & アーキテクチャルール
+
+### Backend
+- **言語**: Python 3.11+ 必須
+- **Webフレームワーク**: FastAPI 0.100+
+- **埋め込みモデル**: BAAI/BGE-M3 (ハイブリッド検索対応)
+- **機械学習**: PyTorch 2.0+, sentence-transformers
+- **非同期処理**: asyncio, celery for background tasks
+
+### Database & Storage
+- **Vector Database**: Milvus 2.3+ (HNSW + IVF_FLAT インデックス)
+- **Relational Database**: PostgreSQL 15+ (メタデータ管理)
+- **Object Storage**: MinIO (S3互換, ドキュメントストレージ)
+- **Cache**: Redis 7.0+
+
+### データ処理・検索
+- **検索方式**: Dense + Sparse + Multi-Vector ハイブリッド検索
+- **ランキング**: RRF (Reciprocal Rank Fusion) + Reranker
+- **チャンク化**: セマンティック分割 (最大512トークン, オーバーラップ対応)
+- **対応ソース**: Git Repository, Confluence, Swagger/OpenAPI, Google Sheets
+
+## 開発ルール
+
+### コード品質
+- **静的解析**: ruff, black, mypy を必須使用
+- **テスト**: pytest + coverage (カバレッジ ≥ 80%)
+- **文書化**: docstring (Google形式), type hints必須
+- **コードレビュー**: 全プルリクエストで必須
+
+### 開発プロセス (TDD必須)
+1. **Red**: テストコード作成 → 失敗確認
+2. **Green**: 最小限の実装でテスト通過
+3. **Refactor**: コード整理・最適化
+4. **Quality**: 静的解析 + コードレビュー
+5. **Integration**: CI/CD による自動テスト
+
+### プロジェクト構造
+```
+src/
+├── api/           # FastAPI アプリケーション
+├── core/          # コアロジック (config, database, security)
+├── services/      # ビジネスロジック (embedding, search, document)
+├── models/        # データモデル (SQLAlchemy + Pydantic)
+├── utils/         # ユーティリティ (text_processing, chunking)
+└── workers/       # バックグラウンドワーカー
+```
+
+## API設計ルール
+
+### RESTful API原則
+- **認証**: JWT Token + API Key
+- **バージョニング**: `/v1/` prefix必須
+- **レスポンス**: JSON形式, 構造化エラー
+- **パフォーマンス**: Response time < 500ms (95%ile)
+
+### 主要エンドポイント
+- `POST /v1/search` - ハイブリッド検索
+- `GET /v1/documents` - ドキュメント管理
+- `GET /v1/health` - ヘルスチェック
+- `POST /v1/reindex` - インデックス再構築
+
+## データ管理ルール
+
+### ドキュメント粒度
+- **Document**: 完全な文書単位
+- **Section**: セクション/章単位
+- **Paragraph**: 段落単位
+- **Term**: 用語・定義単位
+
+### メタデータ管理
+- **必須フィールド**: source_type, source_id, title, content, language
+- **バージョン管理**: last_updated, version_number
+- **分類**: category, tags, complexity_level
+
+### データ更新戦略
+- **リアルタイム**: Webhook経由での即座更新
+- **バッチ処理**: 毎朝定期実行での差分更新
+- **差分検出**: ハッシュベースでの変更検知
+
+## パフォーマンス・運用ルール
+
+### 監視項目
+- API レスポンス時間・成功率
+- Vector DB 検索精度・レイテンシ
+- GPU メモリ使用率
+- システムリソース使用状況
+
+### アラート条件
+- API エラー率 > 5%
+- 検索レスポンス時間 > 1s
+- GPU メモリ使用率 > 90%
+- Vector DB ディスク使用率 > 80%
+
+### スケーラビリティ
+- **ドキュメント数**: 最大100万件対応
+- **ベクトル次元**: 1024次元 (BGE-M3)
+- **同時接続数**: 100接続対応
+- **日次更新量**: 10,000件対応
+
+## セキュリティルール
+
+### 認証・認可
+- **API認証**: JWT + API Key必須
+- **Role-based Access Control**: 読み取り/書き込み権限分離
+- **Rate Limiting**: DDoS対策実装
+
+### データ保護
+- **暗号化**: 保存時・転送時暗号化必須
+- **ネットワーク**: Private VPC内での通信
+- **ログ**: 個人情報のマスキング
+
+## 実装フェーズルール
+
+### Phase 1: 基盤構築 (4週間)
+- 開発環境セットアップ
+- データベース設計・構築
+- 基本API実装
+
+### Phase 2: 埋め込み・検索機能 (6週間)
+- BGE-M3統合
+- ドキュメント処理パイプライン
+- ハイブリッド検索エンジン
+
+### Phase 3: 高度機能・最適化 (4週間)
+- 検索精度向上機能
+- 運用・監視システム
+
+### Phase 4: 本番環境・運用開始 (4週間)
+- 本番環境構築
+- パフォーマンスチューニング
+- 運用開始
+
+## コミット・プルリクエストルール
+
+### コミットメッセージフォーマット
+```
+<type>: <description>
+
+Types: Add, Fix, Update, Remove, Refactor, Test, Doc
+例: Add: BGE-M3埋め込みサービスのTDD実装
+```
+
+### プルリクエスト必須項目
+- [ ] テストカバレッジ ≥ 80%
+- [ ] 静的解析エラーなし
+- [ ] API仕様書更新（該当する場合）
+- [ ] パフォーマンス影響の評価
+
+## ファイル・ディレクトリ命名ルール
+
+### ファイル命名
+- **Python**: snake_case (例: `embedding_service.py`)
+- **設定**: kebab-case (例: `docker-compose.yml`)
+- **ドキュメント**: PascalCase (例: `SystemArchitecture.md`)
+
+### モジュール構成
+- 単一責任原則の徹底
+- 循環依存の禁止
+- インターフェース分離の実装
+
+## エラーハンドリングルール
+
+### 例外処理
+- **カスタム例外**: 業務ロジック用の独自例外定義
+- **ロギング**: 構造化ログ (JSON形式)
+- **監視**: 例外発生時の自動アラート
+
+### API エラーレスポンス
+```json
+{
+  "error": {
+    "code": "SEARCH_TIMEOUT",
+    "message": "検索処理がタイムアウトしました",
+    "details": "Vector database connection timeout after 30s"
+  }
+}
+```
