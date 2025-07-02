@@ -247,7 +247,11 @@ class TestAsyncErrorHandling:
         ) as mock_get:
             mock_get.side_effect = SQLAlchemyError("Async connection error")
 
-            async with AsyncClient(app=app, base_url="http://test") as ac:
+            from httpx import ASGITransport
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as ac:
                 response = await ac.get("/v1/documents/test-id")
 
                 assert response.status_code == 500
@@ -261,7 +265,11 @@ class TestAsyncErrorHandling:
         with patch("app.api.health.check_postgresql_connection") as mock_check:
             mock_check.side_effect = TimeoutError("Connection timeout")
 
-            async with AsyncClient(app=app, base_url="http://test") as ac:
+            from httpx import ASGITransport
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as ac:
                 response = await ac.get("/v1/health/detailed")
 
                 assert response.status_code == 500

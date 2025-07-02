@@ -19,6 +19,10 @@ dependencies = [
     "pydantic>=2.5.0",
     "python-multipart>=0.0.6",
     "numpy>=1.24.0",
+    "PyJWT>=2.8.0",
+    "passlib[bcrypt]>=1.7.4",
+    "psutil>=5.9.0",
+    "email-validator>=2.0.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -147,6 +151,16 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "unit: marks tests as unit tests",
     "integration: marks tests as integration tests",
+    "auth: marks tests that require authentication",
+    "external: marks tests that require external services",
+    "no_jwt_mock: disables JWT mocking for testing real JWT logic",
+    "no_apikey_mock: disables API Key mocking for testing real API Key logic",
+    "no_auth_middleware: disables authentication middleware for endpoint testing",
+]
+# テスト段階の設定
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 
 # Coverage configuration

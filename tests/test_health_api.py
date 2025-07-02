@@ -44,7 +44,11 @@ class TestHealthAPI:
     @pytest.mark.asyncio
     async def test_async_health_check(self):
         """非同期ヘルスチェックのテスト"""
-        async with AsyncClient(app=app, base_url="http://test") as ac:
+        from httpx import ASGITransport
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
             response = await ac.get("/v1/health")
 
             assert response.status_code == 200

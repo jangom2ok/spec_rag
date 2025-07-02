@@ -45,6 +45,13 @@ def create_app() -> FastAPI:
     # デバッグモードの設定（開発環境）
     app.debug = True
 
+    # テスト環境では認証ミドルウェアをスキップ
+    import os
+
+    if os.getenv("TESTING") != "true":
+        # 本番環境では認証ミドルウェアを追加
+        pass  # ここに認証ミドルウェアを追加
+
     # ルーターの登録
     app.include_router(health_router)
     app.include_router(documents_router)

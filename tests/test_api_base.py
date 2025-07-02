@@ -43,7 +43,11 @@ class TestFastAPIBase:
     @pytest.mark.asyncio
     async def test_async_client(self):
         """非同期クライアントのテスト"""
-        async with AsyncClient(app=app, base_url="http://test") as ac:
+        from httpx import ASGITransport
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
             # 基本的な接続テスト（存在しないエンドポイントでも構造は確認できる）
             response = await ac.get("/nonexistent")
             # 404が返ることを確認（アプリが動作している証拠）
