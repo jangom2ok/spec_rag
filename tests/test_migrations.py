@@ -61,7 +61,7 @@ class TestMigrationManager:
         )
 
         # 初期化を実行
-        with patch("alembic.command.init") as mock_init:
+        with patch("alembic.command.init"):
             # migrationsディレクトリを事前に作成
             temp_migrations_dir.mkdir(exist_ok=True)
             await manager.initialize_migrations()
