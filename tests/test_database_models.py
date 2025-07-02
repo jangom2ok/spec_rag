@@ -1,9 +1,6 @@
 """データベースモデルのテスト"""
 
 import pytest
-from datetime import datetime
-from uuid import UUID
-
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
