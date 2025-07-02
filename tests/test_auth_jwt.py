@@ -1,7 +1,6 @@
 """JWT認証システムのテスト"""
 
 from datetime import timedelta
-from unittest.mock import patch
 
 import jwt
 import pytest

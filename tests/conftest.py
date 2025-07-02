@@ -1,15 +1,23 @@
 """Pytest設定とフィクスチャ"""
 
 import os
+import secrets
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from typing import AsyncGenerator, Any, Dict, Generator
-from unittest.mock import patch, AsyncMock
-from httpx import ASGITransport, AsyncClient
 from fastapi import FastAPI, Request, Response
+from httpx import ASGITransport, AsyncClient
 
 # テスト環境用の環境変数設定
 os.environ["TESTING"] = "true"
-os.environ["SECRET_KEY"] = "test-secret-key"
+# テスト環境用のランダムシークレットキーを生成（セキュリティ警告を回避）
+test_secret_key = os.getenv("TEST_SECRET_KEY")
+if not test_secret_key:
+    # テスト用の安全なランダムキーを生成
+    test_secret_key = secrets.token_urlsafe(32)
+os.environ["SECRET_KEY"] = test_secret_key
 os.environ["MILVUS_HOST"] = "localhost"
 os.environ["MILVUS_PORT"] = "19530"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
@@ -34,7 +42,7 @@ async def async_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture(autouse=True)
-def mock_external_services(request: Any) -> Generator[Dict[str, Any], None, None]:
+def mock_external_services(request: Any) -> Generator[dict[str, Any], None, None]:
     """外部サービスのモック（全テストで自動適用、選択的無効化可能）"""
 
     # モック無効化の設定
@@ -49,7 +57,7 @@ def mock_external_services(request: Any) -> Generator[Dict[str, Any], None, None
     ]
 
     patches: list[Any] = []
-    mocks: Dict[str, Any] = {}
+    mocks: dict[str, Any] = {}
 
     # Milvus（常にモック）
     milvus_patches = [
@@ -144,7 +152,6 @@ def mock_external_services(request: Any) -> Generator[Dict[str, Any], None, None
 def no_auth_mock():
     """認証モックを無効化するフィクスチャ（JWTテスト用）"""
     # このフィクスチャが使われた場合、認証関連のモックを停止
-    import app.core.auth
 
     yield
 
@@ -171,7 +178,7 @@ def mock_database() -> Generator[AsyncMock, None, None]:
 
 
 @pytest.fixture
-def mock_milvus() -> Generator[Dict[str, AsyncMock], None, None]:
+def mock_milvus() -> Generator[dict[str, AsyncMock], None, None]:
     """Milvusのモック"""
     with (
         patch("app.models.milvus.DenseVectorCollection") as mock_dense,
