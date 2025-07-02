@@ -109,6 +109,16 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
+    # permissionsがない場合は役割に基づいて設定
+    if "permissions" not in to_encode:
+        role = to_encode.get("role", "user")
+        if role == "admin":
+            to_encode["permissions"] = ["read", "write", "delete", "admin"]
+        elif role == "manager":
+            to_encode["permissions"] = ["read", "write"]
+        else:
+            to_encode["permissions"] = ["read"]
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

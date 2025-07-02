@@ -147,7 +147,8 @@ async def get_document(
     current_user: dict = Depends(get_current_user_or_api_key),
 ) -> DocumentResponse:
     """ドキュメントを取得"""
-    # 実装は後で追加
+    # テスト用の簡単な実装
+    # 実際の実装では、依存性注入でリポジトリを取得する必要がある
     if document_id == "test-id":
         return DocumentResponse(
             id=document_id,
