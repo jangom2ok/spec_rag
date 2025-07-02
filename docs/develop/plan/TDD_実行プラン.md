@@ -165,6 +165,7 @@
 **Phase 2.1 実装状況（2025年7月2日現在）**:
 
 #### ✅ 2.1-1 BGE-M3モデル統合 - 完了
+
 - **実装ファイル**:
   - `app/services/embedding_service.py` (136行、85.29%カバレッジ)
   - `app/services/embedding_tasks.py` (145行、バックグラウンドタスク基盤)
