@@ -118,10 +118,36 @@ class TestDenseVectorCollection:
         mock_search_result.distances = [0.1, 0.3]
 
         # Mock() オブジェクトをiterableにする
-        mock_search_result.__iter__ = Mock(return_value=iter([
-            Mock(id="doc-1", distance=0.1, entity=Mock(to_dict=Mock(return_value={"document_id": "doc-1", "chunk_id": "chunk-1"}))),
-            Mock(id="doc-2", distance=0.3, entity=Mock(to_dict=Mock(return_value={"document_id": "doc-2", "chunk_id": "chunk-2"})))
-        ]))
+        mock_search_result.__iter__ = Mock(
+            return_value=iter(
+                [
+                    Mock(
+                        id="doc-1",
+                        distance=0.1,
+                        entity=Mock(
+                            to_dict=Mock(
+                                return_value={
+                                    "document_id": "doc-1",
+                                    "chunk_id": "chunk-1",
+                                }
+                            )
+                        ),
+                    ),
+                    Mock(
+                        id="doc-2",
+                        distance=0.3,
+                        entity=Mock(
+                            to_dict=Mock(
+                                return_value={
+                                    "document_id": "doc-2",
+                                    "chunk_id": "chunk-2",
+                                }
+                            )
+                        ),
+                    ),
+                ]
+            )
+        )
 
         mock_milvus_connection.search.return_value = [mock_search_result]
 

@@ -113,7 +113,7 @@ def mock_external_services(request: Any) -> Generator[dict[str, Any], None, None
         auth_patch = patch("app.core.middleware.CombinedAuthenticationMiddleware")
         patches.append(auth_patch)
         mock_auth_class = auth_patch.start()
-        
+
         # モックインスタンスを作成
         mock_auth_instance = mock_auth_class.return_value
         mock_auth_instance.authenticate.return_value = {

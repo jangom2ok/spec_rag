@@ -118,8 +118,16 @@ class TestMigrationManager:
 
         # モックの履歴データ
         mock_history = [
-            {"revision": "rev1", "down_revision": None, "description": "Initial migration"},
-            {"revision": "rev2", "down_revision": "rev1", "description": "Add documents table"},
+            {
+                "revision": "rev1",
+                "down_revision": None,
+                "description": "Initial migration",
+            },
+            {
+                "revision": "rev2",
+                "down_revision": "rev1",
+                "description": "Add documents table",
+            },
         ]
 
         with patch.object(manager, "get_migration_history", return_value=mock_history):
@@ -289,7 +297,9 @@ class TestMigrationUtils:
         # テスト用の一時ディレクトリを作成
         with tempfile.TemporaryDirectory() as temp_dir:
             migrations_dir = Path(temp_dir) / "migrations"
-            manager = MigrationManager("sqlite:///test.db", migrations_dir=migrations_dir)
+            manager = MigrationManager(
+                "sqlite:///test.db", migrations_dir=migrations_dir
+            )
 
             with patch.object(manager, "get_current_revision", return_value="abc123"):
                 current = await manager.get_current_revision()

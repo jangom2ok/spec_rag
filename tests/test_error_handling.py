@@ -116,7 +116,9 @@ class TestDatabaseErrorHandling:
     def test_vector_database_error(self, mock_search):
         """ベクトルデータベースエラーのテスト"""
         # MilvusExceptionの正しい使用方法
-        mock_search.side_effect = MilvusException(code=1, message="Milvus connection failed")
+        mock_search.side_effect = MilvusException(
+            code=1, message="Milvus connection failed"
+        )
 
         client = TestClient(app)
         response = client.post("/v1/search", json={"query": "test query", "top_k": 10})
@@ -131,7 +133,7 @@ class TestDatabaseErrorHandling:
         mock_create.side_effect = IntegrityError(
             "UNIQUE constraint failed: documents.title",
             params=None,
-            orig=Exception("UNIQUE constraint failed")
+            orig=Exception("UNIQUE constraint failed"),
         )
 
         client = TestClient(app)

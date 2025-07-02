@@ -52,7 +52,9 @@ class VectorData(BaseModel):
 
         # Sparse vectorの場合、vocabulary_sizeが必須
         if self.sparse_vector is not None and self.vocabulary_size is None:
-            raise ValueError("'vocabulary_size' is required when 'sparse_vector' is provided")
+            raise ValueError(
+                "'vocabulary_size' is required when 'sparse_vector' is provided"
+            )
 
         # Dense vectorの場合、次元数の確認
         if self.vector is not None and len(self.vector) == 0:

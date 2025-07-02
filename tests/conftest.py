@@ -36,10 +36,11 @@ def test_app() -> FastAPI:
         mock_auth_instance.authenticate.return_value = {
             "sub": "test@example.com",
             "role": "admin",
-            "permissions": ["read", "write", "admin"]
+            "permissions": ["read", "write", "admin"],
         }
 
         from app.main import create_app
+
         app = create_app()
         return app
 
