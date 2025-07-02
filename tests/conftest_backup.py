@@ -196,7 +196,6 @@ def mock_milvus() -> Generator[dict[str, AsyncMock], None, None]:
         patch("app.models.milvus.DenseVectorCollection") as mock_dense,
         patch("app.models.milvus.SparseVectorCollection") as mock_sparse,
     ):
-
         mock_dense_instance = AsyncMock()
         mock_sparse_instance = AsyncMock()
 

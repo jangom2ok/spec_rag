@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from pymilvus.exceptions import MilvusException
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 

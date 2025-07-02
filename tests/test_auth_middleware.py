@@ -147,7 +147,6 @@ class TestAuthenticationMiddleware:
             patch("app.core.auth.verify_token") as mock_verify,
             patch("app.core.auth.validate_api_key") as mock_validate,
         ):
-
             mock_verify.side_effect = InvalidTokenError("Invalid token")
             mock_validate.return_value = {"user_id": "user123", "permissions": ["read"]}
 

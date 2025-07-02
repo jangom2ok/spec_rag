@@ -37,8 +37,9 @@ def test_app() -> FastAPI:
         }
 
     # 認証依存関係をオーバーライド
-    from app.api.documents import get_current_user_or_api_key
     from app.api.auth import get_current_user
+    from app.api.documents import get_current_user_or_api_key
+
     app.dependency_overrides[get_current_user_or_api_key] = mock_current_user
     app.dependency_overrides[get_current_user] = mock_current_user
 
@@ -98,7 +99,3 @@ def mock_database() -> Generator[AsyncMock, None, None]:
         mock_instance = AsyncMock()
         mock_repo.return_value = mock_instance
         yield mock_instance
-
-
-# テストで使用するアプリケーション用の設定
-from app.main import app

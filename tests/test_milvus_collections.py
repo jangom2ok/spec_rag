@@ -71,7 +71,6 @@ class TestDenseVectorCollection:
             patch("app.models.milvus.connections") as mock_conn,
             patch("app.models.milvus.Collection") as mock_collection,
         ):
-
             mock_conn.connect.return_value = None
             mock_collection_instance = Mock()
             mock_collection.return_value = mock_collection_instance
@@ -110,7 +109,7 @@ class TestDenseVectorCollection:
 
     async def test_dense_vector_search(self, mock_milvus_connection):
         """Dense Vectorの検索テスト"""
-        collection = DenseVectorCollection()        # モックの検索結果を正しく設定
+        collection = DenseVectorCollection()  # モックの検索結果を正しく設定
         mock_item_1 = Mock()
         mock_item_1.id = "doc-1"
         mock_item_1.distance = 0.1
@@ -131,8 +130,12 @@ class TestDenseVectorCollection:
 
         mock_search_result = Mock()
         # mock_search_resultはリストのように振る舞う必要がある
-        mock_search_result.__iter__ = Mock(return_value=iter([mock_item_1, mock_item_2]))
-        mock_search_result.__getitem__ = Mock(side_effect=lambda x: [mock_item_1, mock_item_2][x])
+        mock_search_result.__iter__ = Mock(
+            return_value=iter([mock_item_1, mock_item_2])
+        )
+        mock_search_result.__getitem__ = Mock(
+            side_effect=lambda x: [mock_item_1, mock_item_2][x]
+        )
         mock_search_result.__len__ = Mock(return_value=2)
 
         mock_milvus_connection.search.return_value = [mock_search_result]
@@ -181,7 +184,6 @@ class TestSparseVectorCollection:
             patch("app.models.milvus.connections") as mock_conn,
             patch("app.models.milvus.Collection") as mock_collection,
         ):
-
             mock_conn.connect.return_value = None
             mock_collection_instance = Mock()
             mock_collection.return_value = mock_collection_instance
@@ -248,7 +250,6 @@ class TestSparseVectorCollection:
             patch.object(dense_collection, "search", return_value=mock_dense_result),
             patch.object(sparse_collection, "search", return_value=mock_sparse_result),
         ):
-
             # Dense検索
             dense_results = await dense_collection.search(
                 query_vectors=[np.random.random(1024).tolist()], top_k=10

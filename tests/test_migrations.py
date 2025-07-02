@@ -180,7 +180,6 @@ class TestMigrationExecution:
                 patch.object(manager, "initialize_migrations") as mock_init,
                 patch.object(manager, "run_migrations") as mock_run,
             ):
-
                 await manager.initialize_migrations()
                 await manager.run_migrations("head")
 
