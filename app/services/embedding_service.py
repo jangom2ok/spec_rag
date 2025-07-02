@@ -10,19 +10,19 @@ import time
 from typing import Any
 
 import numpy as np
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 try:
     import torch as torch_module
-    from FlagEmbedding import FlagModel
+    from FlagEmbedding import FlagModel  # type: ignore
 
     HAS_EMBEDDING_LIBS = True
 except ImportError:
     # テスト環境やモジュール未インストール時のダミークラス
     HAS_EMBEDDING_LIBS = False
-    torch_module = None
+    torch_module = None  # type: ignore
 
-    class FlagModel:
+    class FlagModel:  # type: ignore
         def __init__(self, *args, **kwargs):
             pass
 
@@ -86,8 +86,9 @@ class EmbeddingResult(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-    @validator("dense_vector")
-    def validate_dense_vector_dimension(self, v):
+    @field_validator("dense_vector")
+    @classmethod
+    def validate_dense_vector_dimension(cls, v):
         """Dense vectorの次元数を検証"""
         if len(v) != 1024:
             raise ValueError("Dense vector must be 1024 dimensions")
@@ -101,10 +102,11 @@ class BatchEmbeddingRequest(BaseModel):
     chunk_ids: list[str] = Field(..., description="チャンクIDリスト")
     document_ids: list[str] = Field(..., description="ドキュメントIDリスト")
 
-    @validator("chunk_ids", "document_ids")
-    def validate_list_lengths(self, v, values):
+    @field_validator("chunk_ids", "document_ids")
+    @classmethod
+    def validate_list_lengths(cls, v, info):
         """リストの長さを検証"""
-        if "texts" in values and len(v) != len(values["texts"]):
+        if info.data and "texts" in info.data and len(v) != len(info.data["texts"]):
             raise ValueError("All lists must have the same length")
         return v
 
@@ -129,8 +131,8 @@ class EmbeddingService:
             return
 
         async with self._lock:
-            if self.is_initialized:
-                return
+            if self.is_initialized:  # Double-checked locking pattern
+                return  # type: ignore[unreachable]
 
             try:
                 # デバイスの自動検出

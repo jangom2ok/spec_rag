@@ -9,9 +9,9 @@ import logging
 from typing import Any
 
 try:
-    import redis
-    from celery import Celery
-    from celery.result import AsyncResult
+    import redis  # type: ignore
+    from celery import Celery  # type: ignore
+    from celery.result import AsyncResult  # type: ignore
 
     HAS_CELERY = True
     HAS_REDIS = True
@@ -45,7 +45,7 @@ except ImportError:
         def inspect(self):
             return MockInspect()
 
-    class Celery:
+    class MockCelery:
         def __init__(self, *args, **kwargs):
             pass
 
@@ -64,7 +64,7 @@ except ImportError:
         def control(self):
             return MockControl()
 
-    class AsyncResult:
+    class MockAsyncResult:
         def __init__(self, *args, **kwargs):
             self.status = "SUCCESS"
             self.result = {}
@@ -89,25 +89,37 @@ from app.services.embedding_service import (
 )
 
 try:
-    from app.repositories.chunk_repository import ChunkRepository
+    from app.repositories.chunk_repository import (
+        DocumentChunkRepository as ChunkRepository,
+    )
 except ImportError:
     # テスト用ダミークラス
-    class ChunkRepository:
+    class MockChunkRepository:
         def __init__(self):
             pass
 
-        async def get_chunks_by_document_id(self, document_id):
+        async def get_by_document_id(self, document_id):
             return []
 
+    ChunkRepository = MockChunkRepository  # type: ignore
+
+# Create AsyncResult alias for type annotations
+if HAS_CELERY:
+    from celery.result import AsyncResult
+else:
+    AsyncResult = MockAsyncResult
 
 logger = logging.getLogger(__name__)
 
 # Celeryアプリケーションの設定
-celery_app = Celery(
-    "embedding_tasks",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0",
-)
+if HAS_CELERY:
+    celery_app = Celery(
+        "embedding_tasks",
+        broker="redis://localhost:6379/0",
+        backend="redis://localhost:6379/0",
+    )
+else:
+    celery_app = MockCelery()
 
 # Celery設定
 celery_app.conf.update(
@@ -154,7 +166,10 @@ class EmbeddingTaskService:
         """
         try:
             # ドキュメントのチャンクを取得
-            chunks = await self.chunk_repository.get_chunks_by_document_id(document_id)
+            if self.chunk_repository is not None:
+                chunks = await self.chunk_repository.get_by_document_id(document_id)
+            else:
+                chunks = []
 
             if not chunks:
                 return {
@@ -172,13 +187,18 @@ class EmbeddingTaskService:
             )
 
             # 埋め込み処理
-            embedding_results = await self.embedding_service.process_batch_request(
-                batch_request
-            )
+            if self.embedding_service is not None:
+                embedding_results = await self.embedding_service.process_batch_request(
+                    batch_request
+                )
+            else:
+                embedding_results = []
 
             # VectorDataオブジェクトの作成とMilvusへの保存
             vector_data_list = []
-            for _i, (chunk, result) in enumerate(zip(chunks, embedding_results, strict=False)):
+            for _i, (chunk, result) in enumerate(
+                zip(chunks, embedding_results, strict=False)
+            ):
                 # Dense vector用
                 dense_vector_data = VectorData(
                     id=f"{chunk.id}_dense",
@@ -375,14 +395,30 @@ def get_redis_health() -> dict[str, Any]:
         client = redis.Redis.from_url("redis://localhost:6379/0", decode_responses=True)
         client.ping()
         # info()は辞書を返す
-        info_result = client.info()  # type: ignore
+        info_result = client.info()
 
         # 型安全な辞書アクセス
         try:
-            redis_version = info_result["redis_version"] if "redis_version" in info_result else "unknown"  # type: ignore
-            connected_clients = info_result["connected_clients"] if "connected_clients" in info_result else 0  # type: ignore
-            used_memory = info_result["used_memory_human"] if "used_memory_human" in info_result else "unknown"  # type: ignore
-            uptime = info_result["uptime_in_seconds"] if "uptime_in_seconds" in info_result else 0  # type: ignore
+            redis_version = (
+                info_result["redis_version"]
+                if "redis_version" in info_result
+                else "unknown"
+            )
+            connected_clients = (
+                info_result["connected_clients"]
+                if "connected_clients" in info_result
+                else 0
+            )
+            used_memory = (
+                info_result["used_memory_human"]
+                if "used_memory_human" in info_result
+                else "unknown"
+            )
+            uptime = (
+                info_result["uptime_in_seconds"]
+                if "uptime_in_seconds" in info_result
+                else 0
+            )
         except (TypeError, KeyError):
             # 何らかの理由で辞書アクセスが失敗した場合のフォールバック
             redis_version = "unknown"
@@ -456,7 +492,7 @@ class EmbeddingTaskManager:
     @staticmethod
     def submit_batch_processing(
         texts: list[str], metadata: dict[str, Any] | None = None
-    ) -> AsyncResult:
+    ) -> Any:
         """バッチ処理タスクの投入
 
         Args:
@@ -478,7 +514,10 @@ class EmbeddingTaskManager:
         Returns:
             Dict[str, Any]: タスクステータス
         """
-        result = AsyncResult(task_id, app=celery_app)
+        if HAS_CELERY:
+            result = AsyncResult(task_id, app=celery_app)
+        else:
+            result = MockAsyncResult(task_id)
 
         return {
             "task_id": task_id,
