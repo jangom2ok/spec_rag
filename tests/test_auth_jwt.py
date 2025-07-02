@@ -33,11 +33,10 @@ class TestJWTAuthentication:
         user_data = {"sub": "test@example.com", "role": "user"}
         token = create_access_token(user_data)
 
-        # モックされた検証（conftest.pyのモックを使用）
+        # 実際のトークン検証（モックされていない場合）
         payload = verify_token(token)
         assert payload["sub"] == "test@example.com"
-        # モックが"admin"を返すので、期待値を修正
-        assert payload["role"] == "admin"  # モック設定に合わせる
+        assert payload["role"] == "user"  # 元の値を確認
         assert "permissions" in payload
 
     @pytest.mark.no_jwt_mock

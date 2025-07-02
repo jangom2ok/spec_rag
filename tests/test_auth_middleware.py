@@ -263,6 +263,7 @@ class TestMiddlewareIntegration:
             response = client.get("/v1/documents", headers=headers)
             assert response.status_code == 200
 
+    @pytest.mark.no_jwt_mock
     def test_authorization_flow_integration(self):
         """認可フロー統合テスト"""
         client = TestClient(app)

@@ -112,10 +112,17 @@ class TestDenseVectorCollection:
         """Dense Vectorの検索テスト"""
         collection = DenseVectorCollection()
 
-        # モックの検索結果
+        # モックの検索結果を正しく設定
         mock_search_result = Mock()
-        mock_search_result.ids = [["doc-1", "doc-2"]]
-        mock_search_result.distances = [[0.1, 0.3]]
+        mock_search_result.ids = ["doc-1", "doc-2"]
+        mock_search_result.distances = [0.1, 0.3]
+
+        # Mock() オブジェクトをiterableにする
+        mock_search_result.__iter__ = Mock(return_value=iter([
+            Mock(id="doc-1", distance=0.1, entity=Mock(to_dict=Mock(return_value={"document_id": "doc-1", "chunk_id": "chunk-1"}))),
+            Mock(id="doc-2", distance=0.3, entity=Mock(to_dict=Mock(return_value={"document_id": "doc-2", "chunk_id": "chunk-2"})))
+        ]))
+
         mock_milvus_connection.search.return_value = [mock_search_result]
 
         # 検索実行
@@ -214,19 +221,16 @@ class TestSparseVectorCollection:
         sparse_collection = SparseVectorCollection()
 
         # 両方のコレクションでの検索結果をモック
-        mock_dense_result = Mock()
-        mock_dense_result.ids = [["doc-1", "doc-2"]]
-        mock_dense_result.distances = [[0.1, 0.3]]
-
-        mock_sparse_result = Mock()
-        mock_sparse_result.ids = [["doc-2", "doc-3"]]
-        mock_sparse_result.distances = [[0.2, 0.4]]
+        mock_dense_result = [
+            {"ids": ["doc-1", "doc-2"], "distances": [0.1, 0.3], "entities": []}
+        ]
+        mock_sparse_result = [
+            {"ids": ["doc-2", "doc-3"], "distances": [0.2, 0.4], "entities": []}
+        ]
 
         with (
-            patch.object(dense_collection, "search", return_value=[mock_dense_result]),
-            patch.object(
-                sparse_collection, "search", return_value=[mock_sparse_result]
-            ),
+            patch.object(dense_collection, "search", return_value=mock_dense_result),
+            patch.object(sparse_collection, "search", return_value=mock_sparse_result),
         ):
 
             # Dense検索

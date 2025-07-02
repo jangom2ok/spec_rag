@@ -41,6 +41,27 @@ class VectorData(BaseModel):
         if self.created_at is None:
             self.created_at = int(time.time())
 
+        # バリデーション
+        self._validate_vectors()
+
+    def _validate_vectors(self) -> None:
+        """ベクトルデータのバリデーション"""
+        # Dense vectorとSparse vectorのどちらか一方は必須
+        if self.vector is None and self.sparse_vector is None:
+            raise ValueError("Either 'vector' or 'sparse_vector' must be provided")
+
+        # Sparse vectorの場合、vocabulary_sizeが必須
+        if self.sparse_vector is not None and self.vocabulary_size is None:
+            raise ValueError("'vocabulary_size' is required when 'sparse_vector' is provided")
+
+        # Dense vectorの場合、次元数の確認
+        if self.vector is not None and len(self.vector) == 0:
+            raise ValueError("'vector' must not be empty")
+
+        # Sparse vectorの場合、形式の確認
+        if self.sparse_vector is not None and len(self.sparse_vector) == 0:
+            raise ValueError("'sparse_vector' must not be empty")
+
 
 class MilvusCollection(ABC):
     """Milvusコレクションの基底クラス"""
