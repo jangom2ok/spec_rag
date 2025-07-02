@@ -14,8 +14,13 @@ from pydantic import BaseModel, Field, validator
 
 try:
     from FlagEmbedding import FlagModel
+    import torch as torch_module
+    HAS_EMBEDDING_LIBS = True
 except ImportError:
     # テスト環境やモジュール未インストール時のダミークラス
+    HAS_EMBEDDING_LIBS = False
+    torch_module = None
+
     class FlagModel:
         def __init__(self, *args, **kwargs):
             pass
@@ -35,6 +40,16 @@ except ImportError:
             }
 
 logger = logging.getLogger(__name__)
+
+
+def _detect_device(preferred_device: str) -> str:
+    """最適なデバイスを検出"""
+    if preferred_device == "auto":
+        if HAS_EMBEDDING_LIBS and torch_module and torch_module.cuda.is_available():
+            return "cuda"
+        else:
+            return "cpu"
+    return preferred_device
 
 
 class EmbeddingConfig(BaseModel):
@@ -108,17 +123,19 @@ class EmbeddingService:
                 return
 
             try:
-                logger.info(f"Initializing BGE-M3 model: {self.config.model_name}")
+                # デバイスの自動検出
+                device = _detect_device(self.config.device)
+                logger.info(f"Initializing BGE-M3 model: {self.config.model_name} on {device}")
 
                 # FlagModelの初期化
                 self.model = FlagModel(
                     self.config.model_name,
                     use_fp16=self.config.use_fp16,
-                    device=self.config.device
+                    device=device
                 )
 
                 self.is_initialized = True
-                logger.info("BGE-M3 model initialized successfully")
+                logger.info(f"BGE-M3 model initialized successfully on {device}")
 
             except Exception as e:
                 logger.error(f"Failed to initialize BGE-M3 model: {e}")

@@ -145,7 +145,6 @@ def embedding_service(mock_bge_model):
     with patch("app.services.embedding_service.FlagModel", return_value=mock_bge_model):
         config = EmbeddingConfig(device="cpu")  # テスト用にCPUを使用
         service = EmbeddingService(config)
-        service.model = mock_bge_model  # モックを直接設定
         return service
 
 
@@ -253,15 +252,18 @@ class TestEmbeddingService:
             )
 
     @pytest.mark.asyncio
-    async def test_error_handling_during_embedding(self, embedding_service):
+    async def test_error_handling_during_embedding(self, mock_bge_model):
         """埋め込み処理中のエラーハンドリングテスト"""
-        await embedding_service.initialize()
+        with patch("app.services.embedding_service.FlagModel", return_value=mock_bge_model):
+            config = EmbeddingConfig(device="cpu")
+            service = EmbeddingService(config)
+            await service.initialize()
 
-        # モデルのencodeメソッドが例外を発生させるように設定
-        embedding_service.model.encode.side_effect = Exception("Model error")
+            # モデルのencodeメソッドが例外を発生させるように設定
+            mock_bge_model.encode.side_effect = Exception("Model error")
 
-        with pytest.raises(RuntimeError, match="Embedding failed"):
-            await embedding_service.embed_text("test text")
+            with pytest.raises(RuntimeError, match="Embedding failed"):
+                await service.embed_text("test text")
 
     @pytest.mark.asyncio
     async def test_max_length_handling(self, embedding_service):
