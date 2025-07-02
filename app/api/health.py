@@ -6,7 +6,7 @@ from typing import Any
 
 import psutil
 from fastapi import APIRouter, HTTPException
-from pymilvus.exceptions import MilvusException
+from pymilvus.exceptions import MilvusException  # type: ignore
 from sqlalchemy.exc import SQLAlchemyError
 
 router = APIRouter(prefix="/v1/health", tags=["health"])

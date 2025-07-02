@@ -21,3 +21,12 @@ aiosqlite>=0.19.0
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
 python-multipart>=0.0.6
+
+# Phase 2.1: Embedding Service dependencies
+torch>=2.1.0
+transformers>=4.35.2
+sentence-transformers>=2.2.2
+FlagEmbedding>=1.2.2
+celery[redis]>=5.3.4
+redis>=5.0.1
+numpy>=1.24.0

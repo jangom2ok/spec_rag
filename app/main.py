@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pymilvus.exceptions import MilvusException
+from pymilvus.exceptions import MilvusException  # type: ignore
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.auth import AuthHTTPError, admin_router

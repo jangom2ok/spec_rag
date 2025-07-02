@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pymilvus import (
+from pymilvus import (  # type: ignore
     Collection,
     CollectionSchema,
     DataType,
