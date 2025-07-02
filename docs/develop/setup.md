@@ -261,16 +261,19 @@ ENVIRONMENT=development
 以下のSecretsをGitHubリポジトリに設定してください：
 
 #### テスト環境用
+
 - `TEST_POSTGRES_USER`: テスト用PostgreSQLユーザー名
 - `TEST_POSTGRES_PASSWORD`: テスト用PostgreSQLパスワード
 - `TEST_POSTGRES_DB`: テスト用データベース名
 
 #### ステージング環境用
+
 - `STAGING_POSTGRES_USER`: ステージング用PostgreSQLユーザー名
 - `STAGING_POSTGRES_PASSWORD`: ステージング用PostgreSQLパスワード
 - `STAGING_POSTGRES_DB`: ステージング用データベース名
 
 #### 本番環境用
+
 - `PROD_POSTGRES_USER`: 本番用PostgreSQLユーザー名
 - `PROD_POSTGRES_PASSWORD`: 本番用PostgreSQLパスワード
 - `PROD_POSTGRES_DB`: 本番用データベース名
@@ -338,7 +341,7 @@ pre-commit install
 
 ## 開発サイクル
 
-詳細な開発サイクルについては、[開発サイクル](開発サイクル.md) を参照してください。
+詳細な開発サイクルについては、[開発サイクル](cycle.md) を参照してください。
 
 ## セキュリティ注意事項
 

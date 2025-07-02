@@ -58,25 +58,25 @@ RAG 向け Embedding を選ぶときは、まず **評価軸** を整理しま�
 
 ## 運用アーキテクチャ例
 
-```mermaid
-開発者            外部システム
-   │                   │
-   │  (REST / gRPC)    │
-   ▼                   ▼
-┌───────────────┐    ┌───────────────┐
-│   RAG API      │<─▶│ Vector DB      │
-│ (FastAPI etc.) │    │ (Milvus, Qdrant)│
-└───────────────┘    └───────────────┘
-         ▲                    ▲
-         │                    │
-         │   Streaming ETL    │
-         │  (毎朝/即時)        │
-         ▼                    │
-    ┌───────────────┐         │
-    │ Doc Collector  │────────┘
-    │ (Git, Confluence,       │
-    │   Swagger, Sheets …)    │
-    └───────────────┘
+```plaintext
+開発者                         外部システム
+   │                              │
+   │  (REST / gRPC)               │
+   ▼                              ▼
+┌────────────────┐     ┌──────────────────┐
+│   RAG API      │<--─▶│ Vector DB        │
+│ (FastAPI etc.) │     │ (Milvus, Qdrant) │
+└────────────────┘     └──────────────────┘
+         ▲                           ▲
+         │                           │
+         │   Streaming ETL           │
+         │  (毎朝/即時)               │
+         ▼                           │
+    ┌───────────────────────┐        │
+    │ Doc Collector         │────────┘
+    │ (Git, Confluence,     │
+    │   Swagger, Sheets …)  │
+    └───────────────────────┘
 ```
 
 * **Collector** が変更差分だけを抽出 → BGE‑M3 で埋め込み → Vector DB に *upsert*
