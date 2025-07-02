@@ -1,12 +1,11 @@
 """GPU最適化とバッチ処理のテスト"""
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-import numpy as np
-import torch
-from typing import List, Dict, Any
+from unittest.mock import Mock, patch
 
-from app.services.embedding_service import EmbeddingService, EmbeddingConfig
+import numpy as np
+import pytest
+
+from app.services.embedding_service import EmbeddingConfig, EmbeddingService
 
 
 class TestGPUOptimization:
@@ -51,8 +50,14 @@ class TestGPUOptimization:
                 batch_size = len(texts)
                 return {
                     "dense_vecs": np.random.rand(batch_size, 1024).astype(np.float32),
-                    "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in range(batch_size)],
-                    "colbert_vecs": [np.random.rand(5, 1024).astype(np.float32) for _ in range(batch_size)]
+                    "lexical_weights": [
+                        {i: np.random.rand() for i in range(10)}
+                        for _ in range(batch_size)
+                    ],
+                    "colbert_vecs": [
+                        np.random.rand(5, 1024).astype(np.float32)
+                        for _ in range(batch_size)
+                    ],
                 }
 
             mock_model.encode.side_effect = mock_encode_batch
@@ -81,9 +86,7 @@ class TestGPUOptimization:
 
             # FP16 使用フラグが正しく渡されることを確認
             mock_flag_model.assert_called_once_with(
-                "BAAI/BGE-M3",
-                use_fp16=True,
-                device="auto"
+                "BAAI/BGE-M3", use_fp16=True, device="auto"
             )
 
 
@@ -102,7 +105,7 @@ class TestBatchProcessingOptimization:
             processing_time = base_time * (batch_count / 16)  # バッチサイズ16を基準
 
             results = []
-            for i, text in enumerate(texts):
+            for i, _text in enumerate(texts):
                 result = Mock()
                 result.dense_vector = [0.1 + i * 0.01] * 1024
                 result.sparse_vector = {j: 0.5 + j * 0.01 for j in range(10)}
@@ -127,7 +130,9 @@ class TestBatchProcessingOptimization:
 
         for batch_size in batch_sizes:
             # バッチサイズごとの処理時間を測定（モック）
-            batches = [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
+            batches = [
+                texts[i : i + batch_size] for i in range(0, len(texts), batch_size)
+            ]
             total_time = 0
 
             for batch in batches:
@@ -137,7 +142,9 @@ class TestBatchProcessingOptimization:
             performance_results[batch_size] = total_time
 
         # 最適バッチサイズの選択（最小処理時間）
-        optimal_batch_size = min(performance_results.keys(), key=lambda k: performance_results[k])
+        optimal_batch_size = min(
+            performance_results.keys(), key=lambda k: performance_results[k]
+        )
 
         # バッチサイズ16または32が最適であることを確認
         assert optimal_batch_size in [16, 32]
@@ -158,8 +165,14 @@ class TestBatchProcessingOptimization:
 
                 return {
                     "dense_vecs": np.random.rand(batch_size, 1024).astype(np.float32),
-                    "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in range(batch_size)],
-                    "colbert_vecs": [np.random.rand(5, 1024).astype(np.float32) for _ in range(batch_size)]
+                    "lexical_weights": [
+                        {i: np.random.rand() for i in range(10)}
+                        for _ in range(batch_size)
+                    ],
+                    "colbert_vecs": [
+                        np.random.rand(5, 1024).astype(np.float32)
+                        for _ in range(batch_size)
+                    ],
                 }
 
             mock_model.encode.side_effect = mock_encode
@@ -211,8 +224,14 @@ class TestBatchProcessingOptimization:
 
                 return {
                     "dense_vecs": np.random.rand(batch_size, 1024).astype(np.float32),
-                    "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in range(batch_size)],
-                    "colbert_vecs": [np.random.rand(5, 1024).astype(np.float32) for _ in range(batch_size)]
+                    "lexical_weights": [
+                        {i: np.random.rand() for i in range(10)}
+                        for _ in range(batch_size)
+                    ],
+                    "colbert_vecs": [
+                        np.random.rand(5, 1024).astype(np.float32)
+                        for _ in range(batch_size)
+                    ],
                 }
 
             mock_model.encode.side_effect = mock_encode_with_memory_simulation
@@ -253,13 +272,17 @@ class TestAdvancedFeatures:
 
                 results = {
                     "dense_vecs": np.random.rand(len(texts), 1024).astype(np.float32),
-                    "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in texts]
+                    "lexical_weights": [
+                        {i: np.random.rand() for i in range(10)} for _ in texts
+                    ],
                 }
 
                 if return_colbert:
                     # Multi-Vector (ColBERT style) - 可変長のトークンベクトル
                     results["colbert_vecs"] = [
-                        np.random.rand(np.random.randint(5, 20), 1024).astype(np.float32)
+                        np.random.rand(np.random.randint(5, 20), 1024).astype(
+                            np.float32
+                        )
                         for _ in texts
                     ]
 
@@ -298,12 +321,16 @@ class TestAdvancedFeatures:
                 for text in texts:
                     if len(text) > max_length * 4:  # 概算でトークン数を推定
                         # 長すぎるテキストは切り詰め
-                        text = text[:max_length * 4]
+                        text = text[: max_length * 4]
 
                 return {
                     "dense_vecs": np.random.rand(len(texts), 1024).astype(np.float32),
-                    "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in texts],
-                    "colbert_vecs": [np.random.rand(10, 1024).astype(np.float32) for _ in texts]
+                    "lexical_weights": [
+                        {i: np.random.rand() for i in range(10)} for _ in texts
+                    ],
+                    "colbert_vecs": [
+                        np.random.rand(10, 1024).astype(np.float32) for _ in texts
+                    ],
                 }
 
             mock_model.encode.side_effect = mock_encode_with_length_check
@@ -343,8 +370,12 @@ class TestAdvancedFeatures:
 
                 return {
                     "dense_vecs": np.random.rand(len(texts), 1024).astype(np.float32),
-                    "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in texts],
-                    "colbert_vecs": [np.random.rand(5, 1024).astype(np.float32) for _ in texts]
+                    "lexical_weights": [
+                        {i: np.random.rand() for i in range(10)} for _ in texts
+                    ],
+                    "colbert_vecs": [
+                        np.random.rand(5, 1024).astype(np.float32) for _ in texts
+                    ],
                 }
 
             mock_model.encode.side_effect = mock_encode_with_retry
@@ -372,6 +403,7 @@ class TestPerformanceMetrics:
             def mock_encode_timed(texts, **kwargs):
                 # 処理時間をシミュレート
                 import time
+
                 time.sleep(0.01)  # 10ms の処理時間
 
                 if isinstance(texts, str):
@@ -379,8 +411,12 @@ class TestPerformanceMetrics:
 
                 return {
                     "dense_vecs": np.random.rand(len(texts), 1024).astype(np.float32),
-                    "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in texts],
-                    "colbert_vecs": [np.random.rand(5, 1024).astype(np.float32) for _ in texts]
+                    "lexical_weights": [
+                        {i: np.random.rand() for i in range(10)} for _ in texts
+                    ],
+                    "colbert_vecs": [
+                        np.random.rand(5, 1024).astype(np.float32) for _ in texts
+                    ],
                 }
 
             mock_model.encode.side_effect = mock_encode_timed
@@ -393,6 +429,7 @@ class TestPerformanceMetrics:
             texts = [f"スループットテスト{i}" for i in range(100)]
 
             import time
+
             start_time = time.time()
             results = await service.embed_batch(texts)
             end_time = time.time()
@@ -414,8 +451,12 @@ class TestPerformanceMetrics:
             mock_model = Mock()
             mock_model.encode.return_value = {
                 "dense_vecs": np.random.rand(16, 1024).astype(np.float32),
-                "lexical_weights": [{i: np.random.rand() for i in range(10)} for _ in range(16)],
-                "colbert_vecs": [np.random.rand(5, 1024).astype(np.float32) for _ in range(16)]
+                "lexical_weights": [
+                    {i: np.random.rand() for i in range(10)} for _ in range(16)
+                ],
+                "colbert_vecs": [
+                    np.random.rand(5, 1024).astype(np.float32) for _ in range(16)
+                ],
             }
             mock_flag_model.return_value = mock_model
 
@@ -423,8 +464,9 @@ class TestPerformanceMetrics:
             await service.initialize()
 
             # メモリ使用量の監視（psutil使用）
-            import psutil
             import os
+
+            import psutil
 
             process = psutil.Process(os.getpid())
             memory_before = process.memory_info().rss

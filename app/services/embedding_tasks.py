@@ -6,12 +6,13 @@ Celeryを使用した非同期埋め込み処理。
 
 import asyncio
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 try:
+    import redis
     from celery import Celery
     from celery.result import AsyncResult
-    import redis
+
     HAS_CELERY = True
     HAS_REDIS = True
 except ImportError:
@@ -54,8 +55,9 @@ except ImportError:
 
         def task(self, *args, **kwargs):
             def decorator(func):
-                func.delay = lambda *a, **k: type('MockResult', (), {})()
+                func.delay = lambda *a, **k: type("MockResult", (), {})()
                 return func
+
             return decorator
 
         @property
@@ -78,14 +80,13 @@ except ImportError:
         def failed(self):
             return False
 
-from app.services.embedding_service import (
-    EmbeddingService,
-    EmbeddingConfig,
-    BatchEmbeddingRequest,
-    EmbeddingResult
-)
+
 from app.models.milvus import VectorData
-from app.models.database import DocumentChunk
+from app.services.embedding_service import (
+    BatchEmbeddingRequest,
+    EmbeddingConfig,
+    EmbeddingService,
+)
 
 try:
     from app.repositories.chunk_repository import ChunkRepository
@@ -98,13 +99,14 @@ except ImportError:
         async def get_chunks_by_document_id(self, document_id):
             return []
 
+
 logger = logging.getLogger(__name__)
 
 # Celeryアプリケーションの設定
 celery_app = Celery(
     "embedding_tasks",
     broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0"
+    backend="redis://localhost:6379/0",
 )
 
 # Celery設定
@@ -126,8 +128,8 @@ class EmbeddingTaskService:
     """埋め込みタスクサービス"""
 
     def __init__(self):
-        self.embedding_service: Optional[EmbeddingService] = None
-        self.chunk_repository: Optional[ChunkRepository] = None
+        self.embedding_service: EmbeddingService | None = None
+        self.chunk_repository: ChunkRepository | None = None
 
     async def initialize(self):
         """サービスの初期化"""
@@ -141,7 +143,7 @@ class EmbeddingTaskService:
 
         logger.info("EmbeddingTaskService initialized")
 
-    async def process_document_chunks(self, document_id: str) -> Dict[str, Any]:
+    async def process_document_chunks(self, document_id: str) -> dict[str, Any]:
         """ドキュメントのチャンク埋め込み処理
 
         Args:
@@ -159,22 +161,24 @@ class EmbeddingTaskService:
                     "status": "completed",
                     "message": "No chunks found for document",
                     "document_id": document_id,
-                    "processed_count": 0
+                    "processed_count": 0,
                 }
 
             # バッチリクエストの作成
             batch_request = BatchEmbeddingRequest(
                 texts=[chunk.content for chunk in chunks],
                 chunk_ids=[chunk.id for chunk in chunks],
-                document_ids=[chunk.document_id for chunk in chunks]
+                document_ids=[chunk.document_id for chunk in chunks],
             )
 
             # 埋め込み処理
-            embedding_results = await self.embedding_service.process_batch_request(batch_request)
+            embedding_results = await self.embedding_service.process_batch_request(
+                batch_request
+            )
 
             # VectorDataオブジェクトの作成とMilvusへの保存
             vector_data_list = []
-            for i, (chunk, result) in enumerate(zip(chunks, embedding_results)):
+            for _i, (chunk, result) in enumerate(zip(chunks, embedding_results, strict=False)):
                 # Dense vector用
                 dense_vector_data = VectorData(
                     id=f"{chunk.id}_dense",
@@ -183,7 +187,7 @@ class EmbeddingTaskService:
                     vector=result.dense_vector,
                     chunk_type=chunk.chunk_type,
                     source_type="document",
-                    language="ja"
+                    language="ja",
                 )
                 vector_data_list.append(dense_vector_data)
 
@@ -196,7 +200,7 @@ class EmbeddingTaskService:
                     vocabulary_size=len(result.sparse_vector),
                     chunk_type=chunk.chunk_type,
                     source_type="document",
-                    language="ja"
+                    language="ja",
                 )
                 vector_data_list.append(sparse_vector_data)
 
@@ -208,7 +212,7 @@ class EmbeddingTaskService:
                 "message": "Document chunks processed successfully",
                 "document_id": document_id,
                 "processed_count": len(chunks),
-                "vector_count": len(vector_data_list)
+                "vector_count": len(vector_data_list),
             }
 
         except Exception as e:
@@ -217,12 +221,12 @@ class EmbeddingTaskService:
                 "status": "failed",
                 "message": f"Processing failed: {str(e)}",
                 "document_id": document_id,
-                "processed_count": 0
+                "processed_count": 0,
             }
 
 
 # グローバルサービスインスタンス
-_task_service: Optional[EmbeddingTaskService] = None
+_task_service: EmbeddingTaskService | None = None
 
 
 async def get_task_service() -> EmbeddingTaskService:
@@ -235,7 +239,7 @@ async def get_task_service() -> EmbeddingTaskService:
 
 
 @celery_app.task(bind=True, name="embedding.process_document")
-def process_document_embedding_task(self, document_id: str) -> Dict[str, Any]:
+def process_document_embedding_task(self, document_id: str) -> dict[str, Any]:
     """ドキュメント埋め込み処理タスク
 
     Args:
@@ -248,7 +252,7 @@ def process_document_embedding_task(self, document_id: str) -> Dict[str, Any]:
         # タスクステータスの更新
         self.update_state(
             state="PROGRESS",
-            meta={"status": "Starting document processing", "document_id": document_id}
+            meta={"status": "Starting document processing", "document_id": document_id},
         )
 
         # 非同期処理の実行
@@ -271,12 +275,14 @@ def process_document_embedding_task(self, document_id: str) -> Dict[str, Any]:
         return {
             "status": "failed",
             "message": f"Task execution failed: {str(e)}",
-            "document_id": document_id
+            "document_id": document_id,
         }
 
 
 @celery_app.task(bind=True, name="embedding.process_batch_texts")
-def process_batch_texts_task(self, texts: List[str], metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def process_batch_texts_task(
+    self, texts: list[str], metadata: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """バッチテキスト埋め込み処理タスク
 
     Args:
@@ -289,7 +295,7 @@ def process_batch_texts_task(self, texts: List[str], metadata: Optional[Dict[str
     try:
         self.update_state(
             state="PROGRESS",
-            meta={"status": "Processing batch texts", "text_count": len(texts)}
+            meta={"status": "Processing batch texts", "text_count": len(texts)},
         )
 
         async def run_batch_processing():
@@ -304,10 +310,10 @@ def process_batch_texts_task(self, texts: List[str], metadata: Optional[Dict[str
                     {
                         "dense_vector_length": len(result.dense_vector),
                         "sparse_vector_size": len(result.sparse_vector),
-                        "processing_time": result.processing_time
+                        "processing_time": result.processing_time,
                     }
                     for result in results
-                ]
+                ],
             }
 
         loop = asyncio.new_event_loop()
@@ -324,14 +330,15 @@ def process_batch_texts_task(self, texts: List[str], metadata: Optional[Dict[str
         return {
             "status": "failed",
             "message": f"Batch processing failed: {str(e)}",
-            "text_count": len(texts) if texts else 0
+            "text_count": len(texts) if texts else 0,
         }
 
 
 @celery_app.task(name="embedding.health_check")
-def embedding_health_check_task() -> Dict[str, Any]:
+def embedding_health_check_task() -> dict[str, Any]:
     """埋め込みサービスのヘルスチェックタスク"""
     try:
+
         async def run_health_check():
             service = await get_task_service()
             return await service.embedding_service.health_check()
@@ -346,21 +353,19 @@ def embedding_health_check_task() -> Dict[str, Any]:
             loop.close()
 
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "reason": f"Health check task failed: {str(e)}"
-        }
+        return {"status": "unhealthy", "reason": f"Health check task failed: {str(e)}"}
 
 
 try:
     import redis
+
     HAS_REDIS = True
 except ImportError:
     HAS_REDIS = False
     redis = None
 
 
-def get_redis_health() -> Dict[str, Any]:
+def get_redis_health() -> dict[str, Any]:
     """Redisの接続状態をチェック"""
     if not HAS_REDIS or redis is None:
         return {"status": "unhealthy", "reason": "Redis module not available"}
@@ -390,20 +395,20 @@ def get_redis_health() -> Dict[str, Any]:
             "redis_version": str(redis_version),
             "connected_clients": int(connected_clients),
             "used_memory": str(used_memory),
-            "uptime": int(uptime)
+            "uptime": int(uptime),
         }
     except Exception as e:
         return {"status": "unhealthy", "reason": f"Redis connection failed: {str(e)}"}
 
 
-def get_celery_health() -> Dict[str, Any]:
+def get_celery_health() -> dict[str, Any]:
     """Celeryワーカーの状態をチェック"""
     if not HAS_CELERY:
         return {"status": "unhealthy", "reason": "Celery not available"}
 
     try:
         inspect = celery_app.control.inspect()
-        if hasattr(inspect, 'stats') and hasattr(inspect, 'active'):
+        if hasattr(inspect, "stats") and hasattr(inspect, "active"):
             stats = inspect.stats()
             active = inspect.active()
 
@@ -411,13 +416,15 @@ def get_celery_health() -> Dict[str, Any]:
                 return {"status": "unhealthy", "reason": "No Celery workers available"}
 
             total_workers = len(stats)
-            total_active_tasks = sum(len(tasks) for tasks in active.values()) if active else 0
+            total_active_tasks = (
+                sum(len(tasks) for tasks in active.values()) if active else 0
+            )
 
             return {
                 "status": "healthy",
                 "total_workers": total_workers,
                 "active_tasks": total_active_tasks,
-                "workers": list(stats.keys()) if stats else []
+                "workers": list(stats.keys()) if stats else [],
             }
         else:
             # モック環境
@@ -425,7 +432,7 @@ def get_celery_health() -> Dict[str, Any]:
                 "status": "healthy",
                 "total_workers": 1,
                 "active_tasks": 0,
-                "workers": ["mock_worker"]
+                "workers": ["mock_worker"],
             }
     except Exception as e:
         return {"status": "unhealthy", "reason": f"Celery inspection failed: {str(e)}"}
@@ -447,7 +454,9 @@ class EmbeddingTaskManager:
         return process_document_embedding_task.delay(document_id)
 
     @staticmethod
-    def submit_batch_processing(texts: List[str], metadata: Optional[Dict[str, Any]] = None) -> AsyncResult:
+    def submit_batch_processing(
+        texts: list[str], metadata: dict[str, Any] | None = None
+    ) -> AsyncResult:
         """バッチ処理タスクの投入
 
         Args:
@@ -478,7 +487,7 @@ class EmbeddingTaskManager:
             "info": result.info,
             "ready": result.ready(),
             "successful": result.successful() if result.ready() else None,
-            "failed": result.failed() if result.ready() else None
+            "failed": result.failed() if result.ready() else None,
         }
 
     @staticmethod
@@ -496,7 +505,7 @@ class EmbeddingTaskManager:
         return {
             "task_id": task_id,
             "status": "cancelled",
-            "message": "Task cancellation requested"
+            "message": "Task cancellation requested",
         }
 
     @staticmethod
@@ -518,11 +527,16 @@ class EmbeddingTaskManager:
         """
         redis_health = get_redis_health()
         celery_health = get_celery_health()
-        overall = "healthy" if redis_health["status"] == "healthy" and celery_health["status"] == "healthy" else "degraded"
+        overall = (
+            "healthy"
+            if redis_health["status"] == "healthy"
+            and celery_health["status"] == "healthy"
+            else "degraded"
+        )
         if redis_health["status"] != "healthy" and celery_health["status"] != "healthy":
             overall = "unhealthy"
         return {
             "redis": redis_health,
             "celery": celery_health,
-            "overall_status": overall
+            "overall_status": overall,
         }

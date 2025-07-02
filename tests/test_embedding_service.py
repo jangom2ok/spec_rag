@@ -1,16 +1,16 @@
 """BGE-M3 Embedding Serviceのテスト"""
 
 import asyncio
-import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, patch
+
 import numpy as np
-from typing import Dict, List, Any
+import pytest
 
 from app.services.embedding_service import (
-    EmbeddingService,
-    EmbeddingResult,
     BatchEmbeddingRequest,
     EmbeddingConfig,
+    EmbeddingResult,
+    EmbeddingService,
 )
 
 
@@ -117,20 +117,20 @@ def mock_bge_model():
 
         if return_dense:
             # 1024次元のダミーDense Vector
-            results["dense_vecs"] = np.random.rand(len(sentences), 1024).astype(np.float32)
+            results["dense_vecs"] = np.random.rand(len(sentences), 1024).astype(
+                np.float32
+            )
 
         if return_sparse:
             # ダミーSparse Vector
             results["lexical_weights"] = [
-                {i: np.random.rand() for i in range(0, 1000, 100)}
-                for _ in sentences
+                {i: np.random.rand() for i in range(0, 1000, 100)} for _ in sentences
             ]
 
         if return_colbert_vecs:
             # ダミーMulti-Vector (ColBERT style)
             results["colbert_vecs"] = [
-                np.random.rand(10, 1024).astype(np.float32)
-                for _ in sentences
+                np.random.rand(10, 1024).astype(np.float32) for _ in sentences
             ]
 
         return results
@@ -246,15 +246,15 @@ class TestEmbeddingService:
 
             # FlagModelが正しい設定で呼ばれたことを確認
             mock_flag_model.assert_called_once_with(
-                "BAAI/BGE-M3",
-                use_fp16=True,
-                device="cuda"
+                "BAAI/BGE-M3", use_fp16=True, device="cuda"
             )
 
     @pytest.mark.asyncio
     async def test_error_handling_during_embedding(self, mock_bge_model):
         """埋め込み処理中のエラーハンドリングテスト"""
-        with patch("app.services.embedding_service.FlagModel", return_value=mock_bge_model):
+        with patch(
+            "app.services.embedding_service.FlagModel", return_value=mock_bge_model
+        ):
             config = EmbeddingConfig(device="cpu")
             service = EmbeddingService(config)
             await service.initialize()
@@ -314,9 +314,11 @@ class TestEmbeddingServiceIntegration:
             assert result.multi_vector is not None
 
             # ベクトルの有効性確認
-            assert all(isinstance(x, (int, float)) for x in result.dense_vector)
-            assert all(isinstance(k, int) and isinstance(v, (int, float))
-                      for k, v in result.sparse_vector.items())
+            assert all(isinstance(x, int | float) for x in result.dense_vector)
+            assert all(
+                isinstance(k, int) and isinstance(v, int | float)
+                for k, v in result.sparse_vector.items()
+            )
 
     @pytest.mark.asyncio
     async def test_concurrent_embedding_requests(self, embedding_service):

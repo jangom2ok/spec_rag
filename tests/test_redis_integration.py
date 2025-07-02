@@ -3,14 +3,14 @@
 EmbeddingTasksとRedisの統合テスト
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
 
 from app.services.embedding_tasks import (
-    get_redis_health,
+    EmbeddingTaskManager,
     get_celery_health,
-    EmbeddingTaskManager
+    get_redis_health,
 )
 
 
@@ -27,7 +27,7 @@ class TestRedisIntegration:
                 "redis_version": "7.0.0",
                 "connected_clients": 5,
                 "used_memory_human": "1.2M",
-                "uptime_in_seconds": 3600
+                "uptime_in_seconds": 3600,
             }
             mock_redis_module.Redis.from_url.return_value = mock_client
 
@@ -74,11 +74,11 @@ class TestCeleryIntegration:
             mock_inspect = Mock()
             mock_inspect.stats.return_value = {
                 "worker1": {"pool": {"max-concurrency": 4}},
-                "worker2": {"pool": {"max-concurrency": 4}}
+                "worker2": {"pool": {"max-concurrency": 4}},
             }
             mock_inspect.active.return_value = {
                 "worker1": [{"id": "task1"}, {"id": "task2"}],
-                "worker2": []
+                "worker2": [],
             }
             mock_celery_app.control.inspect.return_value = mock_inspect
 
@@ -121,7 +121,9 @@ class TestEmbeddingTaskManager:
     @pytest.mark.asyncio
     async def test_submit_document_processing_task(self):
         """ドキュメント処理タスクの投入テスト"""
-        with patch("app.services.embedding_tasks.process_document_embedding") as mock_task:
+        with patch(
+            "app.services.embedding_tasks.process_document_embedding"
+        ) as mock_task:
             mock_result = Mock()
             mock_result.id = "task_12345"
             mock_task.delay.return_value = mock_result
@@ -142,7 +144,7 @@ class TestEmbeddingTaskManager:
             batch_request = {
                 "texts": ["text1", "text2", "text3"],
                 "chunk_ids": ["chunk1", "chunk2", "chunk3"],
-                "document_ids": ["doc1", "doc1", "doc2"]
+                "document_ids": ["doc1", "doc1", "doc2"],
             }
 
             result = EmbeddingTaskManager.submit_batch_processing(batch_request)
@@ -178,7 +180,9 @@ class TestEmbeddingTaskManager:
 
             assert result["status"] == "cancelled"
             assert result["task_id"] == "task_12345"
-            mock_celery_app.control.revoke.assert_called_once_with("task_12345", terminate=True)
+            mock_celery_app.control.revoke.assert_called_once_with(
+                "task_12345", terminate=True
+            )
 
 
 class TestQueueProcessing:
@@ -206,8 +210,12 @@ class TestQueueProcessing:
     @pytest.mark.asyncio
     async def test_health_check_integration(self):
         """統合ヘルスチェックテスト"""
-        with patch("app.services.embedding_tasks.get_redis_health") as mock_redis_health:
-            with patch("app.services.embedding_tasks.get_celery_health") as mock_celery_health:
+        with patch(
+            "app.services.embedding_tasks.get_redis_health"
+        ) as mock_redis_health:
+            with patch(
+                "app.services.embedding_tasks.get_celery_health"
+            ) as mock_celery_health:
                 mock_redis_health.return_value = {"status": "healthy"}
                 mock_celery_health.return_value = {"status": "healthy"}
 
@@ -220,9 +228,16 @@ class TestQueueProcessing:
     @pytest.mark.asyncio
     async def test_health_check_with_failures(self):
         """障害時の統合ヘルスチェックテスト"""
-        with patch("app.services.embedding_tasks.get_redis_health") as mock_redis_health:
-            with patch("app.services.embedding_tasks.get_celery_health") as mock_celery_health:
-                mock_redis_health.return_value = {"status": "unhealthy", "reason": "Connection failed"}
+        with patch(
+            "app.services.embedding_tasks.get_redis_health"
+        ) as mock_redis_health:
+            with patch(
+                "app.services.embedding_tasks.get_celery_health"
+            ) as mock_celery_health:
+                mock_redis_health.return_value = {
+                    "status": "unhealthy",
+                    "reason": "Connection failed",
+                }
                 mock_celery_health.return_value = {"status": "healthy"}
 
                 health = EmbeddingTaskManager.get_system_health()

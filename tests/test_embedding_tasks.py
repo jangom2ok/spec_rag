@@ -1,16 +1,15 @@
 """Embedding Tasks のテスト"""
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
-import asyncio
-from typing import List, Dict, Any
 
 from app.services.embedding_tasks import (
-    EmbeddingTaskService,
     EmbeddingTaskManager,
-    process_document_embedding_task,
-    process_batch_texts_task,
+    EmbeddingTaskService,
     embedding_health_check_task,
+    process_batch_texts_task,
+    process_document_embedding_task,
 )
 
 
@@ -26,7 +25,7 @@ class TestEmbeddingTaskService:
                 dense_vector=[0.1] * 1024,
                 sparse_vector={0: 0.5, 100: 0.8},
                 multi_vector=None,
-                processing_time=0.1
+                processing_time=0.1,
             )
         ]
         mock_service.health_check.return_value = {"status": "healthy"}
@@ -69,7 +68,9 @@ class TestEmbeddingTaskService:
     async def test_process_document_chunks_no_chunks(self, embedding_task_service):
         """チャンクが存在しない場合のテスト"""
         # チャンクリポジトリが空のリストを返すように設定
-        embedding_task_service.chunk_repository.get_chunks_by_document_id.return_value = []
+        embedding_task_service.chunk_repository.get_chunks_by_document_id.return_value = (
+            []
+        )
 
         document_id = "empty-doc"
         result = await embedding_task_service.process_document_chunks(document_id)
@@ -79,10 +80,14 @@ class TestEmbeddingTaskService:
         assert "No chunks found" in result["message"]
 
     @pytest.mark.asyncio
-    async def test_process_document_chunks_embedding_error(self, embedding_task_service):
+    async def test_process_document_chunks_embedding_error(
+        self, embedding_task_service
+    ):
         """埋め込み処理エラーのテスト"""
         # 埋め込みサービスがエラーを発生させるように設定
-        embedding_task_service.embedding_service.process_batch_request.side_effect = Exception("Embedding failed")
+        embedding_task_service.embedding_service.process_batch_request.side_effect = (
+            Exception("Embedding failed")
+        )
 
         document_id = "error-doc"
         result = await embedding_task_service.process_document_chunks(document_id)
@@ -178,7 +183,9 @@ class TestCeleryTasks:
 
     @patch("app.services.embedding_tasks.get_task_service")
     @patch("asyncio.new_event_loop")
-    def test_process_document_embedding_task_success(self, mock_new_loop, mock_get_service):
+    def test_process_document_embedding_task_success(
+        self, mock_new_loop, mock_get_service
+    ):
         """ドキュメント埋め込みタスクの成功テスト"""
         # モックの設定
         mock_loop = Mock()
@@ -188,11 +195,13 @@ class TestCeleryTasks:
         mock_service.process_document_chunks.return_value = {
             "status": "completed",
             "document_id": "test-doc",
-            "processed_count": 5
+            "processed_count": 5,
         }
         mock_get_service.return_value = mock_service
 
-        mock_loop.run_until_complete.return_value = mock_service.process_document_chunks.return_value
+        mock_loop.run_until_complete.return_value = (
+            mock_service.process_document_chunks.return_value
+        )
 
         # モックタスクオブジェクト
         mock_task = Mock()
@@ -210,7 +219,9 @@ class TestCeleryTasks:
 
     @patch("app.services.embedding_tasks.get_task_service")
     @patch("asyncio.new_event_loop")
-    def test_process_document_embedding_task_error(self, mock_new_loop, mock_get_service):
+    def test_process_document_embedding_task_error(
+        self, mock_new_loop, mock_get_service
+    ):
         """ドキュメント埋め込みタスクのエラーテスト"""
         # エラーを発生させる設定
         mock_loop = Mock()
@@ -237,7 +248,7 @@ class TestCeleryTasks:
         mock_embedding_service = AsyncMock()
         mock_embedding_service.embed_batch.return_value = [
             Mock(dense_vector=[0.1] * 1024, sparse_vector={}, processing_time=0.1),
-            Mock(dense_vector=[0.2] * 1024, sparse_vector={}, processing_time=0.1)
+            Mock(dense_vector=[0.2] * 1024, sparse_vector={}, processing_time=0.1),
         ]
         mock_service.embedding_service = mock_embedding_service
         mock_get_service.return_value = mock_service
@@ -247,9 +258,17 @@ class TestCeleryTasks:
             "message": "Processed 2 texts successfully",
             "text_count": 2,
             "results": [
-                {"dense_vector_length": 1024, "sparse_vector_size": 0, "processing_time": 0.1},
-                {"dense_vector_length": 1024, "sparse_vector_size": 0, "processing_time": 0.1}
-            ]
+                {
+                    "dense_vector_length": 1024,
+                    "sparse_vector_size": 0,
+                    "processing_time": 0.1,
+                },
+                {
+                    "dense_vector_length": 1024,
+                    "sparse_vector_size": 0,
+                    "processing_time": 0.1,
+                },
+            ],
         }
 
         mock_loop.run_until_complete.return_value = expected_result
@@ -328,16 +347,20 @@ class TestIntegration:
             mock_embedding_result.sparse_vector = {0: 0.5, 100: 0.8, 500: 0.3}
             mock_embedding_result.processing_time = 0.15
 
-            mock_embedding_service.process_batch_request.return_value = [mock_embedding_result]
+            mock_embedding_service.process_batch_request.return_value = [
+                mock_embedding_result
+            ]
 
             mock_service.embedding_service = mock_embedding_service
             mock_service.chunk_repository = mock_chunk_repository
-            mock_service.process_document_chunks = AsyncMock(return_value={
-                "status": "completed",
-                "document_id": "doc-001",
-                "processed_count": 1,
-                "vector_count": 2
-            })
+            mock_service.process_document_chunks = AsyncMock(
+                return_value={
+                    "status": "completed",
+                    "document_id": "doc-001",
+                    "processed_count": 1,
+                    "vector_count": 2,
+                }
+            )
 
             mock_get_service.return_value = mock_service
 
