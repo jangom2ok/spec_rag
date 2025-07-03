@@ -494,11 +494,15 @@ class HybridSearchEngine:
         combined_scores = defaultdict(float)
 
         if dense_result:
-            for doc_id, score in zip(dense_result.ids, dense_result.scores, strict=False):
+            for doc_id, score in zip(
+                dense_result.ids, dense_result.scores, strict=False
+            ):
                 combined_scores[doc_id] += score * self.config.dense_weight
 
         if sparse_result:
-            for doc_id, score in zip(sparse_result.ids, sparse_result.scores, strict=False):
+            for doc_id, score in zip(
+                sparse_result.ids, sparse_result.scores, strict=False
+            ):
                 combined_scores[doc_id] += score * self.config.sparse_weight
 
         # スコア降順でソート

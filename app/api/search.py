@@ -51,9 +51,7 @@ class SearchRequest(BaseModel):
 
     # ハイブリッド検索設定
     dense_weight: float | None = Field(None, description="Dense検索重み", ge=0, le=1)
-    sparse_weight: float | None = Field(
-        None, description="Sparse検索重み", ge=0, le=1
-    )
+    sparse_weight: float | None = Field(None, description="Sparse検索重み", ge=0, le=1)
     similarity_threshold: float | None = Field(
         None, description="類似度閾値", ge=0, le=1
     )
@@ -329,7 +327,9 @@ async def get_search_suggestions(
         raise
     except Exception as e:
         logger.error(f"Suggestions failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Suggestions failed: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Suggestions failed: {str(e)}"
+        ) from e
 
 
 @router.get("/config", response_model=dict[str, Any])

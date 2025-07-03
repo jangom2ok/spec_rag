@@ -253,7 +253,9 @@ class EnsembleReranker(BaseReranker):
         for i in range(len(texts)):
             weighted_score = sum(
                 scores[i] * weight
-                for scores, weight in zip(all_scores, self.ensemble_weights, strict=False)
+                for scores, weight in zip(
+                    all_scores, self.ensemble_weights, strict=False
+                )
             )
             ensemble_scores.append(weighted_score)
 

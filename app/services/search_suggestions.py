@@ -861,7 +861,9 @@ class SearchSuggestionsService:
         self.typo_corrector = (
             TypoCorrector(config) if config.enable_typo_correction else None
         )
-        self.cache: dict[str, tuple[SuggestionResult, datetime]] = {}  # 簡易キャッシュ実装
+        self.cache: dict[str, tuple[SuggestionResult, datetime]] = (
+            {}
+        )  # 簡易キャッシュ実装
 
     def _create_suggesters(self) -> dict[SuggestionType, BaseSuggester]:
         """候補器インスタンス作成"""

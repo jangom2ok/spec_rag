@@ -318,9 +318,7 @@ class TestHybridSearchEngine:
         assert filters[1].value == "en"
 
         # フィルター適用ロジックのテスト
-        with patch.object(
-            search_engine, "_apply_filters", return_value=True
-        ):
+        with patch.object(search_engine, "_apply_filters", return_value=True):
             test_doc = {"source_type": "confluence", "language": "en"}
             result = search_engine._apply_filters(test_doc, filters)
             assert result is True
