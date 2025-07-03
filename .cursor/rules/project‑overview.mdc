@@ -43,7 +43,7 @@ alwaysApply: false
 ## 開発ルール
 
 ### コード品質
-- **静的解析**: ruff, black, mypy を必須使用
+- **静的解析**: black, ruff, mypy を必須使用
 - **テスト**: pytest + coverage (カバレッジ ≥ 80%)
 - **文書化**: docstring (Google形式), type hints必須
 - **コードレビュー**: 全プルリクエストで必須
