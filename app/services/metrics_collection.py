@@ -572,8 +572,8 @@ class MetricsCollectionService:
             return [
                 self._business_metric_to_dict(m) for m in self._business_metrics_buffer
             ]
-        else:
-            return []
+
+        return []
 
     def _search_metric_to_dict(self, metric: SearchMetrics) -> dict[str, Any]:
         """検索メトリクスを辞書に変換"""
@@ -746,8 +746,8 @@ class MetricsCollectionService:
             return monday.strftime("%Y-%m-%d")
         elif time_window == TimeWindow.MONTH:
             return timestamp.strftime("%Y-%m")
-        else:
-            return timestamp.isoformat()
+
+        return timestamp.isoformat()
 
     async def _aggregate_group(
         self, group_data: list[dict[str, Any]], aggregation_type: AggregationType
@@ -1036,13 +1036,15 @@ class MetricsCollectionService:
         """リアルタイムコールバック発動"""
         if self._real_time_callback:
             try:
-                await self._real_time_callback(
-                    {
-                        "event_type": event_type,
-                        "timestamp": datetime.now().isoformat(),
-                        "data": data,
-                    }
-                )
+                callback_data = {
+                    "event_type": event_type,
+                    "timestamp": datetime.now().isoformat(),
+                    "data": data,
+                }
+                if asyncio.iscoroutinefunction(self._real_time_callback):
+                    await self._real_time_callback(callback_data)
+                else:
+                    self._real_time_callback(callback_data)
             except Exception as e:
                 logger.error(f"Real-time callback error: {e}")
 
@@ -1067,16 +1069,20 @@ class MetricsCollectionService:
         cache_key = f"aggregated_{metric_type}_{datetime.now().strftime('%Y%m%d%H%M')}"
 
         if metric_type == MetricType.SEARCH_METRICS:
-            metrics = list(self._search_metrics_buffer)
+            search_metrics = list(self._search_metrics_buffer)
             aggregated = await self._aggregate_search_metrics(
-                metrics, AggregationType.AVG
+                search_metrics, AggregationType.AVG
             )
         elif metric_type == MetricType.SYSTEM_METRICS:
-            metrics = list(self._system_metrics_buffer)
-            aggregated = {"count": len(metrics)}
-            if metrics:
-                aggregated["avg_cpu_usage"] = mean([m.cpu_usage for m in metrics])
-                aggregated["avg_memory_usage"] = mean([m.memory_usage for m in metrics])
+            system_metrics = list(self._system_metrics_buffer)
+            aggregated = {"count": len(system_metrics)}
+            if system_metrics:
+                aggregated["avg_cpu_usage"] = mean(
+                    [m.cpu_usage for m in system_metrics]
+                )
+                aggregated["avg_memory_usage"] = mean(
+                    [m.memory_usage for m in system_metrics]
+                )
         else:
             return
 
@@ -1087,15 +1093,26 @@ class MetricsCollectionService:
         # バッファサイズ制限
         max_buffer_size = self.config.real_time_buffer_size
 
-        for buffer in [
-            self._search_metrics_buffer,
-            self._user_metrics_buffer,
-            self._system_metrics_buffer,
-            self._performance_metrics_buffer,
-            self._business_metrics_buffer,
-        ]:
-            while len(buffer) > max_buffer_size:
-                buffer.popleft()
+        # 各バッファのサイズをチェックしてフラッシュ
+        if len(self._search_metrics_buffer) > max_buffer_size:
+            for _ in range(len(self._search_metrics_buffer) - max_buffer_size):
+                self._search_metrics_buffer.popleft()
+
+        if len(self._user_metrics_buffer) > max_buffer_size:
+            for _ in range(len(self._user_metrics_buffer) - max_buffer_size):
+                self._user_metrics_buffer.popleft()
+
+        if len(self._system_metrics_buffer) > max_buffer_size:
+            for _ in range(len(self._system_metrics_buffer) - max_buffer_size):
+                self._system_metrics_buffer.popleft()
+
+        if len(self._performance_metrics_buffer) > max_buffer_size:
+            for _ in range(len(self._performance_metrics_buffer) - max_buffer_size):
+                self._performance_metrics_buffer.popleft()
+
+        if len(self._business_metrics_buffer) > max_buffer_size:
+            for _ in range(len(self._business_metrics_buffer) - max_buffer_size):
+                self._business_metrics_buffer.popleft()
 
     async def export_metrics(
         self, format: str = "json", filters: list[MetricFilter] | None = None

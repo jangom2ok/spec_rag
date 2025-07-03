@@ -540,7 +540,7 @@ class LoggingAnalysisService:
 
     async def _detect_anomalies(self, logs: list[LogEntry]) -> list[AnomalyDetection]:
         """異常検知"""
-        anomalies = []
+        anomalies: list[AnomalyDetection] = []
 
         if not logs or len(logs) < 10:
             return anomalies
@@ -559,7 +559,7 @@ class LoggingAnalysisService:
         self, logs: list[LogEntry]
     ) -> list[AnomalyDetection]:
         """レスポンス時間異常検知"""
-        anomalies = []
+        anomalies: list[AnomalyDetection] = []
 
         # レスポンス時間データの抽出
         response_times = []
@@ -615,7 +615,7 @@ class LoggingAnalysisService:
         self, logs: list[LogEntry]
     ) -> list[AnomalyDetection]:
         """エラー率異常検知"""
-        anomalies = []
+        anomalies: list[AnomalyDetection] = []
 
         if len(logs) < 20:
             return anomalies
@@ -694,7 +694,7 @@ class LoggingAnalysisService:
 
     async def _analyze_trends(self, logs: list[LogEntry]) -> list[TrendAnalysis]:
         """トレンド分析"""
-        trends = []
+        trends: list[TrendAnalysis] = []
 
         if len(logs) < 10:
             return trends
@@ -776,7 +776,7 @@ class LoggingAnalysisService:
         self, logs: list[LogEntry]
     ) -> list[TrendAnalysis]:
         """エラー率トレンド分析"""
-        trends = []
+        trends: list[TrendAnalysis] = []
         time_windows = self._group_logs_by_time_window(logs, minutes=10)
 
         if len(time_windows) < 3:
@@ -958,16 +958,18 @@ class LoggingAnalysisService:
             logger.warning(f"ALERT: {alert.description}")
 
             if self._alert_callback:
-                await self._alert_callback(
-                    {
-                        "rule_name": alert.rule_name,
-                        "severity": alert.severity,
-                        "count": alert.count,
-                        "threshold": alert.threshold,
-                        "triggered_at": alert.triggered_at.isoformat(),
-                        "description": alert.description,
-                    }
-                )
+                callback_data = {
+                    "rule_name": alert.rule_name,
+                    "severity": alert.severity,
+                    "count": alert.count,
+                    "threshold": alert.threshold,
+                    "triggered_at": alert.triggered_at.isoformat(),
+                    "description": alert.description,
+                }
+                if asyncio.iscoroutinefunction(self._alert_callback):
+                    await self._alert_callback(callback_data)
+                else:
+                    self._alert_callback(callback_data)
 
         except Exception as e:
             logger.error(f"Failed to trigger alert: {e}")
