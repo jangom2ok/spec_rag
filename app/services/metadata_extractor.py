@@ -125,7 +125,7 @@ class StructureExtractor:
     @staticmethod
     def extract_markdown_structure(content: str) -> dict[str, Any]:
         """Markdown構造を抽出"""
-        structure = {
+        structure: dict[str, Any] = {
             "headings": [],
             "lists": [],
             "code_blocks": [],
@@ -151,7 +151,7 @@ class StructureExtractor:
 
         # リスト抽出
         in_list = False
-        current_list = []
+        current_list: list[str] = []
 
         for i, line in enumerate(lines):
             line = line.strip()
@@ -177,7 +177,7 @@ class StructureExtractor:
 
         # コードブロック抽出
         in_code_block = False
-        current_code = []
+        current_code: list[str] = []
 
         for i, line in enumerate(lines):
             if line.strip().startswith("```"):

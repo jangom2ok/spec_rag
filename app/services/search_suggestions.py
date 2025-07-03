@@ -765,7 +765,7 @@ class TrendingSuggester(BaseSuggester):
                 trends.extend(trend_list)
 
         # トレンドスコア順でソート
-        trends.sort(key=lambda x: float(x.get("trend_score", 0.0) or 0.0), reverse=True)
+        trends.sort(key=lambda x: float(x.get("trend_score", 0.0) if x.get("trend_score") is not None else 0.0), reverse=True)
         return trends
 
 
