@@ -1,22 +1,20 @@
 """検索API"""
 
 import logging
-from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Header
+from typing import Any
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.auth import validate_api_key
 from app.services.hybrid_search_engine import (
     HybridSearchEngine,
+    RankingAlgorithm,
     SearchConfig,
-    SearchQuery,
     SearchFilter,
     SearchMode,
-    RankingAlgorithm,
+    SearchQuery,
 )
-from app.services.embedding_service import EmbeddingService
-from app.repositories.document_repository import DocumentRepository
-from app.repositories.chunk_repository import DocumentChunkRepository
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/search", tags=["search"])
@@ -24,7 +22,7 @@ router = APIRouter(prefix="/v1/search", tags=["search"])
 
 class SearchFilterRequest(BaseModel):
     """検索フィルターリクエスト"""
-    
+
     field: str
     value: Any
     operator: str = "eq"
@@ -32,7 +30,7 @@ class SearchFilterRequest(BaseModel):
 
 class FacetRequest(BaseModel):
     """ファセットリクエスト"""
-    
+
     field: str
     limit: int = 10
 
@@ -44,14 +42,20 @@ class SearchRequest(BaseModel):
     max_results: int = Field(10, description="最大取得件数", ge=1, le=100)
     offset: int = Field(0, description="オフセット", ge=0)
     search_mode: SearchMode = Field(SearchMode.HYBRID, description="検索モード")
-    filters: List[SearchFilterRequest] = Field(default_factory=list, description="フィルター条件")
-    facets: List[str] = Field(default_factory=list, description="ファセット計算フィールド")
-    
+    filters: list[SearchFilterRequest] = Field(
+        default_factory=list, description="フィルター条件"
+    )
+    facets: list[str] = Field(
+        default_factory=list, description="ファセット計算フィールド"
+    )
+
     # ハイブリッド検索設定
-    dense_weight: Optional[float] = Field(None, description="Dense検索重み", ge=0, le=1)
-    sparse_weight: Optional[float] = Field(None, description="Sparse検索重み", ge=0, le=1)
-    similarity_threshold: Optional[float] = Field(None, description="類似度閾値", ge=0, le=1)
-    enable_reranking: Optional[bool] = Field(None, description="リランキング有効化")
+    dense_weight: float | None = Field(None, description="Dense検索重み", ge=0, le=1)
+    sparse_weight: float | None = Field(None, description="Sparse検索重み", ge=0, le=1)
+    similarity_threshold: float | None = Field(
+        None, description="類似度閾値", ge=0, le=1
+    )
+    enable_reranking: bool | None = Field(None, description="リランキング有効化")
 
 
 class SearchResultDocument(BaseModel):
@@ -61,26 +65,26 @@ class SearchResultDocument(BaseModel):
     title: str
     content: str
     search_score: float
-    source_type: Optional[str] = None
-    language: Optional[str] = None
-    document_type: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-    rerank_score: Optional[float] = None
-    ranking_explanation: Optional[Dict[str, Any]] = None
+    source_type: str | None = None
+    language: str | None = None
+    document_type: str | None = None
+    metadata: dict[str, Any] | None = None
+    rerank_score: float | None = None
+    ranking_explanation: dict[str, Any] | None = None
 
 
 class FacetValue(BaseModel):
     """ファセット値"""
-    
+
     value: str
     count: int
 
 
 class SearchFacet(BaseModel):
     """検索ファセット"""
-    
+
     field: str
-    values: List[FacetValue]
+    values: list[FacetValue]
 
 
 class SearchResponse(BaseModel):
@@ -90,22 +94,21 @@ class SearchResponse(BaseModel):
     query: str
     total_hits: int
     search_time: float
-    documents: List[SearchResultDocument]
-    facets: Optional[List[SearchFacet]] = None
-    error_message: Optional[str] = None
+    documents: list[SearchResultDocument]
+    facets: list[SearchFacet] | None = None
+    error_message: str | None = None
 
 
 class SearchSuggestionsResponse(BaseModel):
     """検索サジェストレスポンス"""
-    
-    suggestions: List[str]
+
+    suggestions: list[str]
     query: str
 
 
 # 認証依存性
 async def get_current_user_or_api_key(
-    authorization: str | None = Header(None), 
-    x_api_key: str | None = Header(None)
+    authorization: str | None = Header(None), x_api_key: str | None = Header(None)
 ) -> dict[str, Any]:
     """JWT認証またはAPI Key認証を試行"""
     # API Key認証を先に試行
@@ -156,12 +159,12 @@ async def get_hybrid_search_engine() -> HybridSearchEngine:
         enable_reranking=True,
         similarity_threshold=0.0,
     )
-    
+
     # 本来はここで実際のサービスを注入
     embedding_service = None  # EmbeddingService()
     document_repository = None  # DocumentRepository()
     chunk_repository = None  # DocumentChunkRepository()
-    
+
     return HybridSearchEngine(
         config=search_config,
         embedding_service=embedding_service,
@@ -177,7 +180,7 @@ async def search_documents(
     search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
 ):
     """ハイブリッドドキュメント検索
-    
+
     BGE-M3を使用したdense/sparse vectorsハイブリッド検索を実行します。
     RRF（Reciprocal Rank Fusion）で結果を統合し、関連性スコアリングで最適化します。
     """
@@ -185,33 +188,29 @@ async def search_documents(
         # 読み取り権限をチェック
         if "read" not in current_user.get("permissions", []):
             raise HTTPException(status_code=403, detail="Read permission required")
-        
+
         # 検索設定の動的更新
         if request.dense_weight is not None and request.sparse_weight is not None:
             if abs(request.dense_weight + request.sparse_weight - 1.0) > 0.001:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="dense_weight + sparse_weight must equal 1.0"
+                    status_code=400,
+                    detail="dense_weight + sparse_weight must equal 1.0",
                 )
             search_engine.config.dense_weight = request.dense_weight
             search_engine.config.sparse_weight = request.sparse_weight
-        
+
         if request.similarity_threshold is not None:
             search_engine.config.similarity_threshold = request.similarity_threshold
-        
+
         if request.enable_reranking is not None:
             search_engine.config.enable_reranking = request.enable_reranking
-        
+
         # 検索フィルターの変換
         search_filters = [
-            SearchFilter(
-                field=f.field,
-                value=f.value,
-                operator=f.operator
-            )
+            SearchFilter(field=f.field, value=f.value, operator=f.operator)
             for f in request.filters
         ]
-        
+
         # 検索クエリの構築
         search_query = SearchQuery(
             text=request.query,
@@ -221,10 +220,10 @@ async def search_documents(
             max_results=request.max_results,
             offset=request.offset,
         )
-        
+
         # ハイブリッド検索実行
         search_result = await search_engine.search(search_query)
-        
+
         # レスポンスの構築
         if search_result.success:
             # ドキュメント変換
@@ -243,7 +242,7 @@ async def search_documents(
                 )
                 for doc in search_result.documents
             ]
-            
+
             # ファセット変換
             response_facets = None
             if search_result.facets:
@@ -253,11 +252,11 @@ async def search_documents(
                         values=[
                             FacetValue(value=facet.value, count=facet.count)
                             for facet in facets
-                        ]
+                        ],
                     )
                     for field, facets in search_result.facets.items()
                 ]
-            
+
             return SearchResponse(
                 success=True,
                 query=search_result.query,
@@ -275,12 +274,12 @@ async def search_documents(
                 documents=[],
                 error_message=search_result.error_message,
             )
-            
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Search failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}") from e
 
 
 @router.get("/suggestions", response_model=SearchSuggestionsResponse)
@@ -290,14 +289,14 @@ async def get_search_suggestions(
     current_user: dict = Depends(get_current_user_or_api_key),
 ):
     """検索サジェスト取得
-    
+
     入力されたクエリに基づいて検索候補を提供します。
     """
     try:
         # 読み取り権限をチェック
         if "read" not in current_user.get("permissions", []):
             raise HTTPException(status_code=403, detail="Read permission required")
-        
+
         # 簡易的なサジェスト実装（実際は検索履歴やインデックスから生成）
         suggestions = []
         if q:
@@ -313,38 +312,39 @@ async def get_search_suggestions(
                 "cloud computing",
                 "artificial intelligence",
             ]
-            
+
             # 部分一致でフィルタリング
-            suggestions = [
-                s for s in base_suggestions 
-                if q.lower() in s.lower()
-            ][:limit]
-        
+            suggestions = [s for s in base_suggestions if q.lower() in s.lower()][
+                :limit
+            ]
+
         return SearchSuggestionsResponse(
             suggestions=suggestions,
             query=q,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Suggestions failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Suggestions failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Suggestions failed: {str(e)}"
+        ) from e
 
 
-@router.get("/config", response_model=Dict[str, Any])
+@router.get("/config", response_model=dict[str, Any])
 async def get_search_config(
     current_user: dict = Depends(get_current_user_or_api_key),
 ):
     """検索設定取得
-    
+
     現在の検索エンジン設定を返します。
     """
     try:
         # 読み取り権限をチェック
         if "read" not in current_user.get("permissions", []):
             raise HTTPException(status_code=403, detail="Read permission required")
-        
+
         # デフォルト設定を返す
         return {
             "search_modes": [mode.value for mode in SearchMode],
@@ -361,7 +361,7 @@ async def get_search_config(
             },
             "available_filters": [
                 "source_type",
-                "language", 
+                "language",
                 "document_type",
                 "metadata.category",
                 "metadata.author",
@@ -370,15 +370,17 @@ async def get_search_config(
             "available_facets": [
                 "source_type",
                 "language",
-                "document_type", 
+                "document_type",
                 "metadata.category",
                 "metadata.difficulty",
                 "metadata.tags",
             ],
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Config retrieval failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Config retrieval failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Config retrieval failed: {str(e)}"
+        ) from e

@@ -3,21 +3,16 @@
 TDD実装：関連性スコアリングとランキング最適化機能
 """
 
-import pytest
-import numpy as np
-from typing import Dict, Any, List, Tuple
 from datetime import datetime, timedelta
+from typing import Any
+
+import pytest
 
 from app.services.hybrid_search_engine import (
     HybridSearchEngine,
-    SearchConfig,
-    SearchQuery,
-    SearchResult,
-    VectorSearchResult,
-    SearchFilter,
-    SearchMode,
     RankingAlgorithm,
-    FacetResult,
+    SearchConfig,
+    VectorSearchResult,
 )
 
 
@@ -77,7 +72,7 @@ class TestSearchRankingOptimization:
         )
 
     @pytest.fixture
-    def documents_with_features(self) -> List[Dict[str, Any]]:
+    def documents_with_features(self) -> list[dict[str, Any]]:
         """特徴量付きドキュメント"""
         base_date = datetime(2024, 1, 1)
         return [
@@ -149,19 +144,19 @@ class TestSearchRankingOptimization:
     ):
         """基本的なRRF融合テスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         fused_results = search_engine.rrf.fuse_rankings(
             sample_dense_results, sample_sparse_results, k=60
         )
-        
+
         # 結果がタプル形式であることを確認
         assert isinstance(fused_results, list)
         assert all(isinstance(item, tuple) and len(item) == 2 for item in fused_results)
-        
+
         # スコア降順でソートされていることを確認
         scores = [score for _, score in fused_results]
         assert scores == sorted(scores, reverse=True)
-        
+
         # 両方の結果に含まれるドキュメントが上位に来ることを確認
         result_ids = [doc_id for doc_id, _ in fused_results]
         assert "doc-1" in result_ids[:3]  # 両方に高位で登場
@@ -176,21 +171,21 @@ class TestSearchRankingOptimization:
     ):
         """RRFのkパラメータ効果テスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         # k=30での結果
         fused_k30 = search_engine.rrf.fuse_rankings(
             sample_dense_results, sample_sparse_results, k=30
         )
-        
+
         # k=120での結果
         fused_k120 = search_engine.rrf.fuse_rankings(
             sample_dense_results, sample_sparse_results, k=120
         )
-        
+
         # kが小さいほど上位ランクの影響が大きくなる
         scores_k30 = dict(fused_k30)
         scores_k120 = dict(fused_k120)
-        
+
         # 順位は同じでもスコアが異なることを確認
         for doc_id in scores_k30:
             if doc_id in scores_k120:
@@ -205,19 +200,21 @@ class TestSearchRankingOptimization:
     ):
         """重み付き和融合テスト"""
         search_engine = HybridSearchEngine(config=weighted_sum_config)
-        
+
         fused_results = search_engine._weighted_sum_fusion(
             sample_dense_results, sample_sparse_results
         )
-        
+
         # 結果がタプル形式であることを確認
         assert isinstance(fused_results, list)
         assert all(isinstance(item, tuple) and len(item) == 2 for item in fused_results)
-        
+
         # 重み付き和の計算確認
         # doc-1: dense_score * 0.7 + sparse_score * 0.3
         doc1_expected = 0.95 * 0.7 + 0.84 * 0.3  # 0.665 + 0.252 = 0.917
-        doc1_actual = next((score for doc_id, score in fused_results if doc_id == "doc-1"), None)
+        doc1_actual = next(
+            (score for doc_id, score in fused_results if doc_id == "doc-1"), None
+        )
         assert doc1_actual is not None
         assert abs(doc1_actual - doc1_expected) < 0.001
 
@@ -225,25 +222,25 @@ class TestSearchRankingOptimization:
     def test_content_relevance_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """コンテンツ関連性スコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         query_text = "machine learning fundamentals"
-        
+
         # タイトル一致度を計算
         relevance_scores = search_engine._calculate_content_relevance(
             documents_with_features, query_text
         )
-        
+
         assert len(relevance_scores) == len(documents_with_features)
-        
+
         # "Machine Learning Fundamentals"が最高スコアであることを確認
         doc1_score = relevance_scores["doc-1"]
         doc2_score = relevance_scores["doc-2"]
         doc3_score = relevance_scores["doc-3"]
-        
+
         assert doc1_score > doc2_score
         assert doc1_score > doc3_score
 
@@ -251,20 +248,22 @@ class TestSearchRankingOptimization:
     def test_freshness_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """新しさスコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
-        freshness_scores = search_engine._calculate_freshness_scores(documents_with_features)
-        
+
+        freshness_scores = search_engine._calculate_freshness_scores(
+            documents_with_features
+        )
+
         assert len(freshness_scores) == len(documents_with_features)
-        
+
         # より新しいドキュメントが高いスコアを持つことを確認
         doc1_freshness = freshness_scores["doc-1"]
         doc2_freshness = freshness_scores["doc-2"]
         doc3_freshness = freshness_scores["doc-3"]
-        
+
         # doc-2, doc-3がdoc-1より新しい
         assert doc2_freshness > doc1_freshness
         assert doc3_freshness > doc1_freshness
@@ -273,20 +272,22 @@ class TestSearchRankingOptimization:
     def test_popularity_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """人気度スコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
-        popularity_scores = search_engine._calculate_popularity_scores(documents_with_features)
-        
+
+        popularity_scores = search_engine._calculate_popularity_scores(
+            documents_with_features
+        )
+
         assert len(popularity_scores) == len(documents_with_features)
-        
+
         # より多くのビューとレーティングを持つドキュメントが高いスコア
         doc1_popularity = popularity_scores["doc-1"]
         doc2_popularity = popularity_scores["doc-2"]
         doc3_popularity = popularity_scores["doc-3"]
-        
+
         assert doc1_popularity > doc2_popularity  # より高いビューとレーティング
         assert doc2_popularity > doc3_popularity
 
@@ -294,20 +295,22 @@ class TestSearchRankingOptimization:
     def test_authority_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """権威性スコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
-        authority_scores = search_engine._calculate_authority_scores(documents_with_features)
-        
+
+        authority_scores = search_engine._calculate_authority_scores(
+            documents_with_features
+        )
+
         assert len(authority_scores) == len(documents_with_features)
-        
+
         # expert_authorが最高の権威性スコアを持つことを確認
         doc1_authority = authority_scores["doc-1"]  # expert_author
         doc2_authority = authority_scores["doc-2"]  # researcher
         doc3_authority = authority_scores["doc-3"]  # data_engineer
-        
+
         assert doc1_authority > doc2_authority
         assert doc2_authority > doc3_authority
 
@@ -315,20 +318,22 @@ class TestSearchRankingOptimization:
     def test_quality_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """品質スコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
-        quality_scores = search_engine._calculate_quality_scores(documents_with_features)
-        
+
+        quality_scores = search_engine._calculate_quality_scores(
+            documents_with_features
+        )
+
         assert len(quality_scores) == len(documents_with_features)
-        
+
         # レーティング、単語数、エンゲージメントが高いほど高品質
         doc1_quality = quality_scores["doc-1"]
         doc2_quality = quality_scores["doc-2"]
         doc3_quality = quality_scores["doc-3"]
-        
+
         assert doc1_quality > doc3_quality  # より高いレーティングとエンゲージメント
         assert doc2_quality > doc3_quality
 
@@ -336,28 +341,28 @@ class TestSearchRankingOptimization:
     def test_combined_relevance_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """統合関連性スコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         query_text = "machine learning fundamentals"
-        
+
         combined_scores = search_engine._calculate_combined_relevance_scores(
             documents_with_features, query_text
         )
-        
+
         assert len(combined_scores) == len(documents_with_features)
-        
+
         # 各スコアが0-1の範囲内であることを確認
-        for doc_id, score in combined_scores.items():
+        for _doc_id, score in combined_scores.items():
             assert 0 <= score <= 1
-        
+
         # 最適なドキュメント（doc-1）が最高スコアを持つことを確認
         doc1_score = combined_scores["doc-1"]
         doc2_score = combined_scores["doc-2"]
         doc3_score = combined_scores["doc-3"]
-        
+
         assert doc1_score > doc2_score
         assert doc1_score > doc3_score
 
@@ -365,27 +370,23 @@ class TestSearchRankingOptimization:
     def test_reranking_with_features(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """特徴量を使ったリランキングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         query_text = "machine learning tutorial"
-        
+
         # 初期ランキング（検索スコア順）
         initial_ranking = sorted(
-            documents_with_features, 
-            key=lambda x: x["search_score"], 
-            reverse=True
+            documents_with_features, key=lambda x: x["search_score"], reverse=True
         )
-        
+
         # リランキング実行
-        reranked_docs = search_engine._rerank_with_features(
-            initial_ranking, query_text
-        )
-        
+        reranked_docs = search_engine._rerank_with_features(initial_ranking, query_text)
+
         assert len(reranked_docs) == len(documents_with_features)
-        
+
         # 全てのドキュメントにrerank_scoreが追加されていることを確認
         for doc in reranked_docs:
             assert "rerank_score" in doc
@@ -395,11 +396,11 @@ class TestSearchRankingOptimization:
     def test_personalization_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """パーソナライゼーションスコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         user_profile = {
             "preferred_categories": ["ai", "ml"],
             "preferred_authors": ["expert_author"],
@@ -407,31 +408,31 @@ class TestSearchRankingOptimization:
             "interaction_history": {
                 "doc-1": {"views": 5, "rating": 5},
                 "doc-2": {"views": 2, "rating": 4},
-            }
+            },
         }
-        
+
         personalization_scores = search_engine._calculate_personalization_scores(
             documents_with_features, user_profile
         )
-        
+
         assert len(personalization_scores) == len(documents_with_features)
-        
+
         # ユーザーの好みに合致するドキュメントが高いスコア
         doc1_personal = personalization_scores["doc-1"]
-        doc2_personal = personalization_scores["doc-2"]
+        _doc2_personal = personalization_scores["doc-2"]
         doc3_personal = personalization_scores["doc-3"]
-        
+
         assert doc1_personal > doc3_personal  # preferred author + category match
 
     @pytest.mark.unit
     def test_diversity_ranking(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """多様性ランキングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         # より多様なドキュメントセットを作成
         diverse_docs = documents_with_features + [
             {
@@ -446,13 +447,13 @@ class TestSearchRankingOptimization:
                 },
             }
         ]
-        
+
         diversified_ranking = search_engine._apply_diversity_ranking(
             diverse_docs, diversity_factor=0.3
         )
-        
+
         assert len(diversified_ranking) == len(diverse_docs)
-        
+
         # 多様性が考慮されて異なるカテゴリのドキュメントが含まれることを確認
         categories = [doc["metadata"]["category"] for doc in diversified_ranking[:3]]
         unique_categories = set(categories)
@@ -462,50 +463,50 @@ class TestSearchRankingOptimization:
     def test_temporal_boost_scoring(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """時間的ブーストスコアリングテスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         # 現在時刻を基準とした時間的ブースト
         current_time = datetime.now()
         boost_scores = search_engine._calculate_temporal_boost_scores(
             documents_with_features, current_time, boost_recent=True
         )
-        
+
         assert len(boost_scores) == len(documents_with_features)
-        
+
         # 最近更新されたドキュメントが高いブーストを受けることを確認
-        for doc_id, boost in boost_scores.items():
+        for _doc_id, boost in boost_scores.items():
             assert 0.5 <= boost <= 1.5  # ブースト範囲
 
     @pytest.mark.integration
     def test_end_to_end_ranking_optimization(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """End-to-Endランキング最適化テスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         query_text = "machine learning algorithms"
         user_profile = {
             "preferred_categories": ["ai"],
             "reading_level": "intermediate",
         }
-        
+
         # 完全なランキング最適化パイプライン
         optimized_ranking = search_engine._optimize_ranking_pipeline(
             documents_with_features, query_text, user_profile
         )
-        
+
         assert len(optimized_ranking) == len(documents_with_features)
-        
+
         # 各ドキュメントに最終的なランキングスコアが付与されていることを確認
         for doc in optimized_ranking:
             assert "final_ranking_score" in doc
             assert 0 <= doc["final_ranking_score"] <= 1
-        
+
         # 最終スコア順でソートされていることを確認
         final_scores = [doc["final_ranking_score"] for doc in optimized_ranking]
         assert final_scores == sorted(final_scores, reverse=True)
@@ -521,21 +522,21 @@ class TestSearchRankingOptimization:
         """ランキングアルゴリズム比較テスト"""
         rrf_engine = HybridSearchEngine(config=ranking_config)
         weighted_engine = HybridSearchEngine(config=weighted_sum_config)
-        
+
         # RRF結果
         rrf_results = rrf_engine._fuse_search_results(
             sample_dense_results, sample_sparse_results, None
         )
-        
+
         # 重み付き和結果
         weighted_results = weighted_engine._fuse_search_results(
             sample_dense_results, sample_sparse_results, None
         )
-        
+
         # 異なるアルゴリズムで異なる結果が得られることを確認
         rrf_ranking = [doc_id for doc_id, _ in rrf_results]
         weighted_ranking = [doc_id for doc_id, _ in weighted_results]
-        
+
         # 完全に同じ順序ではないことを確認
         assert rrf_ranking != weighted_ranking
 
@@ -543,54 +544,62 @@ class TestSearchRankingOptimization:
     def test_ranking_performance_metrics(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """ランキング性能メトリクステスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         query_text = "machine learning"
-        
+
         # 関連性の ground truth（テスト用）
-        relevance_labels = {"doc-1": 1, "doc-2": 1, "doc-3": 0}  # 1: relevant, 0: not relevant
-        
+        relevance_labels = {
+            "doc-1": 1,
+            "doc-2": 1,
+            "doc-3": 0,
+        }  # 1: relevant, 0: not relevant
+
         # ランキング実行
-        ranked_docs = search_engine._rerank_with_features(documents_with_features, query_text)
-        
+        ranked_docs = search_engine._rerank_with_features(
+            documents_with_features, query_text
+        )
+
         # メトリクス計算
-        metrics = search_engine._calculate_ranking_metrics(ranked_docs, relevance_labels)
-        
+        metrics = search_engine._calculate_ranking_metrics(
+            ranked_docs, relevance_labels
+        )
+
         assert "precision_at_1" in metrics
         assert "precision_at_3" in metrics
         assert "map" in metrics  # Mean Average Precision
         assert "ndcg" in metrics  # Normalized Discounted Cumulative Gain
-        
+
         # メトリクス値が有効範囲内であることを確認
-        for metric_name, value in metrics.items():
+        for _metric_name, value in metrics.items():
             assert 0 <= value <= 1
 
     @pytest.mark.unit
     def test_ranking_explainability(
         self,
         ranking_config: SearchConfig,
-        documents_with_features: List[Dict[str, Any]],
+        documents_with_features: list[dict[str, Any]],
     ):
         """ランキング説明可能性テスト"""
         search_engine = HybridSearchEngine(config=ranking_config)
-        
+
         query_text = "machine learning fundamentals"
-        
+
         # 説明付きランキング
         ranked_docs_with_explanation = search_engine._rank_with_explanation(
             documents_with_features, query_text
         )
-        
+
         assert len(ranked_docs_with_explanation) == len(documents_with_features)
-        
+
         # 各ドキュメントに説明が付与されていることを確認
         for doc in ranked_docs_with_explanation:
             assert "ranking_explanation" in doc
             explanation = doc["ranking_explanation"]
-            
+
             assert "content_relevance" in explanation
             assert "freshness_score" in explanation
             assert "popularity_score" in explanation
