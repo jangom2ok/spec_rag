@@ -2,22 +2,28 @@
 
 import logging
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from app.core.auth import validate_api_key
+from app.repositories.chunk_repository import ChunkRepository
+from app.repositories.document_repository import DocumentRepository
+from app.services.document_chunker import ChunkingConfig, ChunkingStrategy
+from app.services.document_collector import (
+    CollectionConfig,
+)
+from app.services.document_collector import (
+    SourceType as CollectorSourceType,
+)
 from app.services.document_processing_service import (
     DocumentProcessingService,
     ProcessingConfig,
-    ProcessingStage
 )
-from app.services.document_collector import CollectionConfig, SourceType as CollectorSourceType
 from app.services.metadata_extractor import ExtractionConfig
-from app.services.document_chunker import ChunkingConfig, ChunkingStrategy
-from app.repositories.document_repository import DocumentRepository
-from app.repositories.chunk_repository import ChunkRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/documents", tags=["documents"])
 
@@ -55,41 +61,41 @@ class DocumentList(BaseModel):
 
 class ProcessingConfigRequest(BaseModel):
     """ドキュメント処理設定リクエスト"""
-    
+
     source_type: SourceType
-    source_path: Optional[str] = None
+    source_path: str | None = None
     file_patterns: list[str] = ["*.txt", "*.md"]
     batch_size: int = 10
     max_documents: int = 100
-    
+
     # チャンク化設定
     chunking_strategy: str = "fixed_size"
     chunk_size: int = 1000
     overlap_size: int = 200
-    
+
     # メタデータ抽出設定
     extract_structure: bool = True
     extract_entities: bool = True
     extract_keywords: bool = True
-    
+
     # 並行処理設定
     max_concurrent_documents: int = 5
 
 
 class ProcessingStatusResponse(BaseModel):
     """処理状況レスポンス"""
-    
+
     document_id: str
     stage: str
     progress: float
-    error_message: Optional[str] = None
+    error_message: str | None = None
     chunks_processed: int = 0
     chunks_total: int = 0
 
 
 class ProcessingResultResponse(BaseModel):
     """処理結果レスポンス"""
-    
+
     success: bool
     total_documents: int
     successful_documents: int
@@ -224,8 +230,7 @@ async def get_document_processing_service() -> DocumentProcessingService:
     document_repo = DocumentRepository()
     chunk_repo = ChunkRepository()
     return DocumentProcessingService(
-        document_repository=document_repo,
-        chunk_repository=chunk_repo
+        document_repository=document_repo, chunk_repository=chunk_repo
     )
 
 
@@ -234,24 +239,24 @@ async def process_documents(
     config: ProcessingConfigRequest,
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user_or_api_key),
-    processing_service: DocumentProcessingService = Depends(get_document_processing_service)
+    processing_service: DocumentProcessingService = Depends(
+        get_document_processing_service
+    ),
 ) -> ProcessingResultResponse:
     """ドキュメントを一括処理"""
     # 書き込み権限をチェック
     if "write" not in current_user.get("permissions", []):
         raise HTTPException(status_code=403, detail="Write permission required")
-    
+
     try:
         # 設定の変換
         processing_config = _convert_to_processing_config(config)
-        
+
         # バックグラウンドで処理を実行
         background_tasks.add_task(
-            _background_document_processing,
-            processing_service,
-            processing_config
+            _background_document_processing, processing_service, processing_config
         )
-        
+
         # 即座にレスポンスを返す（非同期処理）
         return ProcessingResultResponse(
             success=True,
@@ -262,32 +267,34 @@ async def process_documents(
             successful_chunks=0,
             failed_chunks=0,
             processing_time=0.0,
-            error_count=0
+            error_count=0,
         )
-        
+
     except Exception as e:
         logger.error(f"Document processing request failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}") from e
 
 
 @router.post("/process/sync", response_model=ProcessingResultResponse)
 async def process_documents_sync(
     config: ProcessingConfigRequest,
     current_user: dict = Depends(get_current_user_or_api_key),
-    processing_service: DocumentProcessingService = Depends(get_document_processing_service)
+    processing_service: DocumentProcessingService = Depends(
+        get_document_processing_service
+    ),
 ) -> ProcessingResultResponse:
     """ドキュメントを同期処理"""
     # 書き込み権限をチェック
     if "write" not in current_user.get("permissions", []):
         raise HTTPException(status_code=403, detail="Write permission required")
-    
+
     try:
         # 設定の変換
         processing_config = _convert_to_processing_config(config)
-        
+
         # 同期処理を実行
         result = await processing_service.process_documents(processing_config)
-        
+
         return ProcessingResultResponse(
             success=result.success,
             total_documents=result.total_documents,
@@ -297,52 +304,56 @@ async def process_documents_sync(
             successful_chunks=result.successful_chunks,
             failed_chunks=result.failed_chunks,
             processing_time=result.processing_time,
-            error_count=len(result.errors)
+            error_count=len(result.errors),
         )
-        
+
     except Exception as e:
         logger.error(f"Synchronous document processing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}") from e
 
 
 @router.get("/process/status/{document_id}", response_model=ProcessingStatusResponse)
 async def get_processing_status(
     document_id: str,
     current_user: dict = Depends(get_current_user_or_api_key),
-    processing_service: DocumentProcessingService = Depends(get_document_processing_service)
+    processing_service: DocumentProcessingService = Depends(
+        get_document_processing_service
+    ),
 ) -> ProcessingStatusResponse:
     """ドキュメント処理状況を取得"""
     try:
         status = processing_service.get_processing_status(document_id)
-        
+
         if not status:
             raise HTTPException(status_code=404, detail="Processing status not found")
-        
+
         return ProcessingStatusResponse(
             document_id=status["document_id"],
             stage=status["stage"],
             progress=status["progress"],
             error_message=status.get("error_message"),
             chunks_processed=status.get("chunks_processed", 0),
-            chunks_total=status.get("chunks_total", 0)
+            chunks_total=status.get("chunks_total", 0),
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to get processing status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get processing status")
+        raise HTTPException(status_code=500, detail="Failed to get processing status") from e
 
 
 @router.get("/process/status", response_model=dict[str, ProcessingStatusResponse])
 async def get_all_processing_status(
     current_user: dict = Depends(get_current_user_or_api_key),
-    processing_service: DocumentProcessingService = Depends(get_document_processing_service)
+    processing_service: DocumentProcessingService = Depends(
+        get_document_processing_service
+    ),
 ) -> dict[str, ProcessingStatusResponse]:
     """全ドキュメントの処理状況を取得"""
     try:
         all_status = processing_service.get_all_processing_status()
-        
+
         result = {}
         for doc_id, status in all_status.items():
             result[doc_id] = ProcessingStatusResponse(
@@ -351,37 +362,41 @@ async def get_all_processing_status(
                 progress=status["progress"],
                 error_message=status.get("error_message"),
                 chunks_processed=status.get("chunks_processed", 0),
-                chunks_total=status.get("chunks_total", 0)
+                chunks_total=status.get("chunks_total", 0),
             )
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to get all processing status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get processing status")
+        raise HTTPException(status_code=500, detail="Failed to get processing status") from e
 
 
-@router.post("/process/{document_id}/reprocess", response_model=ProcessingResultResponse)
+@router.post(
+    "/process/{document_id}/reprocess", response_model=ProcessingResultResponse
+)
 async def reprocess_document(
     document_id: str,
     config: ProcessingConfigRequest,
     current_user: dict = Depends(get_current_user_or_api_key),
-    processing_service: DocumentProcessingService = Depends(get_document_processing_service)
+    processing_service: DocumentProcessingService = Depends(
+        get_document_processing_service
+    ),
 ) -> ProcessingResultResponse:
     """単一ドキュメントを再処理"""
     # 書き込み権限をチェック
     if "write" not in current_user.get("permissions", []):
         raise HTTPException(status_code=403, detail="Write permission required")
-    
+
     try:
         # 設定の変換
         processing_config = _convert_to_processing_config(config)
-        
+
         # 単一ドキュメント処理
         result = await processing_service.process_single_document_by_id(
             document_id, processing_config
         )
-        
+
         if result.get("success", False):
             return ProcessingResultResponse(
                 success=True,
@@ -392,7 +407,7 @@ async def reprocess_document(
                 successful_chunks=result.get("successful_chunks", 0),
                 failed_chunks=result.get("failed_chunks", 0),
                 processing_time=0.0,  # 単一ドキュメント処理では詳細時間は取得しない
-                error_count=0
+                error_count=0,
             )
         else:
             return ProcessingResultResponse(
@@ -404,12 +419,12 @@ async def reprocess_document(
                 successful_chunks=0,
                 failed_chunks=0,
                 processing_time=0.0,
-                error_count=1
+                error_count=1,
             )
-        
+
     except Exception as e:
         logger.error(f"Document reprocessing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Reprocessing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Reprocessing failed: {str(e)}") from e
 
 
 def _convert_to_processing_config(request: ProcessingConfigRequest) -> ProcessingConfig:
@@ -422,7 +437,7 @@ def _convert_to_processing_config(request: ProcessingConfigRequest) -> Processin
         source_path=request.source_path,
         file_patterns=request.file_patterns,
     )
-    
+
     # ExtractionConfig
     extraction_config = ExtractionConfig(
         extract_structure=request.extract_structure,
@@ -431,20 +446,20 @@ def _convert_to_processing_config(request: ProcessingConfigRequest) -> Processin
         extract_statistics=True,
         language_detection=True,
     )
-    
+
     # ChunkingConfig
     chunking_strategy = ChunkingStrategy.FIXED_SIZE
     if request.chunking_strategy == "semantic":
         chunking_strategy = ChunkingStrategy.SEMANTIC
     elif request.chunking_strategy == "hierarchical":
         chunking_strategy = ChunkingStrategy.HIERARCHICAL
-    
+
     chunking_config = ChunkingConfig(
         strategy=chunking_strategy,
         chunk_size=request.chunk_size,
         overlap_size=request.overlap_size,
     )
-    
+
     return ProcessingConfig(
         collection_config=collection_config,
         extraction_config=extraction_config,
@@ -454,8 +469,7 @@ def _convert_to_processing_config(request: ProcessingConfigRequest) -> Processin
 
 
 async def _background_document_processing(
-    processing_service: DocumentProcessingService,
-    config: ProcessingConfig
+    processing_service: DocumentProcessingService, config: ProcessingConfig
 ) -> None:
     """バックグラウンドでドキュメント処理を実行"""
     try:

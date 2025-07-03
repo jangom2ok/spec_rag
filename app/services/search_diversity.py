@@ -380,7 +380,14 @@ class ClusteringDiversifier(BaseDiversifier):
                 centroid = (
                     centroids[cluster_id]
                     if cluster_id < len(centroids)
-                    else np.mean([c.embedding for c in cluster_candidates if c.embedding is not None], axis=0)
+                    else np.mean(
+                        [
+                            c.embedding
+                            for c in cluster_candidates
+                            if c.embedding is not None
+                        ],
+                        axis=0,
+                    )
                 )
 
                 # コヒーレンススコア計算（クラスター内類似度）
@@ -601,7 +608,9 @@ class SearchDiversityService:
     def __init__(self, config: DiversityConfig):
         self.config = config
         self.diversifiers = self._create_diversifiers()
-        self.cache: dict[str, tuple[DiversificationResult, datetime]] = {}  # 簡易キャッシュ実装
+        self.cache: dict[str, tuple[DiversificationResult, datetime]] = (
+            {}
+        )  # 簡易キャッシュ実装
 
     def _create_diversifiers(self) -> dict[DiversificationAlgorithm, BaseDiversifier]:
         """多様化器インスタンス作成"""

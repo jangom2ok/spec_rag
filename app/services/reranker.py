@@ -8,20 +8,21 @@ TDD実装：CrossEncoder/ColBERTベースの高精度再ランキング機能
 
 import asyncio
 import hashlib
+import json
 import logging
-import numpy as np
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
-from dataclasses import dataclass, field
-import json
+from typing import Any
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
 class RerankerType(str, Enum):
     """Rerankerタイプ"""
-    
+
     CROSS_ENCODER = "cross_encoder"
     COLBERT = "colbert"
     ENSEMBLE = "ensemble"
@@ -30,24 +31,24 @@ class RerankerType(str, Enum):
 @dataclass
 class RerankerConfig:
     """Reranker設定"""
-    
+
     reranker_type: RerankerType
-    model_name: Optional[str] = None
+    model_name: str | None = None
     top_k: int = 10
     batch_size: int = 16
     max_sequence_length: int = 512
     enable_caching: bool = True
     cache_ttl: int = 3600
     timeout: float = 30.0
-    
+
     # アンサンブル用設定
-    ensemble_weights: Optional[List[float]] = None
-    ensemble_models: Optional[List[str]] = None
-    
+    ensemble_weights: list[float] | None = None
+    ensemble_models: list[str] | None = None
+
     # デバイス設定
     device: str = "cpu"
     fp16: bool = False
-    
+
     def __post_init__(self):
         """設定値のバリデーション"""
         if self.top_k <= 0:
@@ -61,10 +62,10 @@ class RerankerConfig:
 @dataclass
 class RerankRequest:
     """再ランキングリクエスト"""
-    
+
     query: str
-    documents: List[Dict[str, Any]]
-    top_k: Optional[int] = None
+    documents: list[dict[str, Any]]
+    top_k: int | None = None
     return_scores: bool = True
     return_explanations: bool = False
 
@@ -72,16 +73,16 @@ class RerankRequest:
 @dataclass
 class RerankResult:
     """再ランキング結果"""
-    
+
     success: bool
-    documents: List[Dict[str, Any]]
+    documents: list[dict[str, Any]]
     total_documents: int
     rerank_time: float
     query: str
-    error_message: Optional[str] = None
+    error_message: str | None = None
     cache_hit: bool = False
-    
-    def get_summary(self) -> Dict[str, Any]:
+
+    def get_summary(self) -> dict[str, Any]:
         """再ランキング結果のサマリーを取得"""
         return {
             "success": self.success,
@@ -94,28 +95,28 @@ class RerankResult:
 
 class BaseReranker:
     """Rerankerベースクラス"""
-    
+
     def __init__(self, config: RerankerConfig):
         self.config = config
         self.model = None
         self.tokenizer = None
-    
+
     async def load_model(self) -> None:
         """モデル読み込み（オーバーライド必須）"""
         raise NotImplementedError
-    
-    async def score(self, query: str, texts: List[str]) -> List[float]:
+
+    async def score(self, query: str, texts: list[str]) -> list[float]:
         """テキストのスコアリング（オーバーライド必須）"""
         raise NotImplementedError
 
 
 class CrossEncoderReranker(BaseReranker):
     """CrossEncoderベースのReranker"""
-    
+
     def __init__(self, config: RerankerConfig):
         super().__init__(config)
         self.model_name = config.model_name or "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    
+
     async def load_model(self) -> None:
         """CrossEncoderモデル読み込み"""
         try:
@@ -127,32 +128,32 @@ class CrossEncoderReranker(BaseReranker):
         except Exception as e:
             logger.error(f"Failed to load CrossEncoder model: {e}")
             raise
-    
-    async def score(self, query: str, texts: List[str]) -> List[float]:
+
+    async def score(self, query: str, texts: list[str]) -> list[float]:
         """CrossEncoderスコアリング"""
         if not self.model:
             await self.load_model()
-        
+
         # クエリとテキストのペアを作成
         pairs = [[query, text] for text in texts]
-        
+
         # バッチ処理でスコア計算
         scores = []
         for i in range(0, len(pairs), self.config.batch_size):
-            batch = pairs[i:i + self.config.batch_size]
+            batch = pairs[i : i + self.config.batch_size]
             batch_scores = self.model.predict(batch)
             scores.extend(batch_scores)
-        
+
         return scores
 
 
 class ColBERTReranker(BaseReranker):
     """ColBERTベースのReranker"""
-    
+
     def __init__(self, config: RerankerConfig):
         super().__init__(config)
         self.model_name = config.model_name or "colbert-ir/colbertv2.0"
-    
+
     async def load_model(self) -> None:
         """ColBERTモデル読み込み"""
         try:
@@ -162,33 +163,33 @@ class ColBERTReranker(BaseReranker):
         except Exception as e:
             logger.error(f"Failed to load ColBERT model: {e}")
             raise
-    
-    async def score(self, query: str, texts: List[str]) -> List[float]:
+
+    async def score(self, query: str, texts: list[str]) -> list[float]:
         """ColBERTスコアリング（MaxSim）"""
         if not self.model:
             await self.load_model()
-        
+
         # クエリエンコーディング
         query_embeddings = self._encode_query(query)
-        
+
         # ドキュメントエンコーディング
         doc_embeddings = self._encode_documents(texts)
-        
+
         # MaxSimスコア計算
         scores = []
         for doc_emb in doc_embeddings:
             maxsim_score = self._compute_maxsim(query_embeddings, doc_emb)
             scores.append(maxsim_score)
-        
+
         return scores
-    
+
     def _encode_query(self, query: str) -> np.ndarray:
         """クエリエンコーディング"""
         # モック実装
         tokens = query.split()[:32]  # 最大32トークン
         return np.random.random((len(tokens), 128))
-    
-    def _encode_documents(self, texts: List[str]) -> List[np.ndarray]:
+
+    def _encode_documents(self, texts: list[str]) -> list[np.ndarray]:
         """ドキュメントエンコーディング"""
         # モック実装
         doc_embeddings = []
@@ -196,7 +197,7 @@ class ColBERTReranker(BaseReranker):
             tokens = text.split()[:180]  # 最大180トークン
             doc_embeddings.append(np.random.random((len(tokens), 128)))
         return doc_embeddings
-    
+
     def _compute_maxsim(self, query_emb: np.ndarray, doc_emb: np.ndarray) -> float:
         """MaxSimスコア計算"""
         # コサイン類似度の最大値を計算
@@ -207,12 +208,12 @@ class ColBERTReranker(BaseReranker):
 
 class EnsembleReranker(BaseReranker):
     """アンサンブルReranker"""
-    
+
     def __init__(self, config: RerankerConfig):
         super().__init__(config)
         self.ensemble_weights = config.ensemble_weights or [0.5, 0.5]
         self.rerankers = []
-    
+
     async def load_model(self) -> None:
         """アンサンブルモデル読み込み"""
         # CrossEncoderとColBERTを組み合わせ
@@ -223,50 +224,50 @@ class EnsembleReranker(BaseReranker):
         )
         colbert_config = RerankerConfig(
             reranker_type=RerankerType.COLBERT,
-            model_name="colbert-ir/colbertv2.0", 
+            model_name="colbert-ir/colbertv2.0",
             batch_size=self.config.batch_size,
         )
-        
+
         self.rerankers = [
             CrossEncoderReranker(ce_config),
             ColBERTReranker(colbert_config),
         ]
-        
+
         # 各Rerankerを初期化
         for reranker in self.rerankers:
             await reranker.load_model()
-    
-    async def score(self, query: str, texts: List[str]) -> List[float]:
+
+    async def score(self, query: str, texts: list[str]) -> list[float]:
         """アンサンブルスコアリング"""
         if not self.rerankers:
             await self.load_model()
-        
+
         # 各Rerankerからスコアを取得
         all_scores = []
         for reranker in self.rerankers:
             scores = await reranker.score(query, texts)
             all_scores.append(scores)
-        
+
         # 重み付き平均でアンサンブル
         ensemble_scores = []
         for i in range(len(texts)):
             weighted_score = sum(
-                scores[i] * weight 
-                for scores, weight in zip(all_scores, self.ensemble_weights)
+                scores[i] * weight
+                for scores, weight in zip(all_scores, self.ensemble_weights, strict=False)
             )
             ensemble_scores.append(weighted_score)
-        
+
         return ensemble_scores
 
 
 class RerankerService:
     """Rerankerメインサービス"""
-    
+
     def __init__(self, config: RerankerConfig):
         self.config = config
         self.reranker = self._create_reranker()
         self.cache = {}  # 簡易キャッシュ実装
-    
+
     def _create_reranker(self) -> BaseReranker:
         """Rerankerインスタンス作成"""
         if self.config.reranker_type == RerankerType.CROSS_ENCODER:
@@ -277,11 +278,11 @@ class RerankerService:
             return EnsembleReranker(self.config)
         else:
             raise ValueError(f"Unsupported reranker type: {self.config.reranker_type}")
-    
+
     async def rerank(self, request: RerankRequest) -> RerankResult:
         """再ランキング実行"""
         start_time = datetime.now()
-        
+
         try:
             # 入力バリデーション
             if not request.documents:
@@ -292,17 +293,17 @@ class RerankerService:
                     rerank_time=0.0,
                     query=request.query,
                 )
-            
+
             # キャッシュチェック
             if self.config.enable_caching:
                 cache_key = self._get_cache_key(request)
                 cached_result = await self._get_from_cache(cache_key)
                 if cached_result:
                     return cached_result
-            
+
             # top_k設定
             top_k = request.top_k or self.config.top_k
-            
+
             # ドキュメントテキスト抽出
             texts = []
             for doc in request.documents:
@@ -310,14 +311,14 @@ class RerankerService:
                 content = doc.get("content", "")
                 combined_text = f"{title} {content}".strip()
                 texts.append(combined_text)
-            
+
             # タイムアウト処理付きでスコアリング実行
             try:
                 scores = await asyncio.wait_for(
                     self._get_reranker_scores(request.query, texts),
-                    timeout=self.config.timeout
+                    timeout=self.config.timeout,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 return RerankResult(
                     success=False,
                     documents=[],
@@ -326,32 +327,32 @@ class RerankerService:
                     query=request.query,
                     error_message="Reranking timeout",
                 )
-            
+
             # ドキュメントにスコアを追加
             scored_docs = []
-            for doc, score in zip(request.documents, scores):
+            for doc, score in zip(request.documents, scores, strict=False):
                 doc_copy = doc.copy()
                 if request.return_scores:
                     doc_copy["rerank_score"] = score
-                
+
                 # 説明を追加
                 if request.return_explanations:
                     explanation = await self._generate_explanation(
                         request.query, doc, score
                     )
                     doc_copy["rerank_explanation"] = explanation
-                
+
                 scored_docs.append(doc_copy)
-            
+
             # スコア順でソート
             scored_docs.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
-            
+
             # top_kで切り取り
             result_docs = scored_docs[:top_k]
-            
+
             end_time = datetime.now()
             rerank_time = (end_time - start_time).total_seconds()
-            
+
             result = RerankResult(
                 success=True,
                 documents=result_docs,
@@ -359,18 +360,18 @@ class RerankerService:
                 rerank_time=rerank_time,
                 query=request.query,
             )
-            
+
             # キャッシュに保存
             if self.config.enable_caching:
                 await self._set_cache(cache_key, result)
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Reranking failed: {e}")
             end_time = datetime.now()
             rerank_time = (end_time - start_time).total_seconds()
-            
+
             return RerankResult(
                 success=False,
                 documents=[],
@@ -379,8 +380,8 @@ class RerankerService:
                 query=request.query,
                 error_message=str(e),
             )
-    
-    async def _get_reranker_scores(self, query: str, texts: List[str]) -> List[float]:
+
+    async def _get_reranker_scores(self, query: str, texts: list[str]) -> list[float]:
         """Rerankerスコア取得の統一インターフェース"""
         if self.config.reranker_type == RerankerType.CROSS_ENCODER:
             return await self._get_cross_encoder_scores(query, texts)
@@ -390,23 +391,25 @@ class RerankerService:
             return await self._get_ensemble_scores(query, texts)
         else:
             raise ValueError(f"Unknown reranker type: {self.config.reranker_type}")
-    
-    async def _get_cross_encoder_scores(self, query: str, texts: List[str]) -> List[float]:
+
+    async def _get_cross_encoder_scores(
+        self, query: str, texts: list[str]
+    ) -> list[float]:
         """CrossEncoderスコア取得"""
         return await self.reranker.score(query, texts)
-    
-    async def _get_colbert_scores(self, query: str, texts: List[str]) -> List[float]:
+
+    async def _get_colbert_scores(self, query: str, texts: list[str]) -> list[float]:
         """ColBERTスコア取得"""
         return await self.reranker.score(query, texts)
-    
-    async def _get_ensemble_scores(self, query: str, texts: List[str]) -> List[float]:
+
+    async def _get_ensemble_scores(self, query: str, texts: list[str]) -> list[float]:
         """アンサンブルスコア取得"""
         return await self.reranker.score(query, texts)
-    
-    async def _process_batch(self, query: str, texts: List[str]) -> List[float]:
+
+    async def _process_batch(self, query: str, texts: list[str]) -> list[float]:
         """バッチ処理"""
         return await self.reranker.score(query, texts)
-    
+
     def _get_cache_key(self, request: RerankRequest) -> str:
         """キャッシュキー生成"""
         # クエリとドキュメントIDからハッシュ生成
@@ -417,8 +420,8 @@ class RerankerService:
         }
         content_str = json.dumps(content, sort_keys=True)
         return hashlib.md5(content_str.encode()).hexdigest()
-    
-    async def _get_from_cache(self, cache_key: str) -> Optional[RerankResult]:
+
+    async def _get_from_cache(self, cache_key: str) -> RerankResult | None:
         """キャッシュから取得"""
         if cache_key in self.cache:
             cached_data, timestamp = self.cache[cache_key]
@@ -438,25 +441,21 @@ class RerankerService:
                 # 期限切れキャッシュを削除
                 del self.cache[cache_key]
         return None
-    
+
     async def _set_cache(self, cache_key: str, result: RerankResult) -> None:
         """キャッシュに保存"""
         self.cache[cache_key] = (result, datetime.now())
-    
+
     async def _generate_explanation(
-        self, 
-        query: str, 
-        document: Dict[str, Any], 
-        score: float
-    ) -> Dict[str, Any]:
+        self, query: str, document: dict[str, Any], score: float
+    ) -> dict[str, Any]:
         """再ランキング説明生成"""
         explanation = await self._generate_explanations([document])
         return explanation[0] if explanation else {}
-    
+
     async def _generate_explanations(
-        self, 
-        documents: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, documents: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """複数ドキュメントの説明生成"""
         explanations = []
         for doc in documents:
@@ -473,11 +472,11 @@ class RerankerService:
 # モッククラス（テスト用）
 class MockCrossEncoderModel:
     """モックCrossEncoderモデル"""
-    
+
     def __init__(self, model_name: str):
         self.model_name = model_name
-    
-    def predict(self, pairs: List[List[str]]) -> List[float]:
+
+    def predict(self, pairs: list[list[str]]) -> list[float]:
         """予測（モック実装）"""
         # クエリとテキストの単語重複率ベースの簡易スコア
         scores = []
@@ -495,11 +494,11 @@ class MockCrossEncoderModel:
 
 class MockColBERTModel:
     """モックColBERTモデル"""
-    
+
     def __init__(self, model_name: str):
         self.model_name = model_name
-    
-    def encode(self, texts: List[str]) -> List[np.ndarray]:
+
+    def encode(self, texts: list[str]) -> list[np.ndarray]:
         """エンコーディング（モック実装）"""
         embeddings = []
         for text in texts:

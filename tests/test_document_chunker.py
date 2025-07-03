@@ -3,17 +3,17 @@
 TDD実装：テストケース→実装→リファクタの順序で実装
 """
 
+from typing import Any
+
 import pytest
-from typing import List, Dict, Any
-from unittest.mock import Mock
 
 from app.services.document_chunker import (
-    DocumentChunker,
     ChunkingConfig,
     ChunkingStrategy,
     ChunkResult,
-    DocumentChunk,
     ChunkType,
+    DocumentChunk,
+    DocumentChunker,
 )
 
 
@@ -55,7 +55,7 @@ class TestDocumentChunker:
         )
 
     @pytest.fixture
-    def sample_document(self) -> Dict[str, Any]:
+    def sample_document(self) -> dict[str, Any]:
         """テスト用サンプルドキュメント"""
         return {
             "id": "doc-1",
@@ -93,7 +93,7 @@ Future work should explore additional optimization techniques.""",
         }
 
     @pytest.fixture
-    def japanese_document(self) -> Dict[str, Any]:
+    def japanese_document(self) -> dict[str, Any]:
         """日本語テスト用ドキュメント"""
         return {
             "id": "doc-jp",
@@ -134,64 +134,78 @@ Future work should explore additional optimization techniques.""",
     async def test_chunker_initialization(self, basic_config: ChunkingConfig):
         """チャンカーの初期化テスト"""
         chunker = DocumentChunker(config=basic_config)
-        
+
         assert chunker.config == basic_config
         assert chunker.config.strategy == ChunkingStrategy.FIXED_SIZE
         assert chunker.config.chunk_size == 100
         assert chunker.config.overlap_size == 20
 
-    @pytest.mark.unit  
-    async def test_fixed_size_chunking(self, basic_config: ChunkingConfig, sample_document: Dict[str, Any]):
+    @pytest.mark.unit
+    async def test_fixed_size_chunking(
+        self, basic_config: ChunkingConfig, sample_document: dict[str, Any]
+    ):
         """固定サイズチャンク化テスト"""
         chunker = DocumentChunker(config=basic_config)
-        
+
         result = await chunker.chunk_document(sample_document)
-        
+
         assert isinstance(result, ChunkResult)
         assert result.success is True
         assert len(result.chunks) > 0
-        
+
         # チャンクサイズの検証
         for chunk in result.chunks:
             assert isinstance(chunk, DocumentChunk)
-            assert len(chunk.content) <= basic_config.chunk_size + basic_config.overlap_size
-            assert len(chunk.content) >= basic_config.min_chunk_size or chunk.chunk_index == len(result.chunks) - 1
+            assert (
+                len(chunk.content)
+                <= basic_config.chunk_size + basic_config.overlap_size
+            )
+            assert (
+                len(chunk.content) >= basic_config.min_chunk_size
+                or chunk.chunk_index == len(result.chunks) - 1
+            )
             assert chunk.document_id == sample_document["id"]
             assert chunk.chunk_type == ChunkType.TEXT
 
     @pytest.mark.unit
-    async def test_chunking_with_overlap(self, basic_config: ChunkingConfig, sample_document: Dict[str, Any]):
+    async def test_chunking_with_overlap(
+        self, basic_config: ChunkingConfig, sample_document: dict[str, Any]
+    ):
         """オーバーラップありのチャンク化テスト"""
         basic_config.overlap_size = 30
         chunker = DocumentChunker(config=basic_config)
-        
+
         result = await chunker.chunk_document(sample_document)
-        
-        assert len(result.chunks) >= 2  # 十分長いドキュメントなので複数チャンクになるはず
-        
+
+        assert (
+            len(result.chunks) >= 2
+        )  # 十分長いドキュメントなので複数チャンクになるはず
+
         # オーバーラップの検証
         for i in range(len(result.chunks) - 1):
             current_chunk = result.chunks[i]
             next_chunk = result.chunks[i + 1]
-            
+
             # オーバーラップ部分が存在することを確認
-            current_end = current_chunk.content[-basic_config.overlap_size:]
-            next_start = next_chunk.content[:basic_config.overlap_size]
-            
+            current_end = current_chunk.content[-basic_config.overlap_size :]
+            next_start = next_chunk.content[: basic_config.overlap_size]
+
             # 完全一致でなくても、部分的な重複があることを確認
             assert len(current_end) > 0
             assert len(next_start) > 0
 
     @pytest.mark.unit
-    async def test_semantic_chunking(self, semantic_config: ChunkingConfig, sample_document: Dict[str, Any]):
+    async def test_semantic_chunking(
+        self, semantic_config: ChunkingConfig, sample_document: dict[str, Any]
+    ):
         """セマンティックチャンク化テスト"""
         chunker = DocumentChunker(config=semantic_config)
-        
+
         result = await chunker.chunk_document(sample_document)
-        
+
         assert result.success is True
         assert len(result.chunks) > 0
-        
+
         # セマンティックチャンクの特性を検証
         for chunk in result.chunks:
             assert chunk.chunk_type in [ChunkType.TEXT, ChunkType.SECTION]
@@ -199,89 +213,117 @@ Future work should explore additional optimization techniques.""",
             assert chunk.content.strip()  # 空でないこと
 
     @pytest.mark.unit
-    async def test_hierarchical_chunking(self, hierarchical_config: ChunkingConfig, sample_document: Dict[str, Any]):
+    async def test_hierarchical_chunking(
+        self, hierarchical_config: ChunkingConfig, sample_document: dict[str, Any]
+    ):
         """階層チャンク化テスト"""
         chunker = DocumentChunker(config=hierarchical_config)
-        
+
         result = await chunker.chunk_document(sample_document)
-        
+
         assert result.success is True
         assert len(result.chunks) > 0
-        
+
         # 階層情報の検証
-        heading_chunks = [chunk for chunk in result.chunks if chunk.chunk_type == ChunkType.HEADING]
+        heading_chunks = [
+            chunk for chunk in result.chunks if chunk.chunk_type == ChunkType.HEADING
+        ]
         assert len(heading_chunks) > 0  # ヘッディングが検出されること
-        
+
         for chunk in result.chunks:
             if chunk.hierarchy_path:
                 # 階層パスが適切な形式であることを確認
-                path_parts = chunk.hierarchy_path.split('/')
+                path_parts = chunk.hierarchy_path.split("/")
                 assert len(path_parts) <= hierarchical_config.max_hierarchy_depth + 1
                 assert all(part.strip() for part in path_parts)  # 空のパーツがないこと
 
     @pytest.mark.unit
-    async def test_preserve_paragraphs(self, basic_config: ChunkingConfig, sample_document: Dict[str, Any]):
+    async def test_preserve_paragraphs(
+        self, basic_config: ChunkingConfig, sample_document: dict[str, Any]
+    ):
         """段落保持テスト"""
         basic_config.preserve_paragraphs = True
         basic_config.preserve_sentences = False  # 段落保持を優先
         chunker = DocumentChunker(config=basic_config)
-        
+
         result = await chunker.chunk_document(sample_document)
-        
+
         # 段落境界でのみ分割されることを確認（段落は通常文で終わるので文の終わりもOK）
         for chunk in result.chunks:
             content = chunk.content.strip()
             if chunk.chunk_index < len(result.chunks) - 1:
                 # 最後のチャンク以外は段落境界で終わるべき（文の終わりで終わることも含む）
-                assert (content.endswith('.') or content.endswith('。') or 
-                       content.endswith('!') or content.endswith('?') or
-                       '\n\n' in content)
+                assert (
+                    content.endswith(".")
+                    or content.endswith("。")
+                    or content.endswith("!")
+                    or content.endswith("?")
+                    or "\n\n" in content
+                )
 
     @pytest.mark.unit
-    async def test_preserve_sentences(self, basic_config: ChunkingConfig, sample_document: Dict[str, Any]):
+    async def test_preserve_sentences(
+        self, basic_config: ChunkingConfig, sample_document: dict[str, Any]
+    ):
         """文保持テスト"""
         basic_config.preserve_sentences = True
         basic_config.preserve_paragraphs = False  # 文保持を優先
         chunker = DocumentChunker(config=basic_config)
-        
+
         result = await chunker.chunk_document(sample_document)
-        
+
         # 文の途中で分割されていないことを確認
         for chunk in result.chunks:
             content = chunk.content.strip()
             if chunk.chunk_index < len(result.chunks) - 1:
                 # 最後のチャンク以外は文境界で終わるべき
-                assert content.endswith('.') or content.endswith('。') or content.endswith('!') or content.endswith('?') or content.endswith('！') or content.endswith('？')
+                assert (
+                    content.endswith(".")
+                    or content.endswith("。")
+                    or content.endswith("!")
+                    or content.endswith("?")
+                    or content.endswith("！")
+                    or content.endswith("？")
+                )
 
     @pytest.mark.unit
-    async def test_japanese_text_chunking(self, basic_config: ChunkingConfig, japanese_document: Dict[str, Any]):
+    async def test_japanese_text_chunking(
+        self, basic_config: ChunkingConfig, japanese_document: dict[str, Any]
+    ):
         """日本語テキストのチャンク化テスト"""
         chunker = DocumentChunker(config=basic_config)
-        
+
         result = await chunker.chunk_document(japanese_document)
-        
+
         assert result.success is True
         assert len(result.chunks) > 0
-        
+
         # 日本語特有の処理の確認
         for chunk in result.chunks:
             assert chunk.language == "ja"
             # 日本語文字が含まれていることを確認
-            japanese_chars = any('\u3040' <= char <= '\u309F' or '\u30A0' <= char <= '\u30FF' or '\u4E00' <= char <= '\u9FAF' for char in chunk.content)
+            japanese_chars = any(
+                "\u3040" <= char <= "\u309f"
+                or "\u30a0" <= char <= "\u30ff"
+                or "\u4e00" <= char <= "\u9faf"
+                for char in chunk.content
+            )
             assert japanese_chars
 
     @pytest.mark.unit
-    async def test_metadata_extraction_from_chunks(self, basic_config: ChunkingConfig, sample_document: Dict[str, Any]):
+    async def test_metadata_extraction_from_chunks(
+        self, basic_config: ChunkingConfig, sample_document: dict[str, Any]
+    ):
         """チャンクからのメタデータ抽出テスト"""
         chunker = DocumentChunker(config=basic_config)
-        
+
         result = await chunker.chunk_document(sample_document)
-        
+
         for chunk in result.chunks:
             # 基本メタデータの確認
             assert chunk.content_length == len(chunk.content)
             assert chunk.token_count is not None and chunk.token_count > 0
-            
+
             # チャンクメタデータの確認
             if chunk.chunk_metadata:
                 assert "position" in chunk.chunk_metadata
@@ -297,10 +339,10 @@ Future work should explore additional optimization techniques.""",
             "content": "",
             "source_type": "test",
         }
-        
+
         chunker = DocumentChunker(config=basic_config)
         result = await chunker.chunk_document(empty_document)
-        
+
         assert result.success is False
         assert len(result.chunks) == 0
         assert "empty" in result.error_message.lower()
@@ -314,10 +356,10 @@ Future work should explore additional optimization techniques.""",
             "content": "Short text.",
             "source_type": "test",
         }
-        
+
         chunker = DocumentChunker(config=basic_config)
         result = await chunker.chunk_document(short_document)
-        
+
         assert result.success is True
         assert len(result.chunks) == 1
         assert result.chunks[0].content == "Short text."
@@ -331,14 +373,14 @@ Future work should explore additional optimization techniques.""",
             "content": "This is a test. This is a test. This is a test. Different content here. This is a test.",
             "source_type": "test",
         }
-        
+
         basic_config.deduplicate_chunks = True
         chunker = DocumentChunker(config=basic_config)
-        
+
         result = await chunker.chunk_document(document_with_duplication)
-        
+
         # 重複したチャンクが排除されることを確認
-        unique_contents = set(chunk.content for chunk in result.chunks)
+        unique_contents = {chunk.content for chunk in result.chunks}
         assert len(unique_contents) == len(result.chunks)
 
     @pytest.mark.unit
@@ -372,14 +414,14 @@ class TestChunkingConfig:
         )
         assert valid_config.chunk_size == 100
         assert valid_config.overlap_size == 20
-        
+
         # 無効な設定（チャンクサイズが0以下）
         with pytest.raises(ValueError):
             ChunkingConfig(
                 strategy=ChunkingStrategy.FIXED_SIZE,
                 chunk_size=0,
             )
-        
+
         # 無効な設定（オーバーラップがチャンクサイズより大きい）
         with pytest.raises(ValueError):
             ChunkingConfig(
@@ -415,14 +457,14 @@ class TestChunkResult:
                 token_count=4,
             ),
         ]
-        
+
         result = ChunkResult(
             success=True,
             chunks=chunks,
             total_chunks=2,
             processing_time=1.5,
         )
-        
+
         assert result.success is True
         assert len(result.chunks) == 2
         assert result.total_chunks == 2
@@ -442,16 +484,16 @@ class TestChunkResult:
                 token_count=2,
             ),
         ]
-        
+
         result = ChunkResult(
             success=True,
             chunks=chunks,
             total_chunks=1,
             processing_time=0.5,
         )
-        
+
         summary = result.get_summary()
-        
+
         assert "total_chunks" in summary
         assert "average_chunk_size" in summary
         assert "processing_time" in summary
