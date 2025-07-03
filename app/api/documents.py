@@ -8,7 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from app.core.auth import validate_api_key
-from app.repositories.chunk_repository import ChunkRepository
+from app.repositories.chunk_repository import DocumentChunkRepository
 from app.repositories.document_repository import DocumentRepository
 from app.services.document_chunker import ChunkingConfig, ChunkingStrategy
 from app.services.document_collector import (
@@ -228,7 +228,7 @@ async def get_document_processing_service() -> DocumentProcessingService:
     """ドキュメント処理サービスの依存性注入"""
     # 実際の実装では、DIコンテナやファクトリを使用
     document_repo = DocumentRepository()
-    chunk_repo = ChunkRepository()
+    chunk_repo = DocumentChunkRepository()
     return DocumentProcessingService(
         document_repository=document_repo, chunk_repository=chunk_repo
     )
@@ -272,7 +272,9 @@ async def process_documents(
 
     except Exception as e:
         logger.error(f"Document processing request failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Processing failed: {str(e)}"
+        ) from e
 
 
 @router.post("/process/sync", response_model=ProcessingResultResponse)
@@ -309,7 +311,9 @@ async def process_documents_sync(
 
     except Exception as e:
         logger.error(f"Synchronous document processing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Processing failed: {str(e)}"
+        ) from e
 
 
 @router.get("/process/status/{document_id}", response_model=ProcessingStatusResponse)
@@ -340,7 +344,9 @@ async def get_processing_status(
         raise
     except Exception as e:
         logger.error(f"Failed to get processing status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get processing status") from e
+        raise HTTPException(
+            status_code=500, detail="Failed to get processing status"
+        ) from e
 
 
 @router.get("/process/status", response_model=dict[str, ProcessingStatusResponse])
@@ -369,7 +375,9 @@ async def get_all_processing_status(
 
     except Exception as e:
         logger.error(f"Failed to get all processing status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get processing status") from e
+        raise HTTPException(
+            status_code=500, detail="Failed to get processing status"
+        ) from e
 
 
 @router.post(
@@ -424,7 +432,9 @@ async def reprocess_document(
 
     except Exception as e:
         logger.error(f"Document reprocessing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Reprocessing failed: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Reprocessing failed: {str(e)}"
+        ) from e
 
 
 def _convert_to_processing_config(request: ProcessingConfigRequest) -> ProcessingConfig:

@@ -16,7 +16,7 @@ from enum import Enum
 from typing import Any
 
 from app.models.database import Document, DocumentChunk
-from app.repositories.chunk_repository import ChunkRepository
+from app.repositories.chunk_repository import DocumentChunkRepository
 from app.repositories.document_repository import DocumentRepository
 from app.services.document_chunker import (
     ChunkingConfig,
@@ -138,7 +138,7 @@ class DocumentProcessingService:
     def __init__(
         self,
         document_repository: DocumentRepository,
-        chunk_repository: ChunkRepository,
+        chunk_repository: DocumentChunkRepository,
         embedding_service: EmbeddingService | None = None,
     ):
         self.document_repository = document_repository
