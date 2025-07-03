@@ -421,7 +421,7 @@ class RerankerService:
             "top_k": request.top_k or self.config.top_k,
         }
         content_str = json.dumps(content, sort_keys=True)
-        return hashlib.md5(content_str.encode()).hexdigest()
+        return hashlib.sha256(content_str.encode()).hexdigest()
 
     async def _get_from_cache(self, cache_key: str) -> RerankResult | None:
         """キャッシュから取得"""

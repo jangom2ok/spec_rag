@@ -129,7 +129,7 @@ class FileDocumentSource(DocumentSource):
 
                     file_name = Path(file_path).name
                     document = {
-                        "id": hashlib.md5(file_path.encode()).hexdigest(),
+                        "id": hashlib.sha256(file_path.encode()).hexdigest(),
                         "title": file_name,
                         "content": content,
                         "source_id": file_path,

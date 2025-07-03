@@ -165,10 +165,10 @@ class AutocompleteSuggester(BaseSuggester):
         self.prefix_index: dict[str, list[str]] = {}  # 簡易プレフィックスインデックス
 
     async def suggest(
-        self, query: str, max_results: int = None
+        self, query: str, **kwargs: Any
     ) -> list[SuggestionCandidate]:
         """自動補完候補生成"""
-        max_results = max_results or self.max_suggestions
+        max_results = kwargs.get("max_results") or self.max_suggestions
 
         # プレフィックスマッチング
         prefix_matches = self._get_prefix_matches(query, max_results)
@@ -291,13 +291,14 @@ class ContextualSuggester(BaseSuggester):
         self.context_weight = config.context_weight
 
     async def suggest(
-        self, query: str, context: dict[str, Any] = None, max_results: int = None
+        self, query: str, **kwargs: Any
     ) -> list[SuggestionCandidate]:
         """コンテキスト候補生成"""
+        context = kwargs.get("context")
         if not context:
             return []
 
-        max_results = max_results or self.config.max_suggestions
+        max_results = kwargs.get("max_results") or self.config.max_suggestions
 
         # コンテキスト分析
         context_analysis = self._analyze_context(context)
@@ -482,7 +483,8 @@ class ContextualSuggester(BaseSuggester):
         for preference in preferences:
             if preference in preference_data:
                 for candidate in preference_data[preference]:
-                    if query.lower() in candidate["text"].lower():
+                    candidate_text = str(candidate.get("text", ""))
+                    if query.lower() in candidate_text.lower():
                         candidate["context_match"] = [preference]
                         candidate["relevance"] = "high"
                         suggestions.append(candidate)
@@ -524,13 +526,14 @@ class PersonalizedSuggester(BaseSuggester):
         self.personalization_weight = config.personalization_weight
 
     async def suggest(
-        self, query: str, user_id: str, max_results: int = None
+        self, query: str, **kwargs: Any
     ) -> list[SuggestionCandidate]:
         """パーソナライズ候補生成"""
+        user_id = kwargs.get("user_id")
         if not user_id:
             return []
 
-        max_results = max_results or self.config.max_suggestions
+        max_results = kwargs.get("max_results") or self.config.max_suggestions
 
         # ユーザープロファイル取得
         user_profile = await self._get_user_profile(user_id)
@@ -604,9 +607,9 @@ class PersonalizedSuggester(BaseSuggester):
             candidate["personalization_score"] = personalization_score
 
         # 重複除去・スコア順ソート
-        unique_candidates = {}
+        unique_candidates: dict[str, dict[str, Any]] = {}
         for candidate in all_candidates:
-            text = candidate["text"]
+            text = str(candidate.get("text", ""))
             if (
                 text not in unique_candidates
                 or candidate["score"] > unique_candidates[text]["score"]
@@ -658,7 +661,8 @@ class PersonalizedSuggester(BaseSuggester):
         for interest in interests:
             if interest in interest_data:
                 for candidate in interest_data[interest]:
-                    if query.lower() in candidate["text"].lower():
+                    candidate_text = str(candidate.get("text", ""))
+                    if query.lower() in candidate_text.lower():
                         candidate["user_preference"] = interest
                         candidate["past_interactions"] = [interest, "tutorial"]
                         suggestions.append(candidate)
@@ -695,10 +699,10 @@ class TrendingSuggester(BaseSuggester):
         self.trend_threshold = config.trend_threshold
 
     async def suggest(
-        self, query: str, max_results: int = None
+        self, query: str, **kwargs: Any
     ) -> list[SuggestionCandidate]:
         """トレンド候補生成"""
-        max_results = max_results or self.config.max_suggestions
+        max_results = kwargs.get("max_results") or self.config.max_suggestions
 
         # トレンド分析
         trends = await self._analyze_trends(query, self.trending_window_hours)
@@ -761,7 +765,7 @@ class TrendingSuggester(BaseSuggester):
                 trends.extend(trend_list)
 
         # トレンドスコア順でソート
-        trends.sort(key=lambda x: x["trend_score"], reverse=True)
+        trends.sort(key=lambda x: float(x.get("trend_score", 0.0) or 0.0), reverse=True)
         return trends
 
 
@@ -1006,7 +1010,7 @@ class SearchSuggestionsService:
         """自動補完候補取得"""
         suggester = self.suggesters.get(SuggestionType.AUTOCOMPLETE)
         if suggester:
-            return await suggester.suggest(query, max_results)
+            return await suggester.suggest(query, max_results=max_results)
         return []
 
     async def _get_contextual_suggestions(
@@ -1015,7 +1019,7 @@ class SearchSuggestionsService:
         """コンテキスト候補取得"""
         suggester = self.suggesters.get(SuggestionType.CONTEXTUAL)
         if suggester:
-            return await suggester.suggest(query, context, max_results)
+            return await suggester.suggest(query, context=context, max_results=max_results)
         return []
 
     async def _get_personalized_suggestions(
@@ -1024,7 +1028,7 @@ class SearchSuggestionsService:
         """パーソナライズ候補取得"""
         suggester = self.suggesters.get(SuggestionType.PERSONALIZED)
         if suggester:
-            return await suggester.suggest(query, user_id, max_results)
+            return await suggester.suggest(query, user_id=user_id, max_results=max_results)
         return []
 
     async def _get_trending_suggestions(
@@ -1033,7 +1037,7 @@ class SearchSuggestionsService:
         """トレンド候補取得"""
         suggester = self.suggesters.get(SuggestionType.TRENDING)
         if suggester:
-            return await suggester.suggest(query, max_results)
+            return await suggester.suggest(query, max_results=max_results)
         return []
 
     async def _get_typo_corrections(
@@ -1055,7 +1059,7 @@ class SearchSuggestionsService:
     ) -> list[SuggestionCandidate]:
         """候補ランキング・重複除去"""
         # 重複除去（テキストが同じものは高スコアを保持）
-        unique_suggestions = {}
+        unique_suggestions: dict[str, SuggestionCandidate] = {}
         for suggestion in suggestions:
             text = suggestion.text.lower()
             if (
@@ -1105,7 +1109,7 @@ class SearchSuggestionsService:
             "include_completions": request.include_completions,
         }
         content_str = json.dumps(cache_content, sort_keys=True, default=str)
-        return hashlib.md5(content_str.encode()).hexdigest()
+        return hashlib.sha256(content_str.encode()).hexdigest()
 
     async def _get_from_cache(self, cache_key: str) -> SuggestionResult | None:
         """キャッシュから取得"""

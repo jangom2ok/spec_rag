@@ -748,7 +748,7 @@ class DocumentChunker:
         deduplicated = []
 
         for chunk in chunks:
-            content_hash = hashlib.md5(chunk.content.encode()).hexdigest()
+            content_hash = hashlib.sha256(chunk.content.encode()).hexdigest()
             if content_hash not in seen_contents:
                 seen_contents.add(content_hash)
                 deduplicated.append(chunk)

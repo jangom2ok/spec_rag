@@ -750,7 +750,7 @@ class QueryExpansionService:
             "expansion_types": request.expansion_types,
         }
         content_str = json.dumps(cache_content, sort_keys=True)
-        return hashlib.md5(content_str.encode()).hexdigest()
+        return hashlib.sha256(content_str.encode()).hexdigest()
 
     async def _get_from_cache(self, cache_key: str) -> ExpansionResult | None:
         """キャッシュから取得"""
