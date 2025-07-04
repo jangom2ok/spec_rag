@@ -533,3 +533,8 @@ async def _background_document_processing(
         logger.info(f"Background processing completed: {result.get_summary()}")
     except Exception as e:
         logger.error(f"Background processing failed: {e}")
+
+
+def get_document_repository() -> DocumentRepository:
+    """ドキュメントリポジトリの依存性注入"""
+    return DocumentRepository()

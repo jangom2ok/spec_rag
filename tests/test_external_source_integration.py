@@ -33,7 +33,6 @@ class TestExternalSourceIntegrator:
             auth_type=AuthType.API_TOKEN,
             api_token="test_token",
             username="test@example.com",
-            space_key="TEST",
             max_pages=100,
             timeout=30,
         )
@@ -309,7 +308,6 @@ class TestExternalSourceIntegrator:
         assert transformed["content"] == "Test content"  # HTMLタグが除去される
         assert transformed["source_type"] == "confluence"
         assert transformed["source_id"] == "123456"
-        assert transformed["metadata"]["space_key"] == "TEST"
         assert transformed["metadata"]["page_url"] is not None
 
     @pytest.mark.unit
@@ -376,7 +374,7 @@ class TestExternalSourceIntegrator:
     @pytest.mark.unit
     async def test_filtering_and_search(self, confluence_config: SourceConfig):
         """フィルタリングと検索テスト"""
-        confluence_config.filters = {"labels": ["documentation", "api"], "space": "DEV"}
+        confluence_config.filters = {"labels": ["documentation", "api"]}
         confluence_config.search_query = "REST API"
 
         integrator = ExternalSourceIntegrator(config=confluence_config)

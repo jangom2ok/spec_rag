@@ -79,7 +79,6 @@ class SourceConfig:
     bearer_token: str | None = None
 
     # 取得設定
-    space_key: str | None = None
     project_key: str | None = None
     max_pages: int = 100
     max_issues: int = 100
@@ -294,9 +293,6 @@ class ConfluenceConnector(BaseConnector):
             "expand": "body.storage,space,version,metadata.properties",
         }
 
-        # スペースフィルタ
-        if self.config.space_key:
-            params["spaceKey"] = self.config.space_key
 
         # 増分同期
         if incremental and self.config.last_sync_time:
@@ -306,8 +302,6 @@ class ConfluenceConnector(BaseConnector):
         if self.config.search_query:
             url = urljoin(self.config.base_url, "/rest/api/content/search")
             params["cql"] = f'text ~ "{self.config.search_query}"'
-            if self.config.space_key:
-                params["cql"] += f' AND space.key = "{self.config.space_key}"'
         else:
             url = urljoin(self.config.base_url, "/rest/api/content")
             params["type"] = "page"
@@ -331,8 +325,6 @@ class ConfluenceConnector(BaseConnector):
 
         # メタデータの構築
         metadata = {
-            "space_key": page.get("space", {}).get("key"),
-            "space_name": page.get("space", {}).get("name"),
             "page_url": urljoin(
                 self.config.base_url, page.get("_links", {}).get("webui", "")
             ),
