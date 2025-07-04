@@ -13,6 +13,7 @@ from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.health import router as health_router
 from app.api.search import router as search_router
+from app.api.system import router as system_router
 from app.core.exceptions import (
     RAGSystemError,
 )
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(auth_router)
     app.include_router(admin_router)
+    app.include_router(system_router)
 
     # エラーハンドラーの登録
     setup_error_handlers(app)
