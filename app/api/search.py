@@ -314,10 +314,18 @@ async def get_hybrid_search_engine() -> HybridSearchEngine:
         similarity_threshold=0.0,
     )
 
-    # 本来はここで実際のサービスを注入
-    embedding_service = None  # EmbeddingService()
-    document_repository = None  # DocumentRepository()
-    chunk_repository = None  # DocumentChunkRepository()
+    # 実際のサービスを注入
+    from app.services.embedding_service import EmbeddingService, EmbeddingConfig
+    from app.repositories.document_repository import DocumentRepository
+    from app.repositories.chunk_repository import DocumentChunkRepository
+    
+    # サービスの初期化
+    embedding_config = EmbeddingConfig()
+    embedding_service = EmbeddingService(embedding_config)
+    await embedding_service.initialize()
+    
+    document_repository = DocumentRepository()
+    chunk_repository = DocumentChunkRepository()
 
     return HybridSearchEngine(
         config=search_config,
@@ -829,3 +837,37 @@ async def get_search_config(
         raise HTTPException(
             status_code=500, detail=f"Config retrieval failed: {str(e)}"
         ) from e
+
+
+@router.post("/semantic", response_model=SearchResponse)
+async def search_semantic(
+    request: SearchRequest,
+    current_user: dict = Depends(get_current_user_or_api_key),
+    search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
+):
+    """セマンティック検索（Dense Vector重視）
+    
+    BGE-M3のdense vectorを使用した意味的検索を実行します。
+    """
+    # SemanticモードでRequestを上書き
+    request.search_mode = SearchMode.SEMANTIC
+    
+    # 通常の検索エンドポイントを呼び出し
+    return await search_documents(request, current_user, search_engine)
+
+
+@router.post("/keyword", response_model=SearchResponse)
+async def search_keyword(
+    request: SearchRequest,
+    current_user: dict = Depends(get_current_user_or_api_key),
+    search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
+):
+    """キーワード検索（Sparse Vector重視）
+    
+    BGE-M3のsparse vectorを使用したキーワードベース検索を実行します。
+    """
+    # KeywordモードでRequestを上書き
+    request.search_mode = SearchMode.KEYWORD
+    
+    # 通常の検索エンドポイントを呼び出し
+    return await search_documents(request, current_user, search_engine)

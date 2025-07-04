@@ -145,6 +145,49 @@ class FileDocumentSource(DocumentSource):
         return documents
 
 
+class ExternalSourceDocumentSource(DocumentSource):
+    """外部ソース統合ドキュメントソース"""
+
+    async def fetch_documents(self) -> list[dict[str, Any]]:
+        """外部ソースからドキュメントを取得"""
+        from app.services.external_source_integration import (
+            ExternalSourceIntegrator,
+            SourceConfig as ExtSourceConfig,
+            SourceType as ExtSourceType,
+            AuthType,
+        )
+
+        # CollectionConfigからSourceConfigに変換
+        ext_source_type = ExtSourceType.CONFLUENCE
+        if self.config.source_type == SourceType.CONFLUENCE:
+            ext_source_type = ExtSourceType.CONFLUENCE
+        elif self.config.source_type == SourceType.JIRA:
+            ext_source_type = ExtSourceType.JIRA
+        else:
+            raise ValueError(f"Unsupported external source type: {self.config.source_type}")
+
+        # 設定を構築（実際の実装では環境変数から取得）
+        ext_config = ExtSourceConfig(
+            source_type=ext_source_type,
+            base_url=self.config.filters.get("base_url", "https://example.atlassian.net"),
+            auth_type=AuthType.API_TOKEN,
+            api_token=self.config.filters.get("api_token", "dummy_token"),
+            username=self.config.filters.get("username", "user@example.com"),
+            max_pages=self.config.filters.get("max_pages", 100),
+            timeout=self.config.timeout,
+        )
+
+        # 外部ソース統合器を使用してドキュメントを取得
+        integrator = ExternalSourceIntegrator(config=ext_config)
+        result = await integrator.fetch_documents()
+
+        if result.success:
+            return result.documents
+        else:
+            logger.error(f"External source integration failed: {result.error_message}")
+            return []
+
+
 class DocumentCollector:
     """ドキュメント収集器メインクラス"""
 
@@ -158,6 +201,8 @@ class DocumentCollector:
             return TestDocumentSource(self.config)
         elif self.config.source_type == SourceType.FILE:
             return FileDocumentSource(self.config)
+        elif self.config.source_type in [SourceType.CONFLUENCE, SourceType.JIRA]:
+            return ExternalSourceDocumentSource(self.config)
         else:
             raise ValueError(f"Unsupported source type: {self.config.source_type}")
 

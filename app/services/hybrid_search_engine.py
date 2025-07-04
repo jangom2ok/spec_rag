@@ -341,12 +341,12 @@ class HybridSearchEngine:
             }
 
         # 実際の埋め込み生成
-        embeddings = await self.embedding_service.generate_embeddings([text])
+        embedding_result = await self.embedding_service.embed_text(text)
 
-        if embeddings and len(embeddings) > 0:
-            return embeddings[0]
-        else:
-            raise Exception("Failed to generate query embeddings")
+        return {
+            "dense": embedding_result.dense_vector,
+            "sparse": embedding_result.sparse_vector,
+        }
 
     def _extract_keywords_as_sparse(self, text: str) -> dict[str, float]:
         """テキストからキーワードを抽出してsparse vectorとして返す"""

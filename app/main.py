@@ -57,9 +57,9 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(documents_router)
     app.include_router(search_router)
+    app.include_router(system_router)
     app.include_router(auth_router)
     app.include_router(admin_router)
-    app.include_router(system_router)
 
     # エラーハンドラーの登録
     setup_error_handlers(app)
