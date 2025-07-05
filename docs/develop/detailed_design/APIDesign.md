@@ -65,7 +65,7 @@ POST /v1/search
 {
   "query": "JWT認証の実装方法",
   "filters": {
-    "source_types": ["swagger", "confluence"],
+    "source_types": ["swagger", "git"],
     "languages": ["ja", "en"],
     "date_range": {
       "from": "2024-01-01",
@@ -107,8 +107,8 @@ POST /v1/search
       "content": "JWT（JSON Web Token）を使用した認証システムの実装方法について...",
       "highlighted_content": "**JWT**（JSON Web Token）を使用した**認証**システムの**実装方法**について...",
       "source": {
-        "type": "confluence",
-        "url": "https://confluence.example.com/jwt-auth",
+        "type": "git",
+        "url": "https://github.com/example/repo/blob/main/jwt-auth.md",
         "author": "developer@example.com",
         "last_updated": "2024-01-15T10:30:00Z"
       },
@@ -127,9 +127,9 @@ POST /v1/search
   ],
   "facets": {
     "source_types": {
-      "confluence": 15,
+      "git": 15,
       "swagger": 8,
-      "git": 2
+      "sheets": 2
     },
     "categories": {
       "authentication": 12,
@@ -157,14 +157,14 @@ POST /v1/documents
 
 ```json
 {
-  "source_type": "confluence",
+  "source_type": "git",
   "source_id": "page-12345",
   "title": "API認証仕様書",
   "content": "# API認証仕様書\n\n## 概要\n...",
   "file_type": "markdown",
   "language": "ja",
   "metadata": {
-    "url": "https://confluence.example.com/page-12345",
+    "url": "https://github.com/example/repo/blob/main/page-12345.md",
     "author": "developer@example.com",
     "version": "2.1.0",
     "category": "api_specification",
@@ -408,7 +408,7 @@ results = client.search(
 document_id = client.create_document(
     title="新しいAPI仕様",
     content="...",
-    source_type="confluence"
+    source_type="git"
 )
 ```
 
@@ -434,7 +434,7 @@ curl -X POST https://rag-api.example.com/v1/documents \
   -d '{
     "title": "API認証仕様書",
     "content": "...",
-    "source_type": "confluence"
+    "source_type": "git"
   }'
 ```
 

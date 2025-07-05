@@ -49,7 +49,7 @@ app/api/
 {
   "query": "FastAPI 認証システム 実装方法",
   "filters": {
-    "source_types": ["confluence", "jira"],
+    "source_types": ["git", "jira"],
     "languages": ["ja"],
     "date_range": {
       "from": "2024-01-01",
@@ -107,7 +107,7 @@ app/api/
     }
   ],
   "facets": {
-    "source_type": {"confluence": 15, "jira": 10},
+    "source_type": {"git": 15, "jira": 10},
     "language": {"ja": 20, "en": 5},
     "tags": {"authentication": 18, "fastapi": 12, "jwt": 8}
   },

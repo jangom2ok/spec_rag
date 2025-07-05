@@ -33,7 +33,6 @@ graph TB
 
         subgraph "Source Systems"
             GIT[Git Repository]
-            CONFLUENCE[Confluence]
             SWAGGER[Swagger/OpenAPI]
             SHEETS[Google Sheets]
         end
@@ -46,7 +45,6 @@ graph TB
     RAG_API --> METADATA_DB
 
     DOC_COLLECTOR --> GIT
-    DOC_COLLECTOR --> CONFLUENCE
     DOC_COLLECTOR --> SWAGGER
     DOC_COLLECTOR --> SHEETS
 

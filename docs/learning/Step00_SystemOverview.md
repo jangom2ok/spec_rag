@@ -12,7 +12,7 @@ RAGシステム全体の構造を俯瞰し、各コンポーネントの基本�
 
 ### 🎯 システムの目的
 
-- 複数のソースシステム（Git、Confluence、Swagger等）から情報を収集
+- 複数のソースシステム（Git、Swagger等）から情報を収集
 - BGE-M3モデルを使用した高精度なハイブリッド検索の提供
 - 外部システムからのAPI呼び出しによる検索機能の統合
 
@@ -92,7 +92,6 @@ graph TB
 
         subgraph "外部ソース"
             GIT[Git Repository]
-            CONFLUENCE[Confluence]
             SWAGGER[Swagger API]
         end
     end
@@ -106,7 +105,6 @@ graph TB
     SEARCH --> POSTGRES
 
     COLLECTOR --> GIT
-    COLLECTOR --> CONFLUENCE
     COLLECTOR --> SWAGGER
     COLLECTOR --> EMBED
     COLLECTOR --> POSTGRES

@@ -26,7 +26,7 @@ RAG.mdで述べられているように、「ドキュメント粒度、1つの1
 ```sql
 CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    source_type VARCHAR(50) NOT NULL, -- 'git', 'confluence', 'swagger', 'sheets'
+    source_type VARCHAR(50) NOT NULL, -- 'git', 'swagger', 'sheets'
     source_id VARCHAR(255) NOT NULL, -- 元システムでの識別子
     title TEXT NOT NULL,
     content TEXT NOT NULL,
@@ -224,7 +224,7 @@ sparse_collection_schema = {
   - Term: データモデル定義
 ```
 
-### 2. 設計書・仕様書 (Markdown/Confluence)
+### 2. 設計書・仕様書 (Markdown)
 
 ```yaml
 処理方針:
@@ -370,7 +370,6 @@ ON documents USING GIN(to_tsvector('japanese', title));
 # ソースタイプ別パーティション
 PARTITIONS = [
     "git_documents",
-    "confluence_documents",
     "swagger_documents",
     "sheets_documents"
 ]
