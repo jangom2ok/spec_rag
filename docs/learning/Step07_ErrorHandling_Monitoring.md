@@ -16,7 +16,7 @@
 監視・エラーハンドリング システム
 ├── エラーハンドリング
 │   ├── 例外分類         # ビジネス例外・システム例外
-│   ├── 構造化レスポンス # 統一エラーフォーマット  
+│   ├── 構造化レスポンス # 統一エラーフォーマット
 │   ├── 回復処理         # リトライ・フォールバック
 │   └── エラー追跡       # スタックトレース・コンテキスト
 ├── ログ管理
@@ -49,6 +49,7 @@
 本システムでは、エラーを体系的に管理するため、階層化されたカスタム例外クラスを実装しています。
 
 **エラーカテゴリの分類**:
+
 - **VALIDATION**: 入力値検証エラー（HTTPステータス400）
 - **AUTHENTICATION**: 認証失敗（HTTPステータス401）
 - **AUTHORIZATION**: 認可失敗（HTTPステータス403）
@@ -58,6 +59,7 @@
 - **RESOURCE_ERROR**: リソース枯渇（HTTPステータス507）
 
 **エラー重要度の定義**:
+
 - **LOW**: 通常の業務フローで発生する軽微なエラー
 - **MEDIUM**: 注意が必要だが、システム全体には影響しない
 - **HIGH**: 重要な機能に影響があり、早急な対応が必要
@@ -89,15 +91,18 @@
 #### エラー種別ごとの処理
 
 **カスタム例外の処理**:
+
 - ビジネスロジック例外は詳細情報を含めてクライアントに返却
 - システム例外は内部詳細を隠蔽し、一般的なメッセージのみ返却
 
 **バリデーションエラーの処理**:
+
 - FastAPIのRequestValidationErrorをキャッチ
 - フィールドごとの詳細なエラー情報を構造化して返却
 - HTTPステータス422（Unprocessable Entity）を使用
 
 **予期しない例外の処理**:
+
 - スタックトレースを含む詳細ログを記録
 - 緊急アラートを発報
 - クライアントには最小限の情報のみ返却（セキュリティ考慮）
@@ -143,6 +148,7 @@
 3. **HALF_OPEN（半開）**: 回復試行状態、限定的なリクエストで回復を確認
 
 **設定パラメータ**:
+
 - **失敗閾値**: 5回連続失敗でサーキットを開く
 - **回復タイムアウト**: 60秒後に回復試行
 - **対象例外**: 外部サービスエラーのみ対象
@@ -150,6 +156,7 @@
 #### 適用箇所
 
 主に以下のサービスで使用：
+
 - Milvusベクターデータベースへの接続
 - 埋め込みモデルAPIの呼び出し
 - 外部認証サービスとの通信
@@ -160,153 +167,88 @@
 
 ### 1. 構造化ログ設定
 
-```python
-import logging
-import json
-import sys
-from datetime import datetime
-from typing import Any, Dict
-from pythonjsonlogger import jsonlogger
+**実装ファイル**: `../../app/services/logging_analysis.py`
 
+#### ログ管理システムの設計
+
+本システムでは、構造化ログを使用してシステムの動作を詳細に記録・分析します。
+
+```python
+# 構造化ログの基本フォーマット
+{
+    "timestamp": "2024-01-01T00:00:00Z",
+    "level": "INFO",
+    "service": "rag-system",
+    "component": "search_engine",
+    "message": "Search query processed",
+    "request_id": "unique-request-id",
+    "user_id": "user-123",
+    "metadata": {
+        "query": "example search",
+        "results_count": 10,
+        "processing_time_ms": 150
+    }
+}
+```
+
+#### ログレベルの使い分け
+
+```python
+# ログレベルの定義と使用基準
+LOG_LEVELS = {
+    "DEBUG": "開発時の詳細情報、本番では無効化",
+    "INFO": "正常な動作の記録、監査ログ",
+    "WARNING": "異常ではないが注意が必要な事象",
+    "ERROR": "エラーが発生したが処理は継続可能",
+    "CRITICAL": "システム停止につながる重大なエラー"
+}
+```
+
+#### ログ分析機能の実装
+
+`logging_analysis.py`では以下の機能を提供：
+
+1. **パターン検出**: エラーパターンの自動検出
+2. **統計分析**: ログからのメトリクス生成
+3. **異常検知**: 通常と異なるログパターンの検出
+4. **相関分析**: 複数のログイベントの関連性分析
+
+#### ログ管理の設計哲学（構造化ログの思想）
+
+**日本語解説**:
+```
+構造化ログの設計原則：
+
+1. 機械可読性（Machine Readability）
+   - JSON形式による構造化データ
+   - 自動解析・集計が容易
+   - ログ分析ツールとの統合
+
+2. コンテキストの保持（Context Preservation）
+   - request_idによるトランザクション追跡
+   - ユーザー情報、操作内容の記録
+   - エラー発生時の状況再現が可能
+
+3. セキュリティとプライバシー（Security & Privacy）
+   - 機密情報の自動マスキング
+   - PII（個人識別情報）の適切な処理
+   - 監査要件への準拠
+
+4. パフォーマンス考慮（Performance Consideration）
+   - 非同期ログ出力
+   - バッファリングによる効率化
+   - ログレベルによる出力制御
+```
+
+```python
+# 構造化ログの実装例
 class StructuredLogger:
     """構造化ログ管理"""
     
-    def __init__(self, name: str, level: str = "INFO"):
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(getattr(logging, level.upper()))
-        
-        # 既存ハンドラーをクリア
-        self.logger.handlers.clear()
-        
-        # JSONフォーマッターの設定
-        json_formatter = jsonlogger.JsonFormatter(
-            fmt='%(timestamp)s %(level)s %(name)s %(message)s %(pathname)s %(lineno)d',
-            datefmt='%Y-%m-%dT%H:%M:%S'
-        )
-        
-        # コンソールハンドラー
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(json_formatter)
-        self.logger.addHandler(console_handler)
-        
-        # ファイルハンドラー（本番環境）
-        if level.upper() in ["ERROR", "CRITICAL"]:
-            error_handler = logging.FileHandler("logs/error.log")
-            error_handler.setLevel(logging.ERROR)
-            error_handler.setFormatter(json_formatter)
-            self.logger.addHandler(error_handler)
-    
-    def debug(self, message: str, **extra):
-        """デバッグログ"""
-        self._log(logging.DEBUG, message, **extra)
-    
-    def info(self, message: str, **extra):
-        """情報ログ"""
-        self._log(logging.INFO, message, **extra)
-    
-    def warning(self, message: str, **extra):
-        """警告ログ"""
-        self._log(logging.WARNING, message, **extra)
-    
-    def error(self, message: str, **extra):
-        """エラーログ"""
-        self._log(logging.ERROR, message, **extra)
-    
-    def critical(self, message: str, **extra):
-        """クリティカルログ"""
-        self._log(logging.CRITICAL, message, **extra)
-    
-    def _log(self, level: int, message: str, **extra):
-        """内部ログ出力"""
-        
-        # タイムスタンプ追加
-        extra['timestamp'] = datetime.utcnow().isoformat()
-        
-        # ログレベル名追加
-        extra['level'] = logging.getLevelName(level)
-        
-        # サービス情報追加
-        extra['service'] = 'rag-system'
-        extra['version'] = '1.0.0'
-        
-        self.logger.log(level, message, extra=extra)
-
-# カスタムログフィルター
-class SensitiveDataFilter(logging.Filter):
-    """機密データフィルター"""
-    
-    def __init__(self):
-        super().__init__()
-        self.sensitive_patterns = [
-            r'password["\']?\s*[:=]\s*["\']?([^"\']+)',
-            r'token["\']?\s*[:=]\s*["\']?([^"\']+)',
-            r'api_key["\']?\s*[:=]\s*["\']?([^"\']+)',
-            r'secret["\']?\s*[:=]\s*["\']?([^"\']+)'
-        ]
-    
-    def filter(self, record):
-        """ログレコードの機密データをマスク"""
-        
-        if hasattr(record, 'msg'):
-            for pattern in self.sensitive_patterns:
-                record.msg = re.sub(
-                    pattern, 
-                    r'\1***REDACTED***', 
-                    str(record.msg),
-                    flags=re.IGNORECASE
-                )
-        
-        return True
-
-# リクエストログミドルウェア
-class RequestLoggingMiddleware:
-    """リクエストログミドルウェア"""
-    
-    def __init__(self, app, logger: StructuredLogger):
-        self.app = app
-        self.logger = logger
-    
-    async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            request = Request(scope, receive)
-            
-            # リクエスト開始ログ
-            start_time = time.time()
-            request_id = str(uuid.uuid4())
-            
-            self.logger.info(
-                "Request started",
-                request_id=request_id,
-                method=request.method,
-                path=str(request.url.path),
-                query_params=str(request.query_params),
-                user_agent=request.headers.get("User-Agent"),
-                ip_address=request.client.host,
-                content_length=request.headers.get("Content-Length")
-            )
-            
-            # レスポンス情報を記録するためのラッパー
-            async def send_wrapper(message):
-                if message["type"] == "http.response.start":
-                    status_code = message["status"]
-                    processing_time = time.time() - start_time
-                    
-                    # レスポンス完了ログ
-                    log_level = "error" if status_code >= 400 else "info"
-                    getattr(self.logger, log_level)(
-                        "Request completed",
-                        request_id=request_id,
-                        status_code=status_code,
-                        processing_time_ms=round(processing_time * 1000, 2),
-                        method=request.method,
-                        path=str(request.url.path)
-                    )
-                
-                await send(message)
-            
-            await self.app(scope, receive, send_wrapper)
-        else:
-            await self.app(scope, receive, send)
+    # JSONフォーマッターによる構造化ログ出力
+    # タイムスタンプ、ログレベル、サービス情報を自動付与
+    # 機密データの自動マスキング機能
+    # ファイルハンドラーによるエラーログの永続化
 ```
 
 ### 2. セキュリティ監査ログ
@@ -314,10 +256,10 @@ class RequestLoggingMiddleware:
 ```python
 class SecurityAuditLogger:
     """セキュリティ監査ログ"""
-    
+
     def __init__(self, logger: StructuredLogger):
         self.logger = logger
-    
+
     async def log_authentication_attempt(
         self,
         email: str,
@@ -327,7 +269,7 @@ class SecurityAuditLogger:
         failure_reason: str = None
     ):
         """認証試行ログ"""
-        
+
         self.logger.info(
             "Authentication attempt",
             event_type="authentication",
@@ -338,7 +280,7 @@ class SecurityAuditLogger:
             failure_reason=failure_reason,
             security_event=True
         )
-    
+
     async def log_authorization_failure(
         self,
         user_id: str,
@@ -347,7 +289,7 @@ class SecurityAuditLogger:
         ip_address: str
     ):
         """認可失敗ログ"""
-        
+
         self.logger.warning(
             "Authorization failed",
             event_type="authorization_failure",
@@ -357,7 +299,7 @@ class SecurityAuditLogger:
             ip_address=ip_address,
             security_event=True
         )
-    
+
     async def log_suspicious_activity(
         self,
         user_id: str,
@@ -367,9 +309,9 @@ class SecurityAuditLogger:
         ip_address: str
     ):
         """疑わしい活動ログ"""
-        
+
         log_level = "critical" if risk_score > 0.8 else "warning"
-        
+
         getattr(self.logger, log_level)(
             "Suspicious activity detected",
             event_type="suspicious_activity",
@@ -380,7 +322,7 @@ class SecurityAuditLogger:
             details=details,
             security_event=True
         )
-    
+
     async def log_data_access(
         self,
         user_id: str,
@@ -390,7 +332,7 @@ class SecurityAuditLogger:
         sensitive_data: bool = False
     ):
         """データアクセスログ"""
-        
+
         self.logger.info(
             "Data access",
             event_type="data_access",
@@ -401,7 +343,7 @@ class SecurityAuditLogger:
             sensitive_data=sensitive_data,
             audit_event=True
         )
-    
+
     async def log_system_change(
         self,
         user_id: str,
@@ -411,7 +353,7 @@ class SecurityAuditLogger:
         resource: str
     ):
         """システム変更ログ"""
-        
+
         self.logger.info(
             "System configuration changed",
             event_type="system_change",
@@ -461,16 +403,19 @@ Prometheusフォーマットに準拠したメトリクスを収集し、シス�
 #### 主要なメトリクス
 
 **パフォーマンス関連**:
+
 - `http_request_duration_seconds`: APIレスポンスタイム
 - `search_duration_seconds`: 検索処理時間
 - `embedding_duration_seconds`: ベクトル生成時間
 
 **可用性関連**:
+
 - `http_requests_total`: リクエスト総数（ステータスコード別）
 - `errors_total`: エラー発生数（カテゴリ・重要度別）
 - `active_connections`: 同時接続数
 
 **リソース使用率**:
+
 - `cache_hit_ratio`: キャッシュ効率
 - `queue_size`: 処理待ちタスク数
 - `memory_usage_bytes`: メモリ使用量
@@ -525,17 +470,20 @@ Prometheusフォーマットに準拠したメトリクスを収集し、シス�
 #### メトリクス計算の実装
 
 **定期実行タスク**:
+
 - 1時間ごと：基本的な品質メトリクス更新
 - 日次：詳細な分析レポート生成
 - 週次：トレンド分析と異常検知
 
 **データソース**:
+
 - 検索ログ：ユーザーの検索クエリと結果
 - クリックログ：ユーザーが選択した結果
 - フィードバック：明示的な評価データ
 - システムログ：処理時間やエラー情報
 
 **活用方法**:
+
 1. ダッシュボードでのリアルタイム監視
 2. 検索アルゴリズムの改善指標
 3. A/Bテストでの効果測定
@@ -555,7 +503,7 @@ Prometheusフォーマットに準拠したメトリクスを収集し、シス�
 
 **アラートの重要度**:
 
-1. **INFO（情報）**: 
+1. **INFO（情報）**:
    - 正常な範囲内での注目すべき事象
    - 例：デプロイ完了、定期メンテナンス開始
    - 通知：ログ記録のみ
@@ -573,12 +521,14 @@ Prometheusフォーマットに準拠したメトリクスを収集し、シス�
 #### アラートルールの構成要素
 
 **基本パラメータ**:
+
 - **メトリクス名**: 監視対象の指標
 - **条件式**: 閾値との比較演算子（>, <, >=, <=, ==）
 - **閾値**: アラート発火の境界値
 - **継続時間**: 条件が継続すべき時間（誤検知防止）
 
 **高度な設定**:
+
 - **ラベルフィルタ**: 特定の条件下でのみ評価
 - **時間帯制限**: 営業時間内のみ通知など
 - **エスカレーション**: 未対応時の上位者への通知
@@ -600,97 +550,12 @@ Prometheusフォーマットに準拠したメトリクスを収集し、シス�
 4. **ビジネス指標**:
    - 検索精度 < 0.7が1時間継続 → WARNING
    - 検索可能文書率 < 90%が30分継続 → WARNING
-    
-    async def _handle_alert_resolve(self, alert_key: str, current_time: float):
-        """アラート解決処理"""
-        
-        if alert_key in self.active_alerts:
-            alert_info = self.active_alerts[alert_key]
-            
-            # 解決通知
-            if alert_info['notified']:
-                await self._send_resolution_notification(alert_info, current_time)
-            
-            # アラート履歴に追加
-            self.alert_history.append({
-                'rule_name': alert_info['rule'].name,
-                'start_time': alert_info['start_time'],
-                'end_time': current_time,
-                'duration': current_time - alert_info['start_time'],
-                'peak_value': alert_info['current_value']
-            })
-            
-            # アクティブアラートから削除
-            del self.active_alerts[alert_key]
-    
-    async def _send_alert_notification(
-        self,
-        rule: AlertRule,
-        current_value: float,
-        duration: float
-    ):
-        """アラート通知送信"""
-        
-        message = {
-            "title": f"🚨 {rule.severity.value.upper()}: {rule.name}",
-            "description": rule.description,
-            "current_value": current_value,
-            "threshold": rule.threshold,
-            "duration": duration,
-            "severity": rule.severity.value,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-        await self.notification_service.send_alert(message)
-        
-        # 通知済みフラグ設定
-        alert_key = f"{rule.name}_{rule.metric_name}"
-        self.active_alerts[alert_key]['notified'] = True
 
-# システム標準アラートルール
-SYSTEM_ALERT_RULES = [
-    AlertRule(
-        name="High Error Rate",
-        description="Error rate exceeds 5%",
-        metric_name="error_rate",
-        condition=">",
-        threshold=0.05,
-        duration=300,  # 5分
-        severity=AlertSeverity.WARNING
-    ),
-    AlertRule(
-        name="Search Response Time",
-        description="Average search response time exceeds 2 seconds",
-        metric_name="search_avg_duration",
-        condition=">",
-        threshold=2.0,
-        duration=600,  # 10分
-        severity=AlertSeverity.WARNING
-    ),
-    AlertRule(
-        name="Memory Usage Critical",
-        description="Memory usage exceeds 90%",
-        metric_name="memory_usage_ratio",
-        condition=">",
-        threshold=0.90,
-        duration=60,  # 1分
-        severity=AlertSeverity.CRITICAL
-    ),
-    AlertRule(
-        name="Embedding Service Down",
-        description="Embedding service unavailable",
-        metric_name="embedding_service_availability",
-        condition="<",
-        threshold=0.5,
-        duration=120,  # 2分
-        severity=AlertSeverity.CRITICAL
-    )
-]
-```
+
 
 ### 2. 通知サービス
 
-**実装ファイル**: `../../app/services/notification_service.py`
+**注**: 専用の通知サービスモジュール（`app/services/notification_service.py`）は未実装ですが、アラートサービスに統合されています。
 
 #### 通知システムの設計
 
@@ -721,6 +586,7 @@ SYSTEM_ALERT_RULES = [
 #### 通知ペイロードの設計
 
 **共通情報**:
+
 - アラートタイトルと説明
 - 現在値と闾値
 - 継続時間
@@ -728,11 +594,13 @@ SYSTEM_ALERT_RULES = [
 - 影響範囲（サービス名、エンドポイント等）
 
 **Slack固有情報**:
+
 - Attachment形式での構造化表示
 - 色分けによる重要度表示
 - グラフやダッシュボードへのリンク
 
 **Email固有情報**:
+
 - HTML形式での読みやすいレイアウト
 - 対応手順へのリンク
 - 関連ログの添付
@@ -741,7 +609,7 @@ SYSTEM_ALERT_RULES = [
 
 **アラート疲れ防止のための機能**:
 
-1. **クールダウン期間**: 
+1. **クールダウン期間**:
    - 同じアラートの連続通知を抑制
    - デフォルト: 30分間
 
@@ -757,6 +625,39 @@ SYSTEM_ALERT_RULES = [
    - 複数のメトリクスから同じ問題を検出した場合
    - 最も重要度の高いアラートのみ通知
 
+#### 通知管理の設計哲学
+
+**日本語解説**:
+```
+通知システムの設計原則：
+
+1. 適切な通知先の選択（Right Channel Selection）
+   - 緊急度に応じたチャネル選択
+   - 受信者の勤務時間考慮
+   - エスカレーションパスの明確化
+
+2. 情報の構造化（Structured Information）
+   - 一目で状況が分かる表示
+   - 必要な情報の網羅
+   - アクション可能な内容
+
+3. ノイズ削減（Noise Reduction）
+   - インテリジェントな集約
+   - 重複通知の排除
+   - コンテキストに基づくフィルタリング
+
+4. 確実な到達性（Reliable Delivery）
+   - 複数チャネルでの冗長性
+   - 配信確認とリトライ
+   - フォールバック機構
+
+通知抑制のベストプラクティス：
+- 同一アラートは30分のクールダウン
+- 5分以内の類似アラートはバッチ化
+- 深夜のINFOレベル通知は抑制
+- ビジネスアワー外は管理者のみ通知
+```
+
 ---
 
 ## ❗ よくある落とし穴と対策
@@ -771,12 +672,12 @@ logger.info(f"User login: {request_data}")  # パスワード含む
 def sanitize_log_data(data: dict) -> dict:
     """ログデータの機密情報除去"""
     sensitive_keys = ['password', 'token', 'api_key', 'secret']
-    
+
     sanitized = data.copy()
     for key in sensitive_keys:
         if key in sanitized:
             sanitized[key] = '***REDACTED***'
-    
+
     return sanitized
 
 logger.info(f"User login: {sanitize_log_data(request_data)}")
@@ -813,6 +714,32 @@ AlertRule(
     duration=300,    # 5分継続
     cooldown=1800    # 30分のクールダウン
 )
+```
+
+### 4. エラーコンテキストの欠如
+
+```python
+# ❌ 問題: エラー時の情報不足
+try:
+    result = process_data(data)
+except Exception as e:
+    logger.error(f"Processing failed: {e}")
+
+# ✅ 対策: 豊富なコンテキスト情報
+try:
+    result = process_data(data)
+except Exception as e:
+    logger.error(
+        "Data processing failed",
+        exc_info=True,  # スタックトレース含む
+        extra={
+            "data_id": data.id,
+            "data_size": len(data),
+            "user_id": current_user.id,
+            "operation": "process_data",
+            "error_type": type(e).__name__
+        }
+    )
 ```
 
 ---

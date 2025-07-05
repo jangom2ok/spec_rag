@@ -274,6 +274,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 **Docker Composeサービス**:
+
 - PostgreSQL（ポート5432）
 - Redis（ポート6379）
 - Milvus（ポート19530）
