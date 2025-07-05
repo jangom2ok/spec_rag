@@ -1,6 +1,7 @@
 # Step05: データモデル設計とスキーマ詳細
 
 ## 🎯 この章の目標
+
 PostgreSQL・Milvusでのデータモデル設計、スキーマ詳細、インデックス戦略、データ整合性の仕組みを理解する
 
 ---
@@ -11,7 +12,7 @@ RAGシステムでは、構造化データ（メタデータ）と非構造化�
 
 ### 🏗️ データベース構成
 
-```
+```text
 データ保存戦略
 ├── PostgreSQL        # 構造化データ・メタデータ
 │   ├── documents     # ドキュメント基本情報
@@ -35,6 +36,7 @@ RAGシステムでは、構造化データ（メタデータ）と非構造化�
 ### 1. ドキュメント管理テーブル
 
 #### `documents` テーブル
+
 ```sql
 CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -91,6 +93,7 @@ CREATE INDEX idx_documents_fulltext ON documents
 ```
 
 #### `document_chunks` テーブル
+
 ```sql
 CREATE TABLE document_chunks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -151,6 +154,7 @@ CREATE INDEX idx_chunks_fulltext ON document_chunks
 ### 2. ソース管理テーブル
 
 #### `sources` テーブル
+
 ```sql
 CREATE TABLE sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -195,6 +199,7 @@ CREATE UNIQUE INDEX idx_sources_name_type ON sources (source_type, name);
 ### 3. 認証・ユーザー管理
 
 #### `users` テーブル
+
 ```sql
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -237,6 +242,7 @@ CREATE INDEX idx_users_permissions ON users USING GIN (permissions);
 ```
 
 #### `api_keys` テーブル
+
 ```sql
 CREATE TABLE api_keys (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -858,21 +864,25 @@ class DatabaseManager:
 ## 🎯 理解確認のための設問
 
 ### スキーマ設計理解
+
 1. `documents`テーブルで`processing_status`と`indexing_status`を分けている理由を説明してください
 2. `document_chunks`テーブルの`parent_chunk_id`フィールドの用途と階層構造の表現方法を説明してください
 3. MilvusでDense、Sparse、Multi-Vectorを別コレクションに分けるメリットを3つ挙げてください
 
 ### データ整合性理解
+
 1. PostgreSQL-Milvus間のデータ整合性を保つために実装された仕組みを説明してください
 2. 分散トランザクションでSagaパターンを使用する理由と補償処理の重要性を説明してください
 3. `cleanup_document_vectors()`トリガー関数が必要な理由を説明してください
 
 ### パフォーマンス理解
+
 1. 大量データ処理でパーティショニングが有効な理由と、適切な分割戦略を説明してください
 2. Milvusインデックスパラメータ（M、efConstruction）の調整指針を説明してください
 3. 部分インデックスを使用することの利点と適用場面を説明してください
 
 ### 運用理解
+
 1. データ整合性チェッカーで検出すべき4種類の不整合とその影響を説明してください
 2. ベクター次元不一致が発生する原因と事前防止策を説明してください
 3. コネクションプール設定で考慮すべきパラメータを5つ挙げてください

@@ -1,6 +1,7 @@
 # Step02: API層の設計と実装
 
 ## 🎯 この章の目標
+
 FastAPI を基盤とした API 層の設計思想、エンドポイント実装、認証・認可システムを理解する
 
 ---
@@ -11,10 +12,10 @@ API層はシステムの入口として、外部システムからのリクエ�
 
 ### 🏗️ API層の構造
 
-```
+```text
 app/api/
 ├── __init__.py
-├── auth.py          # 認証・認可エンドポイント  
+├── auth.py          # 認証・認可エンドポイント
 ├── documents.py     # ドキュメント管理API
 ├── health.py        # ヘルスチェックAPI
 ├── search.py        # 検索API (メイン機能)
@@ -28,6 +29,7 @@ app/api/
 ### 1. 検索API (`app/api/search.py`)
 
 #### 🎯 責務
+
 - ハイブリッド検索の実行
 - セマンティック/キーワード検索の提供
 - 検索候補・設定情報の提供
@@ -45,6 +47,7 @@ app/api/
 #### 🔄 リクエスト/レスポンス設計
 
 **ハイブリッド検索リクエスト例:**
+
 ```json
 {
   "query": "FastAPI 認証システム 実装方法",
@@ -74,6 +77,7 @@ app/api/
 ```
 
 **レスポンス例:**
+
 ```json
 {
   "query": "FastAPI 認証システム 実装方法",
@@ -140,12 +144,13 @@ async def search_semantic(
 
 ### 2. ドキュメント管理API (`app/api/documents.py`)
 
-#### 🎯 責務
+#### 🎯 ドキュメント管理APIの責務
+
 - ドキュメントのCRUD操作
 - バッチ処理・同期処理の制御
 - 処理状況の監視
 
-#### 📊 エンドポイント一覧
+#### 📊 ドキュメント管理APIのエンドポイント一覧
 
 | エンドポイント | メソッド | 機能 | 権限 |
 |---------------|----------|------|------|
@@ -178,12 +183,13 @@ async def search_semantic(
 
 ### 3. システム管理API (`app/api/system.py`)
 
-#### 🎯 責務
+#### 🎯 システム管理APIの責務
+
 - システム監視・メトリクス取得
 - 再インデックス処理
 - 管理者向け操作
 
-#### 📊 エンドポイント一覧
+#### 📊 システム管理APIのエンドポイント一覧
 
 | エンドポイント | メソッド | 機能 | 権限 |
 |---------------|----------|------|------|
@@ -236,12 +242,13 @@ async def search_semantic(
 
 ### 4. 認証API (`app/api/auth.py`)
 
-#### 🎯 責務
+#### 🎯 認証APIの責務
+
 - JWT認証・API Key認証
 - ユーザー管理・ロール管理
 - トークン管理（発行・失効）
 
-#### 📊 エンドポイント一覧
+#### 📊 認証APIのエンドポイント一覧
 
 | エンドポイント | メソッド | 機能 | 認証 |
 |---------------|----------|------|------|
@@ -258,6 +265,7 @@ async def search_semantic(
 ### 認証方式
 
 #### 1. JWT Token認証
+
 ```python
 async def get_current_user_jwt(
     authorization: str | None = Header(None)
@@ -265,23 +273,24 @@ async def get_current_user_jwt(
     """JWT認証"""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Bearer token required")
-    
+
     token = authorization.split(" ")[1]
-    
+
     if is_token_blacklisted(token):
         raise HTTPException(status_code=401, detail="Token has been revoked")
-    
+
     payload = verify_token(token)
     email = payload.get("sub")
-    
+
     user = users_storage.get(email)
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    
+
     return {**user, "email": email, "auth_type": "jwt"}
 ```
 
 #### 2. API Key認証
+
 ```python
 async def get_current_user_api_key(
     x_api_key: str | None = Header(None)
@@ -289,11 +298,11 @@ async def get_current_user_api_key(
     """API Key認証"""
     if not x_api_key:
         raise HTTPException(status_code=401, detail="API key required")
-    
+
     api_key_info = validate_api_key(x_api_key)
     if not api_key_info:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     return {
         "user_id": api_key_info["user_id"],
         "permissions": api_key_info["permissions"],
@@ -302,9 +311,10 @@ async def get_current_user_api_key(
 ```
 
 #### 3. 統合認証（フォールバック）
+
 ```python
 async def get_current_user_or_api_key(
-    authorization: str | None = Header(None), 
+    authorization: str | None = Header(None),
     x_api_key: str | None = Header(None)
 ) -> dict[str, Any]:
     """JWT認証またはAPI Key認証を試行"""
@@ -317,18 +327,19 @@ async def get_current_user_or_api_key(
                 "permissions": api_key_info["permissions"],
                 "auth_type": "api_key",
             }
-    
+
     # JWT認証を試行
     if authorization and authorization.startswith("Bearer "):
         # JWT処理...
         pass
-    
+
     raise HTTPException(status_code=401, detail="Authentication required")
 ```
 
 ### 権限管理（RBAC）
 
 #### 権限レベル
+
 ```python
 class Permission(str, Enum):
     READ = "read"      # 検索・参照
@@ -345,13 +356,14 @@ ROLES = {
 ```
 
 #### 権限チェック実装
+
 ```python
 def check_permission(user: dict, required_permission: str) -> None:
     """権限チェック"""
     user_permissions = user.get("permissions", [])
     if required_permission not in user_permissions:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail=f"{required_permission} permission required"
         )
 
@@ -416,7 +428,7 @@ async def validation_exception_handler(
 async def http_exception_handler(request: Request, exc: HTTPException):
     error_code = "HTTP_ERROR"
     error_type = "http_error"
-    
+
     # 認証エラーの場合
     if exc.status_code == 401:
         error_code = "AUTHENTICATION_ERROR"
@@ -424,7 +436,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     elif exc.status_code == 403:
         error_code = "AUTHORIZATION_ERROR"
         error_type = "authorization"
-    
+
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -474,7 +486,7 @@ from fastapi_cache.decorator import cache
 @router.get("/search/suggestions")
 @cache(expire=300)  # 5分間キャッシュ
 async def get_search_suggestions(
-    q: str, 
+    q: str,
     limit: int = 5,
     current_user: dict = Depends(get_current_user_or_api_key),
 ):
@@ -497,13 +509,13 @@ async def process_documents(
     """非同期でバックグラウンド処理"""
     # 即座にレスポンス返却
     task_id = str(uuid.uuid4())
-    
+
     # バックグラウンドタスク追加
     background_tasks.add_task(
         process_documents_async,
         task_id, config
     )
-    
+
     return {
         "success": True,
         "task_id": task_id,
@@ -516,6 +528,7 @@ async def process_documents(
 ## ❗ よくある落とし穴と対策
 
 ### 1. 認証バイパス
+
 **問題**: テストモードでの認証スキップが本番環境に影響
 
 ```python
@@ -529,6 +542,7 @@ if os.getenv("TESTING") == "true":
 ```
 
 ### 2. パスワードログ出力
+
 **問題**: リクエストログにパスワードが記録される
 
 ```python
@@ -542,6 +556,7 @@ logger.info(f"Login request: {safe_data}")
 ```
 
 ### 3. レート制限不備
+
 **問題**: API Keyベースのレート制限の実装不備
 
 ```python
@@ -569,21 +584,25 @@ async def search(request: Request, search_request: SearchRequest):
 ## 🎯 理解確認のための設問
 
 ### 基本理解
+
 1. このシステムで使用されている2種類の認証方式の特徴と用途を説明してください
 2. ハイブリッド検索、セマンティック検索、キーワード検索の違いを説明してください
 3. 構造化エラーレスポンスに含まれる4つの必須フィールドを挙げてください
 
 ### API設計理解
+
 1. `/v1/search/`エンドポイントの`filters`パラメータで指定可能な4種類のフィルター条件を説明してください
 2. `search_options`の`highlight`機能が有効な場合のレスポンス形式の変化を説明してください
 3. システム管理APIで管理者権限が必要な理由を3つ挙げてください
 
 ### 実装理解
+
 1. 依存性注入を使用することで解決されるパフォーマンス問題を説明してください
 2. バックグラウンド処理を使用する場面とその利点を2つ挙げてください
 3. `get_current_user_or_api_key`でAPI Key認証を先に試行する理由を説明してください
 
 ### セキュリティ理解
+
 1. JWT Token認証でトークンブラックリストをチェックする目的を説明してください
 2. RBAC（Role-Based Access Control）の実装における権限チェックの仕組みを説明してください
 3. APIキーベースのレート制限を実装する際の考慮点を2つ挙げてください
