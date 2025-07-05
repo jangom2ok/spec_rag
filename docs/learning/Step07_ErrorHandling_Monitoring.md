@@ -42,522 +42,117 @@
 
 ### 1. 例外分類と階層化
 
-```python
-from abc import ABC, abstractmethod
-from typing import Any, Optional
-from enum import Enum
+**実装ファイル**: `../../app/core/exceptions.py`
 
-class ErrorCategory(str, Enum):
-    """エラーカテゴリ"""
-    VALIDATION = "validation"
-    AUTHENTICATION = "authentication" 
-    AUTHORIZATION = "authorization"
-    BUSINESS_LOGIC = "business_logic"
-    EXTERNAL_SERVICE = "external_service"
-    SYSTEM_ERROR = "system_error"
-    RESOURCE_ERROR = "resource_error"
+#### カスタム例外の設計思想
 
-class ErrorSeverity(str, Enum):
-    """エラー重要度"""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+本システムでは、エラーを体系的に管理するため、階層化されたカスタム例外クラスを実装しています。
 
-class BaseCustomException(Exception, ABC):
-    """カスタム例外の基底クラス"""
-    
-    def __init__(
-        self,
-        message: str,
-        error_code: str,
-        category: ErrorCategory,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        details: Optional[dict] = None,
-        cause: Optional[Exception] = None
-    ):
-        super().__init__(message)
-        self.message = message
-        self.error_code = error_code
-        self.category = category
-        self.severity = severity
-        self.details = details or {}
-        self.cause = cause
-    
-    @abstractmethod
-    def get_http_status_code(self) -> int:
-        """HTTPステータスコード取得"""
-        pass
-    
-    def to_dict(self) -> dict[str, Any]:
-        """辞書形式に変換"""
-        return {
-            "error": {
-                "code": self.error_code,
-                "message": self.message,
-                "category": self.category.value,
-                "severity": self.severity.value,
-                "details": self.details
-            }
-        }
+**エラーカテゴリの分類**:
+- **VALIDATION**: 入力値検証エラー（HTTPステータス400）
+- **AUTHENTICATION**: 認証失敗（HTTPステータス401）
+- **AUTHORIZATION**: 認可失敗（HTTPステータス403）
+- **BUSINESS_LOGIC**: ビジネスルール違反
+- **EXTERNAL_SERVICE**: 外部サービス障害（HTTPステータス503）
+- **SYSTEM_ERROR**: システム内部エラー
+- **RESOURCE_ERROR**: リソース枯渇（HTTPステータス507）
 
-# ビジネスロジック例外
-class ValidationError(BaseCustomException):
-    def __init__(self, message: str, field: str = None, **kwargs):
-        details = {"field": field} if field else {}
-        details.update(kwargs.get("details", {}))
-        
-        super().__init__(
-            message=message,
-            error_code="VALIDATION_ERROR",
-            category=ErrorCategory.VALIDATION,
-            severity=ErrorSeverity.LOW,
-            details=details,
-            **kwargs
-        )
-    
-    def get_http_status_code(self) -> int:
-        return 400
+**エラー重要度の定義**:
+- **LOW**: 通常の業務フローで発生する軽微なエラー
+- **MEDIUM**: 注意が必要だが、システム全体には影響しない
+- **HIGH**: 重要な機能に影響があり、早急な対応が必要
+- **CRITICAL**: システム全体に影響し、即座の対応が必須
 
-class AuthenticationError(BaseCustomException):
-    def __init__(self, message: str = "Authentication failed", **kwargs):
-        super().__init__(
-            message=message,
-            error_code="AUTHENTICATION_ERROR", 
-            category=ErrorCategory.AUTHENTICATION,
-            severity=ErrorSeverity.MEDIUM,
-            **kwargs
-        )
-    
-    def get_http_status_code(self) -> int:
-        return 401
+#### 例外クラスの特徴
 
-class AuthorizationError(BaseCustomException):
-    def __init__(self, message: str = "Access denied", **kwargs):
-        super().__init__(
-            message=message,
-            error_code="AUTHORIZATION_ERROR",
-            category=ErrorCategory.AUTHORIZATION, 
-            severity=ErrorSeverity.MEDIUM,
-            **kwargs
-        )
-    
-    def get_http_status_code(self) -> int:
-        return 403
-
-# システム例外
-class EmbeddingServiceError(BaseCustomException):
-    def __init__(self, message: str, model_name: str = None, **kwargs):
-        details = {"model_name": model_name} if model_name else {}
-        details.update(kwargs.get("details", {}))
-        
-        super().__init__(
-            message=message,
-            error_code="EMBEDDING_SERVICE_ERROR",
-            category=ErrorCategory.EXTERNAL_SERVICE,
-            severity=ErrorSeverity.HIGH,
-            details=details,
-            **kwargs
-        )
-    
-    def get_http_status_code(self) -> int:
-        return 503
-
-class VectorDatabaseError(BaseCustomException):
-    def __init__(self, message: str, operation: str = None, **kwargs):
-        details = {"operation": operation} if operation else {}
-        details.update(kwargs.get("details", {}))
-        
-        super().__init__(
-            message=message,
-            error_code="VECTOR_DATABASE_ERROR",
-            category=ErrorCategory.EXTERNAL_SERVICE,
-            severity=ErrorSeverity.HIGH,
-            details=details,
-            **kwargs
-        )
-    
-    def get_http_status_code(self) -> int:
-        return 503
-
-class ResourceExhaustedError(BaseCustomException):
-    def __init__(self, message: str, resource_type: str = None, **kwargs):
-        details = {"resource_type": resource_type} if resource_type else {}
-        details.update(kwargs.get("details", {}))
-        
-        super().__init__(
-            message=message,
-            error_code="RESOURCE_EXHAUSTED",
-            category=ErrorCategory.RESOURCE_ERROR,
-            severity=ErrorSeverity.CRITICAL,
-            details=details,
-            **kwargs
-        )
-    
-    def get_http_status_code(self) -> int:
-        return 507
-```
+1. **統一されたエラー形式**: すべての例外は`to_dict()`メソッドで標準化されたJSON形式に変換可能
+2. **詳細情報の保持**: `details`フィールドに文脈固有の情報を格納
+3. **原因追跡**: `cause`フィールドで例外の連鎖を追跡可能
+4. **HTTPステータスの自動マッピング**: 各例外クラスが適切なHTTPステータスコードを返却
 
 ### 2. 統一エラーハンドラー
 
-```python
-import traceback
-import uuid
-from datetime import datetime
-from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
+**実装ファイル**: `../../app/main.py` (エラーハンドラー設定)
 
-class ErrorHandler:
-    """統一エラーハンドラー"""
-    
-    def __init__(self, logger, metrics_collector):
-        self.logger = logger
-        self.metrics = metrics_collector
-    
-    async def handle_custom_exception(
-        self,
-        request: Request,
-        exc: BaseCustomException
-    ) -> JSONResponse:
-        """カスタム例外ハンドリング"""
-        
-        # リクエストID生成
-        request_id = str(uuid.uuid4())
-        
-        # エラーログ記録
-        await self._log_error(
-            exception=exc,
-            request=request,
-            request_id=request_id
-        )
-        
-        # メトリクス記録
-        await self._record_error_metrics(exc, request)
-        
-        # アラート判定
-        await self._check_alert_conditions(exc)
-        
-        # レスポンス生成
-        error_response = {
-            **exc.to_dict(),
-            "timestamp": datetime.utcnow().isoformat(),
-            "request_id": request_id,
-            "path": str(request.url.path)
-        }
-        
-        return JSONResponse(
-            status_code=exc.get_http_status_code(),
-            content=error_response
-        )
-    
-    async def handle_validation_exception(
-        self,
-        request: Request,
-        exc: RequestValidationError
-    ) -> JSONResponse:
-        """バリデーション例外ハンドリング"""
-        
-        request_id = str(uuid.uuid4())
-        
-        # 詳細なバリデーションエラー情報
-        validation_details = []
-        for error in exc.errors():
-            validation_details.append({
-                "field": ".".join(str(x) for x in error["loc"]),
-                "message": error["msg"],
-                "type": error["type"],
-                "input": error.get("input")
-            })
-        
-        error_response = {
-            "error": {
-                "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
-                "category": "validation",
-                "severity": "low",
-                "details": {
-                    "validation_errors": validation_details
-                }
-            },
-            "timestamp": datetime.utcnow().isoformat(),
-            "request_id": request_id,
-            "path": str(request.url.path)
-        }
-        
-        await self._log_validation_error(exc, request, request_id)
-        
-        return JSONResponse(
-            status_code=422,
-            content=error_response
-        )
-    
-    async def handle_http_exception(
-        self,
-        request: Request,
-        exc: HTTPException
-    ) -> JSONResponse:
-        """HTTP例外ハンドリング"""
-        
-        request_id = str(uuid.uuid4())
-        
-        # エラーカテゴリー判定
-        category = self._categorize_http_error(exc.status_code)
-        severity = self._determine_severity(exc.status_code)
-        
-        error_response = {
-            "error": {
-                "code": f"HTTP_{exc.status_code}",
-                "message": str(exc.detail),
-                "category": category,
-                "severity": severity,
-                "details": {}
-            },
-            "timestamp": datetime.utcnow().isoformat(),
-            "request_id": request_id,
-            "path": str(request.url.path)
-        }
-        
-        await self._log_http_error(exc, request, request_id)
-        
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=error_response
-        )
-    
-    async def handle_unexpected_exception(
-        self,
-        request: Request,
-        exc: Exception
-    ) -> JSONResponse:
-        """予期しない例外ハンドリング"""
-        
-        request_id = str(uuid.uuid4())
-        
-        # スタックトレース取得
-        stack_trace = traceback.format_exc()
-        
-        # クリティカルログ記録
-        self.logger.critical(
-            "Unexpected error occurred",
-            extra={
-                "request_id": request_id,
-                "exception_type": type(exc).__name__,
-                "exception_message": str(exc),
-                "stack_trace": stack_trace,
-                "path": str(request.url.path),
-                "method": request.method,
-                "user_agent": request.headers.get("User-Agent"),
-                "ip_address": request.client.host
-            }
-        )
-        
-        # メトリクス記録
-        await self.metrics.increment_counter(
-            "errors_total",
-            labels={
-                "category": "system_error",
-                "severity": "critical",
-                "exception_type": type(exc).__name__
-            }
-        )
-        
-        # 緊急アラート
-        await self._send_critical_alert(exc, request, request_id)
-        
-        # セキュアなエラーレスポンス（内部詳細は隠蔽）
-        error_response = {
-            "error": {
-                "code": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred",
-                "category": "system_error", 
-                "severity": "critical",
-                "details": {}
-            },
-            "timestamp": datetime.utcnow().isoformat(),
-            "request_id": request_id,
-            "path": str(request.url.path)
-        }
-        
-        return JSONResponse(
-            status_code=500,
-            content=error_response
-        )
-```
+#### エラーハンドリングの統一アプローチ
+
+本システムでは、すべてのエラーを一元的に処理し、一貫した形式でクライアントに返却します。
+
+**エラーハンドラーの主要機能**:
+
+1. **リクエストID生成**: すべてのエラーに一意のIDを付与し、ログとの関連付けを容易に
+2. **エラーログ記録**: 構造化ログとして詳細情報を記録
+3. **メトリクス収集**: エラー発生率や種類を監視システムに送信
+4. **アラート判定**: 重要度に応じて通知を発送
+5. **レスポンス生成**: クライアント向けの標準化されたエラーレスポンス
+
+#### エラー種別ごとの処理
+
+**カスタム例外の処理**:
+- ビジネスロジック例外は詳細情報を含めてクライアントに返却
+- システム例外は内部詳細を隠蔽し、一般的なメッセージのみ返却
+
+**バリデーションエラーの処理**:
+- FastAPIのRequestValidationErrorをキャッチ
+- フィールドごとの詳細なエラー情報を構造化して返却
+- HTTPステータス422（Unprocessable Entity）を使用
+
+**予期しない例外の処理**:
+- スタックトレースを含む詳細ログを記録
+- 緊急アラートを発報
+- クライアントには最小限の情報のみ返却（セキュリティ考慮）
+
+#### セキュリティ考慮事項
+
+- 本番環境では内部エラーの詳細を隠蔽
+- SQLインジェクションなどの攻撃痕跡をログに記録
+- 機密情報（パスワード、トークン）はログから除外
 
 ### 3. リトライ・回復処理
 
-```python
-import asyncio
-from typing import Callable, TypeVar, Any
-from functools import wraps
+**実装ファイル**: `../../app/core/retry.py`
 
-T = TypeVar('T')
+#### リトライメカニズム
 
-class RetryConfig:
-    """リトライ設定"""
-    
-    def __init__(
-        self,
-        max_attempts: int = 3,
-        base_delay: float = 1.0,
-        max_delay: float = 60.0,
-        exponential_base: float = 2.0,
-        jitter: bool = True
-    ):
-        self.max_attempts = max_attempts
-        self.base_delay = base_delay
-        self.max_delay = max_delay
-        self.exponential_base = exponential_base
-        self.jitter = jitter
+外部サービスとの通信では、一時的な障害に対してリトライ処理を実装しています。
 
-class CircuitBreakerConfig:
-    """サーキットブレーカー設定"""
-    
-    def __init__(
-        self,
-        failure_threshold: int = 5,
-        recovery_timeout: float = 60.0,
-        expected_exception: type = Exception
-    ):
-        self.failure_threshold = failure_threshold
-        self.recovery_timeout = recovery_timeout
-        self.expected_exception = expected_exception
+**リトライ戦略**:
 
-def retry_with_exponential_backoff(
-    retry_config: RetryConfig,
-    exceptions: tuple[type] = (Exception,)
-):
-    """指数バックオフ付きリトライデコレーター"""
-    
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
-        @wraps(func)
-        async def wrapper(*args, **kwargs) -> T:
-            last_exception = None
-            
-            for attempt in range(retry_config.max_attempts):
-                try:
-                    result = await func(*args, **kwargs)
-                    
-                    # 成功時、前回の失敗をリセット
-                    if attempt > 0:
-                        logger.info(
-                            f"Function {func.__name__} succeeded after {attempt + 1} attempts"
-                        )
-                    
-                    return result
-                    
-                except exceptions as e:
-                    last_exception = e
-                    
-                    # 最後の試行でない場合のみリトライ
-                    if attempt < retry_config.max_attempts - 1:
-                        # 指数バックオフ計算
-                        delay = min(
-                            retry_config.base_delay * (retry_config.exponential_base ** attempt),
-                            retry_config.max_delay
-                        )
-                        
-                        # ジッターの追加
-                        if retry_config.jitter:
-                            delay *= (0.5 + random.random() * 0.5)
-                        
-                        logger.warning(
-                            f"Attempt {attempt + 1} failed for {func.__name__}, "
-                            f"retrying in {delay:.2f}s: {e}"
-                        )
-                        
-                        await asyncio.sleep(delay)
-                    else:
-                        logger.error(
-                            f"All {retry_config.max_attempts} attempts failed for {func.__name__}"
-                        )
-            
-            # 全試行失敗時、最後の例外を再発生
-            raise last_exception
-        
-        return wrapper
-    return decorator
+1. **指数バックオフ**: 失敗するたびに待機時間を指数関数的に増加
+   - 初回: 1秒待機
+   - 2回目: 2秒待機
+   - 3回目: 4秒待機
+   - 最大待機時間: 60秒
 
-class CircuitBreaker:
-    """サーキットブレーカー"""
-    
-    def __init__(self, config: CircuitBreakerConfig):
-        self.config = config
-        self.failure_count = 0
-        self.last_failure_time = None
-        self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
-    
-    async def call(self, func: Callable[..., T], *args, **kwargs) -> T:
-        """サーキットブレーカー経由での関数呼び出し"""
-        
-        if self.state == "OPEN":
-            if self._should_attempt_reset():
-                self.state = "HALF_OPEN"
-                logger.info("Circuit breaker: Attempting reset")
-            else:
-                raise EmbeddingServiceError(
-                    "Service temporarily unavailable (circuit breaker open)"
-                )
-        
-        try:
-            result = await func(*args, **kwargs)
-            
-            # 成功時の状態更新
-            if self.state == "HALF_OPEN":
-                self._reset()
-                logger.info("Circuit breaker: Reset successful")
-            
-            return result
-            
-        except self.config.expected_exception as e:
-            self._record_failure()
-            
-            if self.failure_count >= self.config.failure_threshold:
-                self._trip()
-                logger.warning("Circuit breaker: Tripped due to failures")
-            
-            raise e
-    
-    def _should_attempt_reset(self) -> bool:
-        """リセット試行判定"""
-        if self.last_failure_time is None:
-            return True
-        
-        return (
-            time.time() - self.last_failure_time 
-            >= self.config.recovery_timeout
-        )
-    
-    def _record_failure(self):
-        """失敗記録"""
-        self.failure_count += 1
-        self.last_failure_time = time.time()
-    
-    def _trip(self):
-        """サーキットブレーカーを開く"""
-        self.state = "OPEN"
-        self.last_failure_time = time.time()
-    
-    def _reset(self):
-        """サーキットブレーカーをリセット"""
-        self.failure_count = 0
-        self.last_failure_time = None
-        self.state = "CLOSED"
+2. **ジッター追加**: 同時リトライによる負荷集中を防止
+   - 待機時間に0.5〜1.0倍のランダムな係数を乗算
 
-# 使用例
-@retry_with_exponential_backoff(
-    RetryConfig(max_attempts=3, base_delay=1.0),
-    exceptions=(VectorDatabaseError, ConnectionError)
-)
-async def search_vectors_with_retry(query_vector: list[float]):
-    """リトライ付きベクター検索"""
-    try:
-        return await vector_db.search(query_vector)
-    except Exception as e:
-        logger.error(f"Vector search failed: {e}")
-        raise VectorDatabaseError(f"Vector search failed: {e}")
-```
+3. **リトライ対象の限定**: 特定の例外のみリトライ
+   - ネットワークエラー
+   - タイムアウト
+   - 503 Service Unavailable
+
+#### サーキットブレーカーパターン
+
+連続的な失敗を検知し、システムを保護するメカニズムです。
+
+**状態遷移**:
+
+1. **CLOSED（閉）**: 正常状態、すべてのリクエストを通過
+2. **OPEN（開）**: 障害状態、すべてのリクエストを即座に失敗
+3. **HALF_OPEN（半開）**: 回復試行状態、限定的なリクエストで回復を確認
+
+**設定パラメータ**:
+- **失敗閾値**: 5回連続失敗でサーキットを開く
+- **回復タイムアウト**: 60秒後に回復試行
+- **対象例外**: 外部サービスエラーのみ対象
+
+#### 適用箇所
+
+主に以下のサービスで使用：
+- Milvusベクターデータベースへの接続
+- 埋め込みモデルAPIの呼び出し
+- 外部認証サービスとの通信
 
 ---
 
@@ -835,291 +430,116 @@ class SecurityAuditLogger:
 
 ### 1. Prometheus メトリクス
 
-```python
-from prometheus_client import Counter, Histogram, Gauge, Info
-import time
-from typing import Dict, List
+**実装ファイル**: `../../app/services/metrics_collector.py`
 
-class MetricsCollector:
-    """Prometheusメトリクス収集"""
-    
-    def __init__(self):
-        # カウンター メトリクス
-        self.requests_total = Counter(
-            'http_requests_total',
-            'Total HTTP requests',
-            ['method', 'endpoint', 'status_code']
-        )
-        
-        self.errors_total = Counter(
-            'errors_total', 
-            'Total errors',
-            ['category', 'severity', 'error_code']
-        )
-        
-        self.search_requests_total = Counter(
-            'search_requests_total',
-            'Total search requests',
-            ['search_type', 'user_type']
-        )
-        
-        # ヒストグラム メトリクス
-        self.request_duration = Histogram(
-            'http_request_duration_seconds',
-            'HTTP request duration',
-            ['method', 'endpoint'],
-            buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]
-        )
-        
-        self.search_duration = Histogram(
-            'search_duration_seconds',
-            'Search operation duration',
-            ['search_type'],
-            buckets=[0.1, 0.25, 0.5, 1.0, 2.0, 5.0]
-        )
-        
-        self.embedding_duration = Histogram(
-            'embedding_duration_seconds',
-            'Embedding generation duration',
-            ['model_name'],
-            buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
-        )
-        
-        # ゲージ メトリクス
-        self.active_connections = Gauge(
-            'active_connections',
-            'Number of active connections'
-        )
-        
-        self.cache_hit_ratio = Gauge(
-            'cache_hit_ratio',
-            'Cache hit ratio',
-            ['cache_type']
-        )
-        
-        self.queue_size = Gauge(
-            'queue_size',
-            'Queue size',
-            ['queue_name']
-        )
-        
-        # インフォ メトリクス
-        self.system_info = Info(
-            'system_info',
-            'System information'
-        )
-        
-        # システム情報設定
-        self.system_info.info({
-            'version': '1.0.0',
-            'python_version': sys.version,
-            'service': 'rag-system'
-        })
-    
-    def record_request(
-        self,
-        method: str,
-        endpoint: str,
-        status_code: int,
-        duration: float
-    ):
-        """HTTPリクエストメトリクス記録"""
-        
-        self.requests_total.labels(
-            method=method,
-            endpoint=endpoint,
-            status_code=str(status_code)
-        ).inc()
-        
-        self.request_duration.labels(
-            method=method,
-            endpoint=endpoint
-        ).observe(duration)
-    
-    def record_error(
-        self,
-        category: str,
-        severity: str,
-        error_code: str
-    ):
-        """エラーメトリクス記録"""
-        
-        self.errors_total.labels(
-            category=category,
-            severity=severity,
-            error_code=error_code
-        ).inc()
-    
-    def record_search(
-        self,
-        search_type: str,
-        user_type: str,
-        duration: float,
-        result_count: int
-    ):
-        """検索メトリクス記録"""
-        
-        self.search_requests_total.labels(
-            search_type=search_type,
-            user_type=user_type
-        ).inc()
-        
-        self.search_duration.labels(
-            search_type=search_type
-        ).observe(duration)
-    
-    def record_embedding(
-        self,
-        model_name: str,
-        duration: float,
-        batch_size: int
-    ):
-        """埋め込みメトリクス記録"""
-        
-        self.embedding_duration.labels(
-            model_name=model_name
-        ).observe(duration)
-    
-    def update_gauge(
-        self,
-        metric_name: str,
-        value: float,
-        labels: Dict[str, str] = None
-    ):
-        """ゲージメトリクス更新"""
-        
-        gauge = getattr(self, metric_name, None)
-        if gauge:
-            if labels:
-                gauge.labels(**labels).set(value)
-            else:
-                gauge.set(value)
-```
+#### メトリクス収集の設計思想
+
+Prometheusフォーマットに準拠したメトリクスを収集し、システムの健全性とパフォーマンスを可視化します。
+
+**メトリクスの種類**:
+
+1. **Counter（カウンター）**: 単調増加する累積値
+   - HTTPリクエスト総数
+   - エラー発生件数
+   - 検索実行回数
+
+2. **Histogram（ヒストグラム）**: 分布を記録
+   - レスポンスタイム分布
+   - 検索処理時間
+   - 埋め込み生成時間
+
+3. **Gauge（ゲージ）**: 増減する瞬間値
+   - アクティブな接続数
+   - キャッシュヒット率
+   - キューサイズ
+
+4. **Info（情報）**: システムのメタデータ
+   - バージョン情報
+   - 起動パラメータ
+   - 環境情報
+
+#### 主要なメトリクス
+
+**パフォーマンス関連**:
+- `http_request_duration_seconds`: APIレスポンスタイム
+- `search_duration_seconds`: 検索処理時間
+- `embedding_duration_seconds`: ベクトル生成時間
+
+**可用性関連**:
+- `http_requests_total`: リクエスト総数（ステータスコード別）
+- `errors_total`: エラー発生数（カテゴリ・重要度別）
+- `active_connections`: 同時接続数
+
+**リソース使用率**:
+- `cache_hit_ratio`: キャッシュ効率
+- `queue_size`: 処理待ちタスク数
+- `memory_usage_bytes`: メモリ使用量
+
+#### バケット設定の最適化
+
+ヒストグラムのバケット境界値は、SLO（Service Level Objective）に基づいて設定：
+
+- **APIレスポンス**: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]秒
+- **検索処理**: [0.1, 0.25, 0.5, 1.0, 2.0, 5.0]秒
+- **埋め込み生成**: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]秒
+
+これにより、95パーセンタイル値などの統計情報を正確に把握可能。
 
 ### 2. カスタムメトリクス
 
-```python
-class RAGMetrics:
-    """RAG固有のメトリクス"""
-    
-    def __init__(self, metrics_collector: MetricsCollector):
-        self.metrics = metrics_collector
-        
-        # RAG固有メトリクス
-        self.search_precision = Gauge(
-            'search_precision',
-            'Search precision score',
-            ['search_type', 'time_window']
-        )
-        
-        self.search_recall = Gauge(
-            'search_recall',
-            'Search recall score', 
-            ['search_type', 'time_window']
-        )
-        
-        self.user_satisfaction = Gauge(
-            'user_satisfaction_score',
-            'User satisfaction score',
-            ['time_window']
-        )
-        
-        self.document_freshness = Gauge(
-            'document_freshness_days',
-            'Average document age in days',
-            ['source_type']
-        )
-        
-        self.embedding_coverage = Gauge(
-            'embedding_coverage_ratio',
-            'Ratio of documents with embeddings'
-        )
-    
-    async def calculate_search_quality_metrics(self):
-        """検索品質メトリクス計算"""
-        
-        # 過去24時間の検索ログ分析
-        search_logs = await self._get_search_logs(hours=24)
-        
-        # 検索タイプ別の精度・再現率計算
-        for search_type in ['hybrid', 'semantic', 'keyword']:
-            type_logs = [log for log in search_logs if log['search_type'] == search_type]
-            
-            if type_logs:
-                precision = await self._calculate_precision(type_logs)
-                recall = await self._calculate_recall(type_logs)
-                
-                self.search_precision.labels(
-                    search_type=search_type,
-                    time_window='24h'
-                ).set(precision)
-                
-                self.search_recall.labels(
-                    search_type=search_type,
-                    time_window='24h'
-                ).set(recall)
-    
-    async def calculate_user_satisfaction(self):
-        """ユーザー満足度計算"""
-        
-        # ユーザーフィードバック分析
-        feedback_data = await self._get_user_feedback(hours=24)
-        
-        if feedback_data:
-            avg_satisfaction = sum(fb['rating'] for fb in feedback_data) / len(feedback_data)
-            
-            self.user_satisfaction.labels(
-                time_window='24h'
-            ).set(avg_satisfaction)
-    
-    async def calculate_document_freshness(self):
-        """ドキュメント鮮度計算"""
-        
-        # ソースタイプ別の平均文書年数
-        source_stats = await self._get_document_age_stats()
-        
-        for source_type, avg_age_days in source_stats.items():
-            self.document_freshness.labels(
-                source_type=source_type
-            ).set(avg_age_days)
-    
-    async def _calculate_precision(self, search_logs: List[Dict]) -> float:
-        """検索精度計算"""
-        
-        relevant_results = 0
-        total_results = 0
-        
-        for log in search_logs:
-            if 'user_clicks' in log and 'results' in log:
-                clicked_positions = log['user_clicks']
-                total_results += len(log['results'])
-                
-                # 上位5件での精度計算
-                for pos in clicked_positions:
-                    if pos <= 5:  # 上位5件
-                        relevant_results += 1
-        
-        return relevant_results / total_results if total_results > 0 else 0.0
-    
-    async def _calculate_recall(self, search_logs: List[Dict]) -> float:
-        """検索再現率計算"""
-        
-        # 理想的な結果セットとの比較による再現率計算
-        # 実装は業務要件に依存
-        
-        total_relevant = 0
-        retrieved_relevant = 0
-        
-        for log in search_logs:
-            if 'expected_results' in log and 'actual_results' in log:
-                expected = set(log['expected_results'])
-                actual = set(log['actual_results'])
-                
-                total_relevant += len(expected)
-                retrieved_relevant += len(expected.intersection(actual))
-        
-        return retrieved_relevant / total_relevant if total_relevant > 0 else 0.0
-```
+**実装ファイル**: `../../app/services/rag_metrics.py`
+
+#### RAGシステム固有のメトリクス
+
+検索精度とユーザー体験を定量的に評価するため、RAGシステム専用のメトリクスを実装しています。
+
+**品質指標**:
+
+1. **検索精度（Precision）**:
+   - 返却された結果のうち、関連性の高い結果の割合
+   - 上位5件でのクリック率を基に算出
+   - 検索タイプ別（hybrid/semantic/keyword）に測定
+
+2. **検索再現率（Recall）**:
+   - 存在する関連文書のうち、実際に検索できた割合
+   - テストセットとの比較により算出
+   - 検索漏れの発見に有効
+
+3. **ユーザー満足度**:
+   - ユーザーフィードバックの平均評価
+   - 5段階評価で収集
+   - 24時間/7日間/30日間の時間窓で集計
+
+**システム健全性指標**:
+
+1. **ドキュメント鮮度**:
+   - 各ソースタイプ別の平均文書更新経過日数
+   - 古い情報の検出に使用
+   - 更新優先度の決定に活用
+
+2. **埋め込みカバレッジ**:
+   - 全文書に対するベクトル生成済み文書の割合
+   - 検索可能な文書の網羅性を示す
+   - 90%以上を目標値として設定
+
+#### メトリクス計算の実装
+
+**定期実行タスク**:
+- 1時間ごと：基本的な品質メトリクス更新
+- 日次：詳細な分析レポート生成
+- 週次：トレンド分析と異常検知
+
+**データソース**:
+- 検索ログ：ユーザーの検索クエリと結果
+- クリックログ：ユーザーが選択した結果
+- フィードバック：明示的な評価データ
+- システムログ：処理時間やエラー情報
+
+**活用方法**:
+1. ダッシュボードでのリアルタイム監視
+2. 検索アルゴリズムの改善指標
+3. A/Bテストでの効果測定
+4. SLO達成状況の追跡
 
 ---
 
@@ -1127,101 +547,59 @@ class RAGMetrics:
 
 ### 1. アラート設定
 
-```python
-from typing import Callable, List
-from dataclasses import dataclass
-from enum import Enum
+**実装ファイル**: `../../app/services/alert_manager.py`
 
-class AlertSeverity(str, Enum):
-    INFO = "info"
-    WARNING = "warning" 
-    CRITICAL = "critical"
+#### アラートシステムの設計思想
 
-@dataclass
-class AlertRule:
-    """アラートルール定義"""
-    
-    name: str
-    description: str
-    metric_name: str
-    condition: str  # >, <, >=, <=, ==
-    threshold: float
-    duration: int   # 秒
-    severity: AlertSeverity
-    labels: Dict[str, str] = None
-    
-    def evaluate(self, current_value: float) -> bool:
-        """アラート条件評価"""
-        
-        if self.condition == ">":
-            return current_value > self.threshold
-        elif self.condition == "<":
-            return current_value < self.threshold
-        elif self.condition == ">=":
-            return current_value >= self.threshold
-        elif self.condition == "<=":
-            return current_value <= self.threshold
-        elif self.condition == "==":
-            return abs(current_value - self.threshold) < 0.001
-        
-        return False
+閾値ベースの監視により、システムの異常を早期に検出し、適切な担当者に通知します。
 
-class AlertManager:
-    """アラート管理システム"""
-    
-    def __init__(self, notification_service):
-        self.notification_service = notification_service
-        self.alert_rules: List[AlertRule] = []
-        self.active_alerts: Dict[str, dict] = {}
-        self.alert_history: List[dict] = []
-    
-    def add_rule(self, rule: AlertRule):
-        """アラートルール追加"""
-        self.alert_rules.append(rule)
-    
-    async def check_alerts(self, metrics: Dict[str, float]):
-        """アラートチェック実行"""
-        
-        current_time = time.time()
-        
-        for rule in self.alert_rules:
-            metric_value = metrics.get(rule.metric_name)
-            
-            if metric_value is not None:
-                should_alert = rule.evaluate(metric_value)
-                alert_key = f"{rule.name}_{rule.metric_name}"
-                
-                if should_alert:
-                    await self._handle_alert_trigger(rule, metric_value, current_time)
-                else:
-                    await self._handle_alert_resolve(alert_key, current_time)
-    
-    async def _handle_alert_trigger(
-        self,
-        rule: AlertRule, 
-        current_value: float,
-        current_time: float
-    ):
-        """アラート発火処理"""
-        
-        alert_key = f"{rule.name}_{rule.metric_name}"
-        
-        if alert_key in self.active_alerts:
-            # 既存アラートの継続時間チェック
-            alert_start = self.active_alerts[alert_key]['start_time']
-            duration = current_time - alert_start
-            
-            if duration >= rule.duration:
-                # 継続時間を超えた場合、通知送信
-                await self._send_alert_notification(rule, current_value, duration)
-        else:
-            # 新規アラート記録
-            self.active_alerts[alert_key] = {
-                'rule': rule,
-                'start_time': current_time,
-                'current_value': current_value,
-                'notified': False
-            }
+**アラートの重要度**:
+
+1. **INFO（情報）**: 
+   - 正常な範囲内での注目すべき事象
+   - 例：デプロイ完了、定期メンテナンス開始
+   - 通知：ログ記録のみ
+
+2. **WARNING（警告）**:
+   - 注意が必要だが、即座の対応は不要
+   - 例：CPU使用率70%超過、エラー率1%超過
+   - 通知：Slackチャンネル、メール
+
+3. **CRITICAL（緊急）**:
+   - 即座の対応が必要な重大な問題
+   - 例：サービス停止、データベース接続エラー
+   - 通知：PagerDuty、電話通知、全チャンネル
+
+#### アラートルールの構成要素
+
+**基本パラメータ**:
+- **メトリクス名**: 監視対象の指標
+- **条件式**: 閾値との比較演算子（>, <, >=, <=, ==）
+- **閾値**: アラート発火の境界値
+- **継続時間**: 条件が継続すべき時間（誤検知防止）
+
+**高度な設定**:
+- **ラベルフィルタ**: 特定の条件下でのみ評価
+- **時間帯制限**: 営業時間内のみ通知など
+- **エスカレーション**: 未対応時の上位者への通知
+
+#### 主要なアラートルール例
+
+1. **パフォーマンス監視**:
+   - API応答時間 > 2秒が5分間継続 → WARNING
+   - API応答時間 > 5秒が1分間継続 → CRITICAL
+
+2. **可用性監視**:
+   - エラー率 > 1%が10分間継続 → WARNING
+   - エラー率 > 5%が1分間継続 → CRITICAL
+
+3. **リソース監視**:
+   - メモリ使用率 > 80%が10分間継続 → WARNING
+   - メモリ使用率 > 95%が1分間継続 → CRITICAL
+
+4. **ビジネス指標**:
+   - 検索精度 < 0.7が1時間継続 → WARNING
+   - 検索可能文書率 < 90%が30分継続 → WARNING
     
     async def _handle_alert_resolve(self, alert_key: str, current_time: float):
         """アラート解決処理"""
@@ -1312,96 +690,72 @@ SYSTEM_ALERT_RULES = [
 
 ### 2. 通知サービス
 
-```python
-import aiohttp
-from typing import Dict, List
+**実装ファイル**: `../../app/services/notification_service.py`
 
-class NotificationService:
-    """通知サービス"""
-    
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.webhook_urls = config.get('webhook_urls', {})
-        self.email_config = config.get('email', {})
-    
-    async def send_alert(self, alert_data: Dict[str, Any]):
-        """アラート通知送信"""
-        
-        # Slack通知
-        if 'slack' in self.webhook_urls:
-            await self._send_slack_notification(alert_data)
-        
-        # Teams通知
-        if 'teams' in self.webhook_urls:
-            await self._send_teams_notification(alert_data)
-        
-        # Email通知
-        if alert_data['severity'] == 'critical':
-            await self._send_email_notification(alert_data)
-    
-    async def _send_slack_notification(self, alert_data: Dict[str, Any]):
-        """Slack通知送信"""
-        
-        color_map = {
-            'info': '#36a64f',
-            'warning': '#ff9500', 
-            'critical': '#ff0000'
-        }
-        
-        payload = {
-            "attachments": [{
-                "color": color_map.get(alert_data['severity'], '#36a64f'),
-                "title": alert_data['title'],
-                "text": alert_data['description'],
-                "fields": [
-                    {
-                        "title": "Current Value",
-                        "value": str(alert_data['current_value']),
-                        "short": True
-                    },
-                    {
-                        "title": "Threshold", 
-                        "value": str(alert_data['threshold']),
-                        "short": True
-                    },
-                    {
-                        "title": "Duration",
-                        "value": f"{alert_data['duration']:.0f} seconds",
-                        "short": True
-                    }
-                ],
-                "footer": "RAG System Monitoring",
-                "ts": int(time.time())
-            }]
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                self.webhook_urls['slack'],
-                json=payload
-            ) as response:
-                if response.status != 200:
-                    logger.error(f"Slack notification failed: {response.status}")
-    
-    async def _send_email_notification(self, alert_data: Dict[str, Any]):
-        """Email通知送信"""
-        
-        # 実装は使用するEmailサービスに依存
-        # AWS SES、SendGrid等を使用
-        
-        subject = f"RAG System Alert: {alert_data['title']}"
-        body = f"""
-        Alert: {alert_data['title']}
-        Description: {alert_data['description']}
-        Current Value: {alert_data['current_value']}
-        Threshold: {alert_data['threshold']}
-        Duration: {alert_data['duration']} seconds
-        Timestamp: {alert_data['timestamp']}
-        """
-        
-        # Email送信処理
-        logger.info(f"Critical alert email sent: {subject}")
-```
+#### 通知システムの設計
+
+アラートの重要度と緊急性に応じて、複数の通知チャネルを使い分けます。
+
+**通知チャネル**:
+
+1. **Slack通知**:
+   - 全てのアラートを指定チャンネルに通知
+   - 色分けによる視認性を重視
+   - INFO: 緑色、WARNING: オレンジ、CRITICAL: 赤色
+
+2. **Microsoft Teams通知**:
+   - エンタープライズ環境向け
+   - Adaptive Card形式でのリッチな表示
+   - アクションボタンによる迅速な対応
+
+3. **Email通知**:
+   - CRITICALアラートのみ送信
+   - 担当者・マネージャーに直接通知
+   - 詳細なコンテキスト情報を含む
+
+4. **PagerDuty連携**:
+   - オンコールエンジニアへのエスカレーション
+   - インシデント管理との統合
+   - 自動ローテーション・エスカレーション
+
+#### 通知ペイロードの設計
+
+**共通情報**:
+- アラートタイトルと説明
+- 現在値と闾値
+- 継続時間
+- タイムスタンプ
+- 影響範囲（サービス名、エンドポイント等）
+
+**Slack固有情報**:
+- Attachment形式での構造化表示
+- 色分けによる重要度表示
+- グラフやダッシュボードへのリンク
+
+**Email固有情報**:
+- HTML形式での読みやすいレイアウト
+- 対応手順へのリンク
+- 関連ログの添付
+
+#### 通知の抑制・集約
+
+**アラート疲れ防止のための機能**:
+
+1. **クールダウン期間**: 
+   - 同じアラートの連続通知を抑制
+   - デフォルト: 30分間
+
+2. **集約機能**:
+   - 5分間以内の同種アラートをまとめて通知
+   - バッチ通知によるノイズ低減
+
+3. **時間帯制限**:
+   - 営業時間外のINFOアラートを抑制
+   - CRITICALは24時間通知
+
+4. **重複除去**:
+   - 複数のメトリクスから同じ問題を検出した場合
+   - 最も重要度の高いアラートのみ通知
 
 ---
 
