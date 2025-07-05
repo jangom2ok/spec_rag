@@ -139,6 +139,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 実際のDocker Compose設定ファイル: `../../docker-compose.yml`
 
 このファイルでは以下の重要なサービスが定義されています：
+
 - **rag-api**: FastAPIアプリケーション本体
 - **postgres**: メタデータ管理用のPostgreSQLデータベース
 - **milvus**: ベクター検索用のMilvusデータベース
@@ -337,6 +338,7 @@ networks:
 Kubernetesマニフェストの検証は `../../app/deployment/kubernetes_validator.py` で実装されています。
 
 このモジュールでは以下の重要な機能を提供：
+
 - **マニフェスト検証**: YAML構文とKubernetesスキーマの検証
 - **リソース制限チェック**: CPU/メモリの適切な制限設定確認
 - **セキュリティ検証**: SecurityContext、NetworkPolicyの設定確認
@@ -404,7 +406,7 @@ data:
       defaultPartitionName: "_default"
       defaultIndexName: "_default_idx"
       retentionDuration: 432000  # 5 days in seconds
-    
+
 ---
 # secret.yaml
 apiVersion: v1
@@ -519,7 +521,7 @@ spec:
             configMapKeyRef:
               name: rag-config
               key: environment
-        
+
         resources:
           requests:
             cpu: 500m
@@ -527,7 +529,7 @@ spec:
           limits:
             cpu: 2000m
             memory: 4Gi
-        
+
         livenessProbe:
           httpGet:
             path: /health
@@ -536,7 +538,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 10
           failureThreshold: 3
-        
+
         readinessProbe:
           httpGet:
             path: /health/ready
@@ -545,7 +547,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         volumeMounts:
         - name: app-logs
           mountPath: /app/logs
@@ -554,7 +556,7 @@ spec:
         - name: milvus-config
           mountPath: /app/milvus.yaml
           subPath: milvus.yaml
-      
+
       volumes:
       - name: app-logs
         emptyDir: {}
@@ -567,13 +569,13 @@ spec:
           items:
           - key: milvus.yaml
             path: milvus.yaml
-      
+
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
-      
+
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
 
@@ -634,6 +636,7 @@ spec:
 PostgreSQLの本番環境設定は `../../app/database/production_config.py` で管理されています。
 
 このモジュールでは以下の重要な機能を実装：
+
 - **接続プール管理**: 最適なプールサイズとタイムアウト設定
 - **高可用性設定**: マスター/スレーブレプリケーション対応
 - **パフォーマンス最適化**: インデックス戦略とクエリ最適化
@@ -810,7 +813,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs: quality-check
-    
+
     services:
       postgres:
         image: postgres:15
@@ -877,7 +880,7 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     needs: quality-check
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -902,7 +905,7 @@ jobs:
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-digest: ${{ steps.build.outputs.digest }}
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -962,7 +965,7 @@ jobs:
     needs: build-image
     if: github.ref == 'refs/heads/develop'
     environment: staging
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -991,7 +994,7 @@ jobs:
     needs: [build-image, deploy-staging]
     if: github.event_name == 'release'
     environment: production
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -1064,14 +1067,14 @@ for i in {1..30}; do
         echo "Health check passed"
         break
     fi
-    
+
     if [ $i -eq 30 ]; then
         echo "Health check failed after 30 attempts"
         # ロールバック
         kubectl delete deployment $APP_NAME-$NEW_COLOR -n $NAMESPACE
         exit 1
     fi
-    
+
     echo "Health check attempt $i failed, retrying..."
     sleep 10
 done
@@ -1140,10 +1143,10 @@ data:
       evaluation_interval: 15s
       external_labels:
         cluster: 'rag-production'
-        
+
     rule_files:
       - "rag_alerts.yml"
-      
+
     scrape_configs:
     # RAGアプリケーション監視
     - job_name: 'rag-api'
@@ -1165,23 +1168,23 @@ data:
         regex: ([^:]+)(?::\d+)?;(\d+)
         replacement: $1:$2
         target_label: __address__
-    
+
     # PostgreSQL 監視
     - job_name: 'postgres-exporter'
       static_configs:
       - targets: ['postgres-exporter:9187']
-    
+
     # Redis 監視
     - job_name: 'redis-exporter'
       static_configs:
       - targets: ['redis-exporter:9121']
-    
+
     # Milvus 監視
     - job_name: 'milvus'
       static_configs:
       - targets: ['rag-milvus-service:9091']
       metrics_path: /metrics
-    
+
     # Node Exporter
     - job_name: 'node-exporter'
       kubernetes_sd_configs:
@@ -1203,7 +1206,7 @@ data:
         annotations:
           summary: "High error rate detected"
           description: "Error rate is above 5% for 5 minutes"
-      
+
       # レスポンス時間
       - alert: HighResponseTime
         expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
@@ -1213,7 +1216,7 @@ data:
         annotations:
           summary: "High response time detected"
           description: "95th percentile response time is above 2 seconds"
-      
+
       # 検索性能
       - alert: SlowSearchPerformance
         expr: histogram_quantile(0.95, rate(search_duration_seconds_bucket[5m])) > 5
@@ -1223,7 +1226,7 @@ data:
         annotations:
           summary: "Search performance degraded"
           description: "95th percentile search time is above 5 seconds"
-      
+
       # データベース接続
       - alert: DatabaseConnectionFailure
         expr: up{job="postgres-exporter"} == 0
@@ -1233,7 +1236,7 @@ data:
         annotations:
           summary: "Database connection failure"
           description: "PostgreSQL database is unreachable"
-      
+
       # Milvus 可用性
       - alert: MilvusUnavailable
         expr: up{job="milvus"} == 0
@@ -1243,7 +1246,7 @@ data:
         annotations:
           summary: "Milvus vector database unavailable"
           description: "Milvus vector database is unreachable"
-      
+
       # メモリ使用率
       - alert: HighMemoryUsage
         expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
@@ -1253,7 +1256,7 @@ data:
         annotations:
           summary: "High memory usage"
           description: "Memory usage is above 90%"
-      
+
       # ディスク使用率
       - alert: HighDiskUsage
         expr: (node_filesystem_size_bytes - node_filesystem_avail_bytes) / node_filesystem_size_bytes > 0.85
@@ -1270,6 +1273,7 @@ data:
 管理ダッシュボードの実装は `../../app/services/admin_dashboard.py` で提供されています。
 
 このモジュールでは以下の機能を実装：
+
 - **リアルタイムメトリクス表示**: API使用状況、検索パフォーマンス
 - **システム健全性監視**: コンポーネント別のヘルスステータス
 - **検索分析**: 人気クエリ、検索精度、ユーザー行動分析

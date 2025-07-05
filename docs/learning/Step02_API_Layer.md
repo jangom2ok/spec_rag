@@ -125,22 +125,16 @@ app/api/
 
 #### 🎛️ 検索モード実装
 
-```python
-class SearchMode(str, Enum):
-    HYBRID = "hybrid"     # Dense + Sparse統合
-    SEMANTIC = "semantic" # Dense重視
-    KEYWORD = "keyword"   # Sparse重視
+**実装ファイル**: `../../app/api/search.py`
 
-@router.post("/semantic", response_model=SearchResponse)
-async def search_semantic(
-    request: SearchRequest,
-    current_user: dict = Depends(get_current_user_or_api_key),
-    search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
-):
-    """セマンティック検索（Dense Vector重視）"""
-    request.search_mode = SearchMode.SEMANTIC
-    return await search_documents(request, current_user, search_engine)
-```
+本システムでは3つの検索モードを提供しており、用途に応じて最適な検索方式を選択できます：
+
+**検索モードの種類**:
+- **HYBRID**: Dense VectorとSparse Vectorを統合し、バランスの取れた検索結果を提供
+- **SEMANTIC**: Dense Vector（意味的類似性）を重視した検索で、文脈を理解した結果を返却
+- **KEYWORD**: Sparse Vector（キーワードマッチ）を重視した検索で、正確な用語の一致を優先
+
+各検索モードは共通のインターフェースを持ち、`search_mode`パラメータの変更のみで切り替え可能です。内部では、重み付けパラメータが自動的に調整され、それぞれのモードに最適化された検索が実行されます。
 
 ### 2. ドキュメント管理API (`app/api/documents.py`)
 
@@ -264,118 +258,77 @@ async def search_semantic(
 
 ### 認証方式
 
+**実装ファイル**: `../../app/core/auth.py`
+
+本システムでは、柔軟な認証方式を提供するため、JWTトークンとAPIキーの両方に対応しています。
+
 #### 1. JWT Token認証
 
-```python
-async def get_current_user_jwt(
-    authorization: str | None = Header(None)
-) -> dict[str, Any]:
-    """JWT認証"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Bearer token required")
+**特徴**:
+- **有効期限設定**: デフォルト24時間で自動失効
+- **リフレッシュトークン**: 有効期限前に更新可能
+- **ブラックリスト管理**: ログアウトやセキュリティ侵害時の即座失効
+- **ペイロード情報**: ユーザーID、メール、権限情報を含む
 
-    token = authorization.split(" ")[1]
-
-    if is_token_blacklisted(token):
-        raise HTTPException(status_code=401, detail="Token has been revoked")
-
-    payload = verify_token(token)
-    email = payload.get("sub")
-
-    user = users_storage.get(email)
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    return {**user, "email": email, "auth_type": "jwt"}
-```
+**使用シーン**:
+- Webアプリケーションのセッション管理
+- モバイルアプリケーションの認証
+- 短期間のアクセス制御
 
 #### 2. API Key認証
 
-```python
-async def get_current_user_api_key(
-    x_api_key: str | None = Header(None)
-) -> dict[str, Any]:
-    """API Key認証"""
-    if not x_api_key:
-        raise HTTPException(status_code=401, detail="API key required")
+**特徴**:
+- **長期有効**: 明示的な失効まで有効
+- **スコープ制限**: 特定のAPIのみアクセス可能
+- **レート制限**: APIキーごとの利用回数制限
+- **監査ログ**: 全てのアクセスを記録
 
-    api_key_info = validate_api_key(x_api_key)
-    if not api_key_info:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-
-    return {
-        "user_id": api_key_info["user_id"],
-        "permissions": api_key_info["permissions"],
-        "auth_type": "api_key",
-    }
-```
+**使用シーン**:
+- システム間連携
+- CI/CDパイプライン
+- バッチ処理
 
 #### 3. 統合認証（フォールバック）
 
-```python
-async def get_current_user_or_api_key(
-    authorization: str | None = Header(None),
-    x_api_key: str | None = Header(None)
-) -> dict[str, Any]:
-    """JWT認証またはAPI Key認証を試行"""
-    # API Key認証を先に試行
-    if x_api_key:
-        api_key_info = validate_api_key(x_api_key)
-        if api_key_info:
-            return {
-                "user_id": api_key_info["user_id"],
-                "permissions": api_key_info["permissions"],
-                "auth_type": "api_key",
-            }
+システムはリクエストヘッダーを確認し、以下の優先順位で認証を試行します：
 
-    # JWT認証を試行
-    if authorization and authorization.startswith("Bearer "):
-        # JWT処理...
-        pass
+1. **X-API-Keyヘッダー**: APIキーによる認証
+2. **Authorizationヘッダー**: BearerトークンによるJWT認証
+3. どちらも存在しない場合は401エラーを返却
 
-    raise HTTPException(status_code=401, detail="Authentication required")
-```
+このアプローチにより、クライアントは状況に応じて最適な認証方式を選択できます。
 
 ### 権限管理（RBAC）
 
+**実装ファイル**: `../../app/core/rbac.py`
+
+ロールベースのアクセス制御（RBAC）を実装し、柔軟かつ安全な権限管理を実現しています。
+
 #### 権限レベル
 
-```python
-class Permission(str, Enum):
-    READ = "read"      # 検索・参照
-    WRITE = "write"    # ドキュメント作成・更新
-    DELETE = "delete"  # ドキュメント削除
-    ADMIN = "admin"    # システム管理
+**4つの基本権限**:
+- **READ**: 検索・参照のみ可能（デフォルト権限）
+- **WRITE**: ドキュメントの作成・更新が可能
+- **DELETE**: ドキュメントの削除が可能
+- **ADMIN**: システム設定・ユーザー管理が可能
 
-# ロール定義例
-ROLES = {
-    "viewer": [Permission.READ],
-    "editor": [Permission.READ, Permission.WRITE],
-    "admin": [Permission.READ, Permission.WRITE, Permission.DELETE, Permission.ADMIN]
-}
-```
+**ロール定義**:
+- **viewer**: 閲覧専用ユーザー（READのみ）
+- **editor**: コンテンツ編集者（READ + WRITE）
+- **admin**: システム管理者（全権限）
 
-#### 権限チェック実装
+#### 権限チェックの実装
 
-```python
-def check_permission(user: dict, required_permission: str) -> None:
-    """権限チェック"""
-    user_permissions = user.get("permissions", [])
-    if required_permission not in user_permissions:
-        raise HTTPException(
-            status_code=403,
-            detail=f"{required_permission} permission required"
-        )
+権限チェックはデコレータパターンで実装され、エンドポイントごとに必要な権限を宣言的に指定できます。
 
-@router.post("/documents/", status_code=201)
-async def create_document(
-    document: DocumentCreate,
-    current_user: dict = Depends(get_current_user_or_api_key),
-):
-    """ドキュメント作成（write権限必須）"""
-    check_permission(current_user, "write")
-    # 処理続行...
-```
+**権限チェックの特徴**:
+- **宣言的な権限指定**: `@require_permission("write")`のようにシンプルに指定
+- **自動エラーハンドリング**: 権限不足時は403エラーを自動返却
+- **ログ記録**: 全ての権限チェックを監査ログに記録
+- **柔軟な権限組み合わせ**: 複数権限のAND/OR条件に対応
+
+**権限の継承**:
+上位の権限は下位の権限を含むため、ADMIN権限を持つユーザーは全ての操作が可能です。
 
 ---
 
@@ -531,53 +484,38 @@ async def process_documents(
 
 **問題**: テストモードでの認証スキップが本番環境に影響
 
-```python
-# ❌ 危険: 環境変数チェックが不十分
-if os.getenv("TESTING"):  # 空文字でもTrueになる
-    return {"user_id": "test", "permissions": ["admin"]}
-
-# ✅ 安全: 厳密なチェック
-if os.getenv("TESTING") == "true":
-    return {"user_id": "test", "permissions": ["admin"]}
-```
+**対策**:
+- 環境変数の厳密なチェック（`== "true"`のように明示的に比較）
+- テスト用の別設定ファイルを使用
+- テストモードでも最小限の権限のみ付与
+- CI/CDパイプラインでの環境変数検証
 
 ### 2. パスワードログ出力
 
 **問題**: リクエストログにパスワードが記録される
 
-```python
-# ❌ 危険: パスワードがログに残る
-logger.info(f"Login request: {request.dict()}")
-
-# ✅ 安全: 機密情報を除外
-safe_data = request.dict()
-safe_data.pop("password", None)
-logger.info(f"Login request: {safe_data}")
-```
+**対策**:
+- ログ出力前の機密情報フィルタリング
+- ログミドルウェアでの自動マスキング
+- 機密フィールドのリスト管理
+- ログレビューの定期実施
 
 ### 3. レート制限不備
 
 **問題**: API Keyベースのレート制限の実装不備
 
-```python
-# ✅ API Keyごとのレート制限実装例
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+**対策**:
+- APIキーごとのレート制限実装
+- Redisを使用した分散環境でのカウンター管理
+- 柔軟な制限ルール（スライディングウィンドウ、トークンバケット）
+- レート制限超過時の適切なエラーメッセージ
 
-limiter = Limiter(key_func=get_remote_address)
+**実装ファイル**: `../../app/core/rate_limiter.py`
 
-def get_api_key_limiter():
-    def api_key_identifier(request: Request):
-        api_key = request.headers.get("X-API-Key")
-        return api_key or get_remote_address(request)
-    return Limiter(key_func=api_key_identifier)
-
-@router.post("/search/")
-@limiter.limit("100/minute")  # API Keyごとに100回/分
-async def search(request: Request, search_request: SearchRequest):
-    # 検索処理...
-    pass
-```
+レート制限の詳細な実装は上記ファイルで管理され、以下の機能を提供します：
+- エンドポイント別の制限設定
+- ユーザータイプ別の制限値
+- バーストトラフィックの検出と対処
 
 ---
 

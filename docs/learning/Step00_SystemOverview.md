@@ -141,22 +141,80 @@ graph TB
 
 ### API層 (`app/api/`)
 
-- **search.py**: ハイブリッド検索、セマンティック検索、キーワード検索
-- **documents.py**: ドキュメント管理（CRUD操作）
-- **system.py**: システム監視、メトリクス、再インデックス
-- **auth.py**: 認証・認可（JWT + API Key）
+**実装ファイル**: `../../app/api/` ディレクトリ内
+
+主要なAPIエンドポイントモジュール：
+
+1. **search.py**: 検索関連エンドポイント
+   - ハイブリッド検索（Dense + Sparse Vector）
+   - セマンティック検索（意味的類似性）
+   - キーワード検索（語彙マッチング）
+   - 検索候補・設定の取得
+
+2. **documents.py**: ドキュメント管理エンドポイント
+   - CRUD操作（作成・読取・更新・削除）
+   - バッチ処理・同期処理
+   - 処理状況の監視
+
+3. **system.py**: システム管理エンドポイント
+   - システム状態の監視
+   - メトリクスの取得
+   - 再インデックス処理
+   - 管理者向け操作
+
+4. **auth.py**: 認証・認可エンドポイント
+   - JWT Token認証
+   - API Key認証
+   - ユーザー管理
+   - ロール管理
 
 ### ビジネスロジック層 (`app/services/`)
 
-- **hybrid_search_engine.py**: RRF（Reciprocal Rank Fusion）による検索統合
-- **embedding_service.py**: BGE-M3による多様なベクター生成
-- **document_collector.py**: 外部ソースからのデータ収集
-- **document_processing_service.py**: ドキュメント処理パイプライン
+**実装ファイル**: `../../app/services/` ディレクトリ内
+
+中核となるサービスクラス：
+
+1. **hybrid_search_engine.py**: ハイブリッド検索エンジン
+   - RRF（Reciprocal Rank Fusion）アルゴリズム実装
+   - Dense/Sparse Vector検索の統合
+   - フィルタリング・ファセット機能
+   - 検索パフォーマンス最適化
+
+2. **embedding_service.py**: BGE-M3埋め込みサービス
+   - 3種類のベクター生成（Dense/Sparse/Multi-Vector）
+   - バッチ処理最適化
+   - GPU/CPU自動選択
+   - キャッシング機能
+
+3. **document_collector.py**: ドキュメント収集サービス
+   - Git/Swagger等からのデータ取得
+   - 前処理・正規化
+   - 差分更新処理
+   - エラーハンドリング
+
+4. **document_processing_service.py**: ドキュメント処理パイプライン
+   - チャンク分割
+   - メタデータ抽出
+   - ベクター生成の管理
+   - 非同期処理の制御
 
 ### データアクセス層 (`app/repositories/`)
 
-- **document_repository.py**: PostgreSQLのドキュメントメタデータアクセス
-- **chunk_repository.py**: ドキュメントチャンクの管理
+**実装ファイル**: `../../app/repositories/` ディレクトリ内
+
+データ永続化を担当するリポジトリクラス：
+
+1. **document_repository.py**: ドキュメントリポジトリ
+   - PostgreSQLでのメタデータ管理
+   - トランザクション制御
+   - クエリ最適化
+   - バルク操作
+
+2. **chunk_repository.py**: チャンクリポジトリ
+   - ドキュメントチャンクの管理
+   - ベクターIDマッピング
+   - 階層構造の保持
+   - 検索統計の記録
 
 ---
 
@@ -164,23 +222,62 @@ graph TB
 
 ### 重要な環境変数
 
-- `DATABASE_URL`: PostgreSQL接続文字列
-- `REDIS_URL`: Redis接続文字列
-- `ENVIRONMENT`: 実行環境（development/staging/production）
-- `TESTING`: テスト環境フラグ
+**設定ファイル**: `../../app/core/config.py`
+
+必須の環境変数：
+
+1. **データベース接続**:
+   - `DATABASE_URL`: PostgreSQL接続文字列
+   - `REDIS_URL`: Redis接続文字列
+   - `MILVUS_HOST`: Milvusホスト名
+   - `MILVUS_PORT`: Milvusポート番号
+
+2. **実行環境**:
+   - `ENVIRONMENT`: 実行環境（development/staging/production）
+   - `TESTING`: テスト環境フラグ（"true"でテストモード）
+   - `DEBUG`: デバッグモード（本番環境ではfalse推奨）
+
+3. **セキュリティ**:
+   - `JWT_SECRET_KEY`: JWT署名用秘密鍵（32文字以上）
+   - `API_KEY_PREFIX`: APIキーのプレフィックス
+   - `CORS_ORIGINS`: 許可するオリジン（カンマ区切り）
+
+4. **パフォーマンス**:
+   - `EMBEDDING_BATCH_SIZE`: 埋め込み生成のバッチサイズ
+   - `SEARCH_TIMEOUT`: 検索タイムアウト（秒）
+   - `MAX_CONCURRENT_REQUESTS`: 最大同時リクエスト数
 
 ### 開発環境の起動
 
+**開発環境構築手順**:
+
 ```bash
-# 依存サービス起動
+# 1. 仮想環境の作成と有効化
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate  # Windows
+
+# 2. 依存パッケージのインストール
+pip install -e ".[dev]"
+
+# 3. 依存サービスの起動（Docker Compose使用）
 docker-compose up -d
 
-# アプリケーション起動
-uvicorn app.main:app --reload
+# 4. データベースマイグレーション
+alembic upgrade head
 
-# API文書確認
-# http://localhost:8000/docs
+# 5. アプリケーションの起動
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 6. API文書の確認
+# ブラウザで http://localhost:8000/docs を開く
 ```
+
+**Docker Composeサービス**:
+- PostgreSQL（ポート5432）
+- Redis（ポート6379）
+- Milvus（ポート19530）
+- Minio（Milvusストレージ、ポート9000）
 
 ---
 
@@ -188,20 +285,50 @@ uvicorn app.main:app --reload
 
 ### セキュリティ
 
-- 本番環境では認証必須（JWT + API Key）
-- テスト環境では `TESTING=true` で認証スキップ可能
-- 管理者権限が必要な操作は厳密に制御
+**実装ファイル**: `../../app/core/security.py`
+
+1. **認証方式**:
+   - 本番環境では認証必須（JWT + API Key）
+   - テスト環境では `TESTING="true"` で認証スキップ可能
+   - 管理者権限が必要な操作は厳密に制御
+   - APIキーは環境ごとに異なる設定
+
+2. **アクセス制御**:
+   - RBAC（Role-Based Access Control）の実装
+   - エンドポイント単位での権限チェック
+   - リソースオーナーシップの検証
+   - 監査ログの記録
 
 ### パフォーマンス
 
-- ベクター検索の目標レスポンス時間: <500ms (95%ile)
-- GPU使用時の埋め込み生成: 推奨
-- バッチ処理の優先使用
+**監視ファイル**: `../../app/services/metrics_collector.py`
+
+1. **パフォーマンス目標**:
+   - ベクター検索の目標レスポンス時間: <500ms (95%ile)
+   - API全体のレスポンス時間: <1秒 (95%ile)
+   - 同時リクエスト処理数: 100リクエスト/秒
+
+2. **最適化ポイント**:
+   - GPU使用時の埋め込み生成（10-50倍高速化）
+   - バッチ処理の優先使用（スループット向上）
+   - 結果キャッシング（Redis使用）
+   - 非同期処理の活用
 
 ### データ整合性
 
-- ドキュメント更新時のベクターと メタデータの同期
-- 障害時のトランザクション整合性の確保
+**実装ファイル**: `../../app/services/data_consistency_checker.py`
+
+1. **同期メカニズム**:
+   - ドキュメント更新時のベクターとメタデータの同期
+   - Sagaパターンによる分散トランザクション
+   - 障害時のロールバック処理
+   - 定期的な整合性チェック
+
+2. **データ保護**:
+   - PostgreSQLのトランザクション活用
+   - Milvusの整合性レベル設定
+   - バックアップとリカバリ手順
+   - データ検証の自動化
 
 ---
 
