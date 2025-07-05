@@ -136,8 +136,18 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 
 ### 2. Docker Compose 設定
 
+実際のDocker Compose設定ファイル: `../../docker-compose.yml`
+
+このファイルでは以下の重要なサービスが定義されています：
+- **rag-api**: FastAPIアプリケーション本体
+- **postgres**: メタデータ管理用のPostgreSQLデータベース
+- **milvus**: ベクター検索用のMilvusデータベース
+- **redis**: キャッシュとCeleryのメッセージブローカー
+- **etcd**: Milvusの設定管理
+- **minio**: オブジェクトストレージ（Milvusのデータ保存用）
+
 ```yaml
-# docker-compose.yml
+# docker-compose.yml の主要部分
 version: '3.8'
 
 services:
@@ -191,7 +201,7 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=ja_JP.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
+      # 初期化スクリプトは未作成（必要に応じて作成）
     ports:
       - "5432:5432"
     healthcheck:
@@ -216,7 +226,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_PASSWORD}
     volumes:
       - milvus_data:/var/lib/milvus
-      - ./milvus.yaml:/milvus/configs/milvus.yaml
+      # Milvus設定ファイルは環境変数で管理（実際の設定ファイルは未作成）
     ports:
       - "19530:19530"
       - "9091:9091"
@@ -324,8 +334,16 @@ networks:
 
 ### 1. Namespace とリソース管理
 
+Kubernetesマニフェストの検証は `../../app/deployment/kubernetes_validator.py` で実装されています。
+
+このモジュールでは以下の重要な機能を提供：
+- **マニフェスト検証**: YAML構文とKubernetesスキーマの検証
+- **リソース制限チェック**: CPU/メモリの適切な制限設定確認
+- **セキュリティ検証**: SecurityContext、NetworkPolicyの設定確認
+- **依存関係チェック**: Service、ConfigMap、Secretの参照整合性
+
 ```yaml
-# namespace.yaml
+# namespace.yaml の例
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -334,7 +352,7 @@ metadata:
     name: rag-system
     environment: production
 ---
-# resource-quota.yaml
+# resource-quota.yaml の例
 apiVersion: v1
 kind: ResourceQuota
 metadata:
@@ -613,8 +631,16 @@ spec:
 
 ### 4. データベース StatefulSet
 
+PostgreSQLの本番環境設定は `../../app/database/production_config.py` で管理されています。
+
+このモジュールでは以下の重要な機能を実装：
+- **接続プール管理**: 最適なプールサイズとタイムアウト設定
+- **高可用性設定**: マスター/スレーブレプリケーション対応
+- **パフォーマンス最適化**: インデックス戦略とクエリ最適化
+- **バックアップ/リストア**: 自動バックアップとポイントインタイムリカバリ
+
 ```yaml
-# postgres-statefulset.yaml
+# postgres-statefulset.yaml の例
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -723,8 +749,15 @@ spec:
 
 ### 1. GitHub Actions ワークフロー
 
+現在、GitHub Actionsの設定ファイルは存在しませんが、以下のテスト自動化は実装済みです：
+
+- **単体テスト**: `../../tests/` ディレクトリ内の各テストファイル
+- **統合テスト**: `../../tests/test_*_integration.py` ファイル群
+- **Kubernetesマニフェスト検証**: `../../tests/test_kubernetes_manifests.py`
+- **本番データベース設定テスト**: `../../tests/test_production_database.py`
+
 ```yaml
-# .github/workflows/ci-cd.yml
+# .github/workflows/ci-cd.yml の例
 name: CI/CD Pipeline
 
 on:
@@ -949,7 +982,8 @@ jobs:
     - name: Run smoke tests
       run: |
         # Staging環境でのスモークテスト
-        python tests/smoke/test_api_health.py --base-url=https://staging-api.rag-system.example.com
+        # スモークテストは未実装（health APIテストで代用可能: ../../tests/test_health_api.py）
+        echo "Running smoke tests against staging environment..."
 
   # Production 環境デプロイ
   deploy-production:
@@ -971,12 +1005,14 @@ jobs:
     - name: Blue-Green Deployment
       run: |
         # Blue-Green デプロイメント実行
-        ./scripts/blue-green-deploy.sh ${{ needs.build-image.outputs.image-tag }}
+        # 実際のスクリプトは未作成（以下は実装例）
+        echo "Deploying image ${{ needs.build-image.outputs.image-tag }}"
 
     - name: Post-deployment verification
       run: |
         # 本番環境での検証テスト
-        python tests/e2e/test_production_readiness.py --base-url=https://api.rag-system.example.com
+        # E2Eテストは未実装（以下は実行例）
+        echo "Running production readiness tests..."
 
     - name: Notify deployment
       uses: 8398a7/action-slack@v3
@@ -992,9 +1028,11 @@ jobs:
 
 ### 2. Blue-Green デプロイメントスクリプト
 
+以下はBlue-Greenデプロイメントの実装例です（実際のスクリプトファイルは未作成）：
+
 ```bash
 #!/bin/bash
-# scripts/blue-green-deploy.sh
+# scripts/blue-green-deploy.sh の例
 
 set -euo pipefail
 
@@ -1068,8 +1106,28 @@ echo "Blue-Green deployment completed successfully!"
 
 ### 1. Prometheus 監視設定
 
+監視・メトリクス収集は以下のモジュールで実装されています：
+
+- **メトリクス収集**: `../../app/services/metrics_collection.py`
+  - APIレスポンスタイム、スループット、エラー率の収集
+  - 埋め込み処理のパフォーマンスメトリクス
+  - 検索精度・再現率の追跡
+  - システムリソース使用状況の監視
+
+- **ログ分析**: `../../app/services/logging_analysis.py`
+  - 構造化ログの収集と分析
+  - エラーパターンの検出
+  - セキュリティイベントの追跡
+  - ログベースのメトリクス生成
+
+- **アラート設定**: `../../app/services/alerting_service.py`
+  - しきい値ベースのアラート
+  - 異常検知アルゴリズム
+  - エスカレーションルール
+  - 通知チャネル管理
+
 ```yaml
-# prometheus-config.yaml
+# prometheus-config.yaml の例
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -1208,6 +1266,14 @@ data:
 ```
 
 ### 2. Grafana ダッシュボード
+
+管理ダッシュボードの実装は `../../app/services/admin_dashboard.py` で提供されています。
+
+このモジュールでは以下の機能を実装：
+- **リアルタイムメトリクス表示**: API使用状況、検索パフォーマンス
+- **システム健全性監視**: コンポーネント別のヘルスステータス
+- **検索分析**: 人気クエリ、検索精度、ユーザー行動分析
+- **リソース使用状況**: CPU、メモリ、ディスク、ネットワークの可視化
 
 ```json
 {
