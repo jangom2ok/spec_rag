@@ -36,7 +36,7 @@ graph TD
 
     subgraph "保存層"
         POSTGRES[(PostgreSQL<br/>メタデータ)]
-        MILVUS[(ApertureDB<br/>ベクターデータ)]
+        APERTUREDB[(ApertureDB<br/>ベクターデータ)]
         REDIS[(Redis<br/>キャッシュ)]
     end
 
@@ -64,14 +64,14 @@ graph TD
 
     %% 保存フロー
     METADATA --> POSTGRES
-    EMBED --> MILVUS
+    EMBED --> APERTUREDB
     EMBED --> REDIS
 
     %% 検索フロー
     USER --> API
     API --> SEARCH
     SEARCH --> EMBED
-    SEARCH --> MILVUS
+    SEARCH --> APERTUREDB
     SEARCH --> POSTGRES
     SEARCH --> API
     API --> USER
@@ -329,9 +329,9 @@ graph TD
     SPARSE --> FILTER[フィルタリング]
     MULTI --> COMPRESS[圧縮]
 
-    NORMALIZE --> MILVUS_DENSE[(ApertureDB Dense Descriptor Set)]
-    FILTER --> MILVUS_SPARSE[(ApertureDB Sparse Descriptor Set)]
-    COMPRESS --> MILVUS_MULTI[(ApertureDB Multi Descriptor Set)]
+    NORMALIZE --> APERTUREDB_DENSE[(ApertureDB Dense Descriptor Set)]
+    FILTER --> APERTUREDB_SPARSE[(ApertureDB Sparse Descriptor Set)]
+    COMPRESS --> APERTUREDB_MULTI[(ApertureDB Multi Descriptor Set)]
 ```
 
 #### 📊 ベクター生成例

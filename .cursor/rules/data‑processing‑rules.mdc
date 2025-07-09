@@ -11,7 +11,7 @@ alwaysApply: false
 ```
 Source Systems → Extract → Transform → Load → Vector DB
      ↓              ↓         ↓         ↓        ↓
-   Git/Confluence  Raw Data  Chunks   Embeddings  Milvus
+   Git/Confluence  Raw Data  Chunks   Embeddings  ApertureDB
    Swagger/Sheets  Metadata  Filtered  Metadata   PostgreSQL
 ```
 
@@ -160,7 +160,7 @@ async def bulk_insert_vectors(vector_chunks: List[VectorChunk]):
     # 1. PostgreSQLにメタデータ挿入
     await insert_metadata_batch(vector_chunks)
 
-    # 2. Milvusにベクトル挿入
+    # 2. ApertureDBにベクトル挿入
     await insert_vectors_batch(vector_chunks)
 
     # 3. トランザクション管理

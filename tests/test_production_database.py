@@ -164,8 +164,8 @@ class TestDatabaseConfig:
         """基本設定の作成"""
         config = DatabaseConfig(
             postgres_url="postgresql://user:password@localhost:5432/test",
-            milvus_host="localhost",
-            milvus_port=19530,
+            aperturedb_host="localhost",
+            aperturedb_port=55555,
             redis_url="redis://localhost:6379/0",
         )
 
@@ -197,8 +197,8 @@ class TestDatabaseConfig:
         ):
             DatabaseConfig(
                 postgres_url="postgresql://user:password@localhost:5432/test",
-                milvus_host="localhost",
-                milvus_port=19530,
+                aperturedb_host="localhost",
+                aperturedb_port=55555,
                 redis_url="redis://localhost:6379/0",
                 connection_timeout=0,
             )
@@ -211,8 +211,8 @@ class TestDatabaseConfig:
         ):
             DatabaseConfig(
                 postgres_url="postgresql://user:password@localhost:5432/test",
-                milvus_host="localhost",
-                milvus_port=19530,
+                aperturedb_host="localhost",
+                aperturedb_port=55555,
                 redis_url="redis://localhost:6379/0",
                 max_connections=5,
                 min_connections=10,
