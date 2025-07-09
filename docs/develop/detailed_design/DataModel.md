@@ -68,13 +68,13 @@ CREATE INDEX idx_chunks_type ON document_chunks(chunk_type);
 CREATE INDEX idx_chunks_metadata ON document_chunks USING GIN(metadata);
 ```
 
-### 3. Vector Collections (Milvus)
+### 3. Vector Descriptor Sets (ApertureDB)
 
-#### Dense Vector Collection
+#### Dense Vector Descriptor Set
 
 ```python
-# Collection Schema
-dense_collection_schema = {
+# Descriptor Set Schema
+dense_descriptor_set_schema = {
     "name": "document_vectors_dense",
     "fields": [
         {
@@ -121,11 +121,11 @@ dense_collection_schema = {
 }
 ```
 
-#### Sparse Vector Collection
+#### Sparse Vector Descriptor Set
 
 ```python
-# Sparse Vector用のコレクション
-sparse_collection_schema = {
+# Sparse Vector用のディスクリプタセット
+sparse_descriptor_set_schema = {
     "name": "document_vectors_sparse",
     "fields": [
         {
@@ -364,7 +364,7 @@ CREATE INDEX CONCURRENTLY idx_documents_title_gin
 ON documents USING GIN(to_tsvector('japanese', title));
 ```
 
-### Milvus パーティション戦略
+### ApertureDB パーティション戦略
 
 ```python
 # ソースタイプ別パーティション

@@ -547,7 +547,7 @@ Redisベースのキャッシング機能により、同一テキストの再処
 
 埋め込みサービスとBGE-M3を理解できたら、次の学習段階に進んでください：
 
-- **Step05**: データモデル設計 - PostgreSQL・Milvusのスキーマ詳細
+- **Step05**: データモデル設計 - PostgreSQL・ApertureDBのスキーマ詳細
 - **Step06**: 認証・認可システム - JWT・API Key認証の実装
 - **Step07**: エラーハンドリングと監視 - 例外処理・ログ・メトリクス
 - **Step08**: デプロイメントと運用 - Docker・Kubernetes・監視

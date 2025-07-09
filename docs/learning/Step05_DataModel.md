@@ -2,14 +2,14 @@
 
 ## 🎯 この章の目標
 
-PostgreSQL・Milvusでのデータモデル設計、スキーマ詳細、インデックス戦略、データ整合性の仕組みを理解する
+PostgreSQL・ApertureDBでのデータモデル設計、スキーマ詳細、インデックス戦略、データ整合性の仕組みを理解する
 
 ---
 
 ## 📋 概要
 
 RAGシステムでは、構造化データ（メタデータ）と非構造化データ（ベクター）を効率的に管理するため、
-PostgreSQLとMilvusを使い分けています。適切なスキーマ設計により、高速検索と拡張性を両立します。
+PostgreSQLとApertureDBを使い分けています。適切なスキーマ設計により、高速検索と拡張性を両立します。
 
 ### 🏗️ データベース構成
 
@@ -20,10 +20,10 @@ PostgreSQLとMilvusを使い分けています。適切なスキーマ設計に�
 │   ├── chunks        # チャンク詳細
 │   ├── sources       # ソース管理
 │   └── users         # ユーザー・認証
-├── Milvus            # ベクターデータ
-│   ├── dense_collection    # Dense vectors
-│   ├── sparse_collection   # Sparse vectors
-│   └── multi_collection    # Multi-vectors
+├── ApertureDB        # ベクターデータ
+│   ├── dense_descriptor_set    # Dense vectors
+│   ├── sparse_descriptor_set   # Sparse vectors
+│   └── multi_descriptor_set    # Multi-vectors
 └── Redis             # キャッシュ・セッション
     ├── search_cache  # 検索結果キャッシュ
     ├── embedding_cache # 埋め込みキャッシュ
@@ -97,10 +97,10 @@ PostgreSQLとMilvusを使い分けています。適切なスキーマ設計に�
    - `parent_chunk_id`: 親チャンクへの参照（階層構造）
 
 3. **ベクターマッピング**:
-   - `dense_vector_id`: Milvus内のDense Vector ID
-   - `sparse_vector_id`: Milvus内のSparse Vector ID
-   - `multi_vector_id`: Milvus内のMulti-Vector ID
-   - これらのIDを使用してPostgreSQLとMilvusを連携
+   - `dense_vector_id`: ApertureDB内のDense Vector ID
+   - `sparse_vector_id`: ApertureDB内のSparse Vector ID
+   - `multi_vector_id`: ApertureDB内のMulti-Vector ID
+   - これらのIDを使用してPostgreSQLとApertureDBを連携
 
 4. **性能最適化**:
    - `last_search_score`: 最後の検索スコアをキャッシュ
@@ -223,13 +223,13 @@ APIアクセス用の認証キーを管理するテーブルです。
 
 ---
 
-## 🔍 Milvus ベクターコレクション設計
+## 🔍 ApertureDB ディスクリプタセット設計
 
-### 1. Dense Vector Collection
+### 1. Dense Vector Descriptor Set
 
-**実装ファイル**: `../../app/models/milvus.py` (DenseVectorCollectionクラス)
+**実装ファイル**: `../../app/models/aperturedb.py` (DenseVectorDescriptorSetクラス)
 
-セマンティック検索用の密ベクトルを格納するコレクションです。
+セマンティック検索用の密ベクトルを格納するディスクリプタセットです。
 
 **スキーマ設計の要点**:
 
@@ -255,11 +255,11 @@ APIアクセス用の認証キーを管理するテーブルです。
 - インデックス構築: 10万ベクトルで約5分
 - メモリ使用量: ベクトル数×4KB + インデックスオーバーヘッド
 
-### 2. Sparse Vector Collection
+### 2. Sparse Vector Descriptor Set
 
-**実装ファイル**: `../../app/models/milvus.py` (SparseVectorCollectionクラス)
+**実装ファイル**: `../../app/models/aperturedb.py` (SparseVectorDescriptorSetクラス)
 
-キーワード検索用の疎ベクトルを格納するコレクションです。
+キーワード検索用の疎ベクトルを格納するディスクリプタセットです。
 
 **Sparse Vectorの特徴**:
 
@@ -284,11 +284,11 @@ APIアクセス用の認証キーを管理するテーブルです。
 - エラーメッセージ検索
 - 完全一致が必要な場面
 
-### 3. Multi-Vector Collection
+### 3. Multi-Vector Descriptor Set
 
-**実装ファイル**: `../../app/models/milvus.py` (MultiVectorCollectionクラス)
+**実装ファイル**: `../../app/models/aperturedb.py` (MultiVectorDescriptorSetクラス)
 
-ColBERT式のトークンレベルベクトルを格納するコレクションです。
+ColBERT式のトークンレベルベクトルを格納するディスクリプタセットです。
 
 **Multi-Vectorの特徴**:
 
@@ -317,18 +317,18 @@ ColBERT式のトークンレベルベクトルを格納するコレクション�
 
 ## 🔗 データ関連付けとマッピング
 
-### PostgreSQL ↔ Milvus 連携
+### PostgreSQL ↔ ApertureDB 連携
 
 **実装ファイル**: `../../app/services/vector_mapping_service.py`
 
-VectorMappingServiceは、PostgreSQLの構造化データとMilvusのベクターデータを連携させる
+VectorMappingServiceは、PostgreSQLの構造化データとApertureDBのベクターデータを連携させる
 重要なサービスです。
 
 **データ連携の設計思想**:
 
 1. **トランザクション整合性**:
    - PostgreSQLへのメタデータ保存を先に実行
-   - Milvusへのベクター保存が成功した場合のみ、PostgreSQLを更新
+   - ApertureDBへのベクター保存が成功した場合のみ、PostgreSQLを更新
    - 失敗時は適切なロールバック処理を実行
    - 分散システムでのデータ整合性を保証
 
@@ -339,7 +339,7 @@ VectorMappingServiceは、PostgreSQLの構造化データとMilvusのベクタ�
 
 3. **保存プロセスの流れ**:
    - **ステップ1**: PostgreSQLにチャンクメタデータを保存（status: 'processing'）
-   - **ステップ2**: 3種類のベクターをそれぞれのMilvusコレクションに保存
+   - **ステップ2**: 3種類のベクターをそれぞれのApertureDBディスクリプタセットに保存
    - **ステップ3**: 成功後、PostgreSQLのベクターIDを更新（status: 'completed'）
 
 **エラーハンドリング**:
@@ -362,7 +362,7 @@ VectorMappingServiceは、PostgreSQLの構造化データとMilvusのベクタ�
 
 **実装ファイル**: `../../app/models/schema/triggers.sql`
 
-ドキュメント削除時にMilvusのベクターも適切に削除するため、
+ドキュメント削除時にApertureDBのベクターも適切に削除するため、
 PostgreSQLトリガーを実装しています。
 
 **削除カスケードの設計**:
@@ -370,16 +370,16 @@ PostgreSQLトリガーを実装しています。
 1. **トリガーベースの削除**:
    - ドキュメント削除時に自動的に発火
    - 関連するすべてのチャンクのベクターIDを収集
-   - 外部関数経由でMilvusのベクターを削除
+   - 外部関数経由でApertureDBのベクターを削除
 
 2. **非同期処理**:
-   - Milvusへの削除リクエストは非同期で実行
+   - ApertureDBへの削除リクエストは非同期で実行
    - PostgreSQLのトランザクションをブロックしない
    - 削除失敗時はログに記録し、バックグラウンドで再試行
 
 3. **整合性保証**:
    - PostgreSQLの外部キー制約でチャンクの削除は保証
-   - Milvusの削除は最終的整合性で処理
+   - ApertureDBの削除は最終的整合性で処理
    - 定期的なクリーンアップジョブで不整合を解消
 
 ### 2. データ状態一貫性チェック
@@ -407,7 +407,7 @@ PostgreSQLトリガーを実装しています。
    - タイムアウトしたタスクの検出
 
 4. **インデックス整合性の確認**:
-   - Milvusのインデックス構築状態
+   - ApertureDBのインデックス構築状態
    - PostgreSQLのインデックス破損チェック
    - パフォーマンス劣化の原因特定
 
@@ -481,13 +481,13 @@ PostgreSQLトリガーを実装しています。
 - to_tsvectorによる形態素解析結果をインデックス化
 - LIKE検索より100倍以上高速
 
-### 3. Milvus パフォーマンス設定
+### 3. ApertureDB パフォーマンス設定
 
-**実装ファイル**: `../../app/config/milvus_config.py`
+**実装ファイル**: `../../app/config/aperturedb_config.py`
 
-Milvusベクターデータベースのパフォーマンスを最大化するための設定です。
+ApertureDBベクターデータベースのパフォーマンスを最大化するための設定です。
 
-**コレクション設定の最適化**:
+**ディスクリプタセット設定の最適化**:
 
 1. **シャード数の決定**:
    - データ量とクエリ負荷に基づいて設定
@@ -559,7 +559,7 @@ Milvusベクターデータベースのパフォーマンスを最大化する�
 
 **分散トランザクションの課題**:
 
-- PostgreSQLとMilvusは独立したシステム
+- PostgreSQLとApertureDBは独立したシステム
 - 従来のACIDトランザクションが使用不可
 - 部分的な失敗による不整合リスク
 
@@ -610,7 +610,7 @@ Milvusベクターデータベースのパフォーマンスを最大化する�
 
 3. **プール最適化**:
    - PostgreSQL: 5-20接続（CPU数×2-4）
-   - Milvus: 10接続（並行検索数に依存）
+   - ApertureDB: 10接続（並行検索数に依存）
    - Redis: 20接続（キャッシュアクセス頻度）
 
 **監視項目**:
@@ -640,13 +640,13 @@ Milvusベクターデータベースのパフォーマンスを最大化する�
 
    階層構造の表現方法を説明してください
 
-3. MilvusでDense、Sparse、Multi-Vectorを別コレクションに分ける
+3. ApertureDBでDense、Sparse、Multi-Vectorを別ディスクリプタセットに分ける
 
    メリットを3つ挙げてください
 
 ### データ整合性理解
 
-1. PostgreSQL-Milvus間のデータ整合性を保つために
+1. PostgreSQL-ApertureDB間のデータ整合性を保つために
 
    実装された仕組みを説明してください
 
@@ -662,7 +662,7 @@ Milvusベクターデータベースのパフォーマンスを最大化する�
 
    適切な分割戦略を説明してください
 
-2. Milvusインデックスパラメータ（M、efConstruction）の
+2. ApertureDBインデックスパラメータ（M、efConstruction）の
 
    調整指針を説明してください
 

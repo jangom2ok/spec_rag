@@ -37,11 +37,11 @@ graph TD
     EMBED --> DENSE[Dense Vector<br/>セマンティック検索]
     EMBED --> SPARSE[Sparse Vector<br/>キーワード検索]
 
-    DENSE --> MILVUS_D[(Milvus Dense Collection)]
-    SPARSE --> MILVUS_S[(Milvus Sparse Collection)]
+    DENSE --> APERTUREDB_D[(ApertureDB Dense Descriptor Set)]
+    SPARSE --> APERTUREDB_S[(ApertureDB Sparse Descriptor Set)]
 
-    MILVUS_D --> RESULTS_D[Dense検索結果]
-    MILVUS_S --> RESULTS_S[Sparse検索結果]
+    APERTUREDB_D --> RESULTS_D[Dense検索結果]
+    APERTUREDB_S --> RESULTS_S[Sparse検索結果]
 
     RESULTS_D --> RRF[Reciprocal Rank Fusion]
     RESULTS_S --> RRF
@@ -63,7 +63,7 @@ graph TD
 2. **並列検索の実行**:
    - Dense Vector検索とSparse Vector検索を非同期で並列実行
    - RRF統合のためにtop_kの2倍の結果を取得
-   - 各検索は独立したMilvusコレクションに対して実行
+   - 各検索は独立したApertureDBディスクリプタセットに対して実行
 
 3. **RRFによる結果統合**:
    - 両方の検索結果をReciprocal Rank Fusionで統合
@@ -209,7 +209,7 @@ RRFアルゴリズムの実装では、以下の処理を行います：
 - **フィールド指定**: メタデータの任意のフィールドを対象に検索条件を設定
 - **演算子サポート**: 等価(eq)、包含(in)、範囲(gte/lte)など多様な比較演算
 - **型安全性**: 文字列と数値で適切なクォート処理を自動判定
-- **Milvus互換**: MilvusのExpression構文に自動変換
+- **ApertureDB互換**: ApertureDBのクエリ構文に自動変換
 
 **フィルター演算子の種類**:
 
@@ -221,7 +221,7 @@ RRFアルゴリズムの実装では、以下の処理を行います：
 
 **フィルター適用の流れ**:
 
-1. 各SearchFilterオブジェクトをMilvus Expression形式に変換
+1. 各SearchFilterオブジェクトをApertureDBクエリ形式に変換
 2. 複数のフィルターをAND条件で結合
 3. ベクター検索時にフィルター式を適用
 4. メタデータベースの条件に合致する結果のみ返却
@@ -334,9 +334,9 @@ RRFアルゴリズムの実装では、以下の処理を行います：
 
 ### 3. インデックス最適化
 
-**実装ファイル**: `../../app/models/milvus.py` (インデックス設定)
+**実装ファイル**: `../../app/models/aperturedb.py` (インデックス設定)
 
-Milvusベクターデータベースのインデックス最適化により、検索速度と精度のバランスを実現します。
+ApertureDBベクターデータベースのインデックス最適化により、検索速度と精度のバランスを実現します。
 
 **Dense Vectorインデックス (HNSW)**:
 
@@ -444,7 +444,7 @@ Milvusベクターデータベースのインデックス最適化により、�
    - 明示的な初期化と終了処理
 
 2. **接続プールの活用**:
-   - Milvusクライアントの再利用
+   - ApertureDBクライアントの再利用
    - 最大接続数の制限
    - アイドル接続の定期クリーンアップ
 
@@ -480,7 +480,7 @@ Milvusベクターデータベースのインデックス最適化により、�
 
 1. 並行検索実行でタイムアウト処理が重要な理由を説明してください
 2. 検索結果のキャッシュキー生成で考慮すべき要素を5つ挙げてください
-3. Milvusインデックスパラメータ（M、efConstruction）の調整が検索性能に与える影響を説明してください
+3. ApertureDBインデックスパラメータ（M、efConstruction）の調整が検索性能に与える影響を説明してください
 
 ### パフォーマンス理解
 
@@ -495,7 +495,7 @@ Milvusベクターデータベースのインデックス最適化により、�
 ベクター検索エンジンの仕組みを理解できたら、次の学習段階に進んでください：
 
 - **Step04**: 埋め込みサービスとBGE-M3 - ベクター生成の詳細プロセス
-- **Step05**: データモデル設計 - PostgreSQL・Milvusのスキーマ詳細
+- **Step05**: データモデル設計 - PostgreSQL・ApertureDBのスキーマ詳細
 - **Step06**: 認証・認可システム - JWT・API Key認証の実装
 - **Step07**: エラーハンドリングと監視 - 例外処理・ログ・メトリクス
 

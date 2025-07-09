@@ -11,7 +11,7 @@ docs/README.mdとdocs/Embedding.mdの資料を基に、システム開発にお�
 - **内容**: 全体システム構成、コンポーネント設計、非機能要件
 - **主要ポイント**:
   - BGE-M3による埋め込みサービス
-  - Milvusによるベクトル検索
+  - ApertureDBによるベクトル検索
   - FastAPIによるRESTful API
   - PostgreSQLによるメタデータ管理
 
@@ -20,7 +20,7 @@ docs/README.mdとdocs/Embedding.mdの資料を基に、システム開発にお�
 - **内容**: ドキュメント粒度戦略、データスキーマ、メタデータ設計
 - **主要ポイント**:
   - 4層のドキュメント粒度定義 (Document/Section/Paragraph/Term)
-  - PostgreSQL + Milvusのハイブリッドデータ構造
+  - PostgreSQL + ApertureDBのハイブリッドデータ構造
   - ソースタイプ別の処理戦略
   - セマンティック分割による高精度チャンク化
 

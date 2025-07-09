@@ -19,7 +19,7 @@ RAGシステム全体の構造を俯瞰し、各コンポーネントの基本�
 ### 💻 技術スタック
 
 - **API Framework**: FastAPI (Python 3.11+)
-- **Vector Database**: Milvus 2.3+
+- **Vector Database**: ApertureDB 0.5+
 - **Metadata Database**: PostgreSQL
 - **Embedding Model**: BGE-M3 (BAAI/BGE-M3)
 - **Task Queue**: Celery + Redis
@@ -36,7 +36,7 @@ spec_rag/
 │   ├── api/                # FastAPI エンドポイント定義
 │   ├── core/               # 認証・例外処理等のコア機能
 │   ├── database/           # データベース設定・マイグレーション
-│   ├── models/             # データモデル（SQLAlchemy・Milvus）
+│   ├── models/             # データモデル（SQLAlchemy・ApertureDB）
 │   ├── repositories/       # データアクセス層
 │   ├── services/           # ビジネスロジック層
 │   └── main.py            # FastAPIアプリケーションエントリーポイント
@@ -59,7 +59,7 @@ spec_rag/
 | `app/api/` | HTTP エンドポイント | `search.py`, `documents.py`, `auth.py` |
 | `app/services/` | ビジネスロジック | `embedding_service.py`, `hybrid_search_engine.py` |
 | `app/repositories/` | データアクセス | `document_repository.py`, `chunk_repository.py` |
-| `app/models/` | データモデル | `database.py`, `milvus.py` |
+| `app/models/` | データモデル | `database.py`, `aperturedb.py` |
 | `app/core/` | 基盤機能 | `auth.py`, `exceptions.py` |
 
 ---
@@ -85,7 +85,7 @@ graph TB
         end
 
         subgraph "データ層"
-            MILVUS[(Vector DB<br/>Milvus)]
+            APERTUREDB[(Vector DB<br/>ApertureDB)]
             POSTGRES[(Metadata DB<br/>PostgreSQL)]
             REDIS[(Cache/Queue<br/>Redis)]
         end
@@ -101,7 +101,7 @@ graph TB
 
     FASTAPI --> SEARCH
     SEARCH --> EMBED
-    SEARCH --> MILVUS
+    SEARCH --> APERTUREDB
     SEARCH --> POSTGRES
 
     COLLECTOR --> GIT
@@ -109,7 +109,7 @@ graph TB
     COLLECTOR --> EMBED
     COLLECTOR --> POSTGRES
 
-    EMBED --> MILVUS
+    EMBED --> APERTUREDB
     EMBED --> REDIS
 ```
 
@@ -229,8 +229,8 @@ graph TB
 1. **データベース接続**:
    - `DATABASE_URL`: PostgreSQL接続文字列
    - `REDIS_URL`: Redis接続文字列
-   - `MILVUS_HOST`: Milvusホスト名
-   - `MILVUS_PORT`: Milvusポート番号
+   - `APERTUREDB_HOST`: ApertureDBホスト名
+   - `APERTUREDB_PORT`: ApertureDBポート番号
 
 2. **実行環境**:
    - `ENVIRONMENT`: 実行環境（development/staging/production）
@@ -277,8 +277,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 - PostgreSQL（ポート5432）
 - Redis（ポート6379）
-- Milvus（ポート19530）
-- Minio（Milvusストレージ、ポート9000）
+- ApertureDB（ポート55555）
+- Minio（ApertureDBストレージ、ポート9000）
 
 ---
 
@@ -327,7 +327,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 2. **データ保護**:
    - PostgreSQLのトランザクション活用
-   - Milvusの整合性レベル設定
+   - ApertureDBの整合性レベル設定
    - バックアップとリカバリ手順
    - データ検証の自動化
 

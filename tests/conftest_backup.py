@@ -18,8 +18,8 @@ if not test_secret_key:
     # テスト用の安全なランダムキーを生成
     test_secret_key = secrets.token_urlsafe(32)
 os.environ["SECRET_KEY"] = test_secret_key
-os.environ["MILVUS_HOST"] = "localhost"
-os.environ["MILVUS_PORT"] = "19530"
+os.environ["APERTUREDB_HOST"] = "localhost"
+os.environ["APERTUREDB_PORT"] = "55555"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 
@@ -59,44 +59,18 @@ def mock_external_services(request: Any) -> Generator[dict[str, Any], None, None
     patches: list[Any] = []
     mocks: dict[str, Any] = {}
 
-    # Milvus（常にモック）
-    milvus_patches = [
-        patch("app.models.milvus.connections"),
-        patch("app.models.milvus.utility"),
-        patch("app.models.milvus.Collection"),
-        patch("app.models.milvus.FieldSchema"),
-        patch("app.models.milvus.CollectionSchema"),
-        patch("app.models.milvus.DataType"),
-        patch("pymilvus.connections"),
-        patch("pymilvus.utility"),
-        patch("pymilvus.Collection"),
-    ]
+    # ApertureDB（常にモック）
+    aperturedb_patch = patch("app.models.aperturedb.Client")
+    patches.append(aperturedb_patch)
+    mock_client = aperturedb_patch.start()
+    
+    # ApertureDBクライアントのモック設定
+    mock_client_instance = AsyncMock()
+    mock_client_instance.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
+    mock_client.return_value = mock_client_instance
 
-    for milvus_patch in milvus_patches:
-        patches.append(milvus_patch)
-        mock_obj = milvus_patch.start()
-
-        # 共通のモック設定
-        if hasattr(mock_obj, "connect"):
-            mock_obj.connect.return_value = None
-        if hasattr(mock_obj, "has_collection"):
-            mock_obj.has_collection.return_value = False  # 新しいコレクションを作成
-        if hasattr(mock_obj, "create_collection"):
-            mock_obj.create_collection.return_value = None
-        if hasattr(mock_obj, "load"):
-            mock_obj.load.return_value = None
-        if hasattr(mock_obj, "insert"):
-            mock_obj.insert.return_value = None
-        if hasattr(mock_obj, "search"):
-            mock_obj.search.return_value = []
-        if hasattr(mock_obj, "delete"):
-            mock_obj.delete.return_value = None
-
-    # 主要なmilvusオブジェクトをmocksに保存
-    mocks["milvus"] = {
-        "connections": patches[0].target if patches else None,
-        "utility": patches[1].target if len(patches) > 1 else None,
-        "Collection": patches[2].target if len(patches) > 2 else None,
+    # 主要なApertureDBオブジェクトをmocksに保存
+    mocks["aperturedb"] = {
     }
 
     # 認証ミドルウェア（条件付きモック）
@@ -190,11 +164,11 @@ def mock_database() -> Generator[AsyncMock, None, None]:
 
 
 @pytest.fixture
-def mock_milvus() -> Generator[dict[str, AsyncMock], None, None]:
-    """Milvusのモック"""
+def mock_aperturedb() -> Generator[dict[str, AsyncMock], None, None]:
+    """ApertureDBのモック"""
     with (
-        patch("app.models.milvus.DenseVectorCollection") as mock_dense,
-        patch("app.models.milvus.SparseVectorCollection") as mock_sparse,
+        patch("app.models.aperturedb.DenseVectorCollection") as mock_dense,
+        patch("app.models.aperturedb.SparseVectorCollection") as mock_sparse,
     ):
         mock_dense_instance = AsyncMock()
         mock_sparse_instance = AsyncMock()

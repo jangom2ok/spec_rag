@@ -218,8 +218,8 @@ def sample_configmap_manifest() -> dict[str, Any]:
         },
         "data": {
             "redis-url": "redis://spec-rag-redis:6379/0",
-            "milvus-host": "spec-rag-milvus",
-            "milvus-port": "19530",
+            "aperturedb-host": "spec-rag-aperturedb",
+            "aperturedb-port": "55555",
             "log-level": "INFO",
             "workers": "4",
         },

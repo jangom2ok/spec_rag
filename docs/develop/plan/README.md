@@ -94,7 +94,7 @@
 
 ### **🏆 最終成果**
 
-- **アーキテクチャ**: FastAPI + Milvus + PostgreSQL + BGE-M3 + Celery + Docker
+- **アーキテクチャ**: FastAPI + ApertureDB + PostgreSQL + BGE-M3 + Celery + Docker
 - **総テストケース**: 248個実装
 - **品質保証**: 平均75%以上カバレッジ、TDD手法適用
 - **本番運用対応**: Kubernetes、高可用性、セキュリティ、監視完備

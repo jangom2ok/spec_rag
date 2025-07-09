@@ -413,7 +413,7 @@ class HybridSearchEngine:
         """Dense vector検索"""
         start_time = datetime.now()
 
-        # モック実装（実際はMilvusを使用）
+        # モック実装（実際はApertureDBを使用）
         # ここでは類似ドキュメントIDとスコアを返す
         mock_ids = ["doc-1", "doc-2", "doc-3", "doc-4", "doc-5"]
         mock_scores = [0.95, 0.87, 0.73, 0.68, 0.54]
@@ -438,7 +438,7 @@ class HybridSearchEngine:
         """Sparse vector検索"""
         start_time = datetime.now()
 
-        # モック実装（実際はMilvusのsparse indexを使用）
+        # モック実装（実際はApertureDBのsparse検索を使用）
         mock_ids = ["doc-2", "doc-1", "doc-4", "doc-3", "doc-5"]
         mock_scores = [0.92, 0.84, 0.71, 0.65, 0.48]
 

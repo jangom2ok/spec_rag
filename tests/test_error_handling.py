@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from pymilvus.exceptions import MilvusException
+from aperturedb import DBException
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.exceptions import (
@@ -39,9 +39,9 @@ class TestCustomExceptions:
 
     def test_vector_database_exception(self):
         """ベクトルデータベース例外のテスト"""
-        exception = VectorDatabaseError("Milvus connection failed")
+        exception = VectorDatabaseError("ApertureDB connection failed")
 
-        assert str(exception) == "Milvus connection failed"
+        assert str(exception) == "ApertureDB connection failed"
         assert exception.status_code == 500
 
     def test_validation_exception(self):
@@ -114,9 +114,9 @@ class TestDatabaseErrorHandling:
     @patch("app.api.search.search_documents")
     def test_vector_database_error(self, mock_search, test_app):
         """ベクトルデータベースエラーのテスト"""
-        # MilvusExceptionの正しい使用方法
-        mock_search.side_effect = MilvusException(
-            code=1, message="Milvus connection failed"
+        # DBExceptionの正しい使用方法
+        mock_search.side_effect = DBException(
+            "ApertureDB connection failed"
         )
 
         client = TestClient(test_app)

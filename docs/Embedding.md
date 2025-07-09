@@ -51,7 +51,7 @@ RAG 向け Embedding を選ぶときは、まず **評価軸** を整理しま�
    Apache‑2.0 なので機密仕様も外に出さず運用可。GPU‑RAM 24 GB で ≈1 k doc/s の埋め込みが現実的。
 
 4. **ハイブリッド検索に追加コスト不要**
-   Dense ベクトル生成時に Sparse 重みを同時取得できるため、RRF\* や Vespa/Milvus の Hybrid Search をすぐ実装可能。([huggingface.co][1])
+   Dense ベクトル生成時に Sparse 重みを同時取得できるため、RRF\* や Vespa/ApertureDB の Hybrid Search をすぐ実装可能。([huggingface.co][1])
    \*RRF: Reciprocal Rank Fusion
 
 ---
@@ -65,7 +65,7 @@ RAG 向け Embedding を選ぶときは、まず **評価軸** を整理しま�
    ▼                              ▼
 ┌────────────────┐     ┌──────────────────┐
 │   RAG API      │<--─▶│ Vector DB        │
-│ (FastAPI etc.) │     │ (Milvus, Qdrant) │
+│ (FastAPI etc.) │     │ (ApertureDB)     │
 └────────────────┘     └──────────────────┘
          ▲                           ▲
          │                           │
