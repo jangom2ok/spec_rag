@@ -150,7 +150,9 @@ async def get_admin_user(
                 logging.debug(f"JWT認証に失敗: {e}")
                 pass
 
-        raise HTTPException(status_code=403, detail="Admin permission required") from None
+        raise HTTPException(
+            status_code=403, detail="Admin permission required"
+        ) from None
 
 
 # メトリクス収集サービス依存性注入
