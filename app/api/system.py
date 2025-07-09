@@ -8,10 +8,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from app.core.auth import require_admin_permission, validate_api_key
-from app.services.metrics_collection import (
-    MetricsCollectionService,
-    SystemMetrics,
-)
+from app.services.metrics_collection import MetricsCollectionService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["system"])

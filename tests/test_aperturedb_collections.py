@@ -34,9 +34,7 @@ class TestApertureDBCollection:
 
             # ベクトル次元数の確認
             assert dense_collection.get_vector_dimension() == 1024
-            assert (
-                sparse_collection.get_vector_dimension() == 1
-            )  # Sparse vectorはダミー値
+            assert sparse_collection.get_vector_dimension() == 1  # Sparse vectorはダミー値
 
     def test_connection_initialization(self):
         """接続初期化のテスト"""
