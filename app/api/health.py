@@ -6,7 +6,7 @@ from typing import Any
 
 import psutil
 from fastapi import APIRouter, HTTPException
-from pymilvus.exceptions import MilvusException  # type: ignore
+from aperturedb import DBException  # type: ignore
 from sqlalchemy.exc import SQLAlchemyError
 
 router = APIRouter(prefix="/v1/health", tags=["health"])
@@ -26,13 +26,13 @@ async def check_postgresql_connection() -> dict[str, Any]:
         return {"status": "unhealthy", "error": str(e)}
 
 
-async def check_milvus_connection() -> dict[str, Any]:
-    """Milvus接続チェック"""
+async def check_aperturedb_connection() -> dict[str, Any]:
+    """ApertureDB接続チェック"""
     try:
-        # 実際のMilvus接続チェックのモック
-        # 実装時にはMilvusクライアントを使用する
-        return {"status": "healthy", "collections": 2}  # モック値
-    except MilvusException as e:
+        # 実際のApertureDB接続チェックのモック
+        # 実装時にはApertureDBクライアントを使用する
+        return {"status": "healthy", "descriptor_sets": 2}  # モック値
+    except DBException as e:
         return {"status": "unhealthy", "error": str(e)}
 
 
@@ -70,13 +70,13 @@ async def detailed_health_check():
     """詳細ヘルスチェック"""
     try:
         postgresql_status = await check_postgresql_connection()
-        milvus_status = await check_milvus_connection()
+        aperturedb_status = await check_aperturedb_connection()
         system_metrics = await get_system_metrics()
 
         # 全体のステータス判定
         services_healthy = (
             postgresql_status["status"] == "healthy"
-            and milvus_status["status"] == "healthy"
+            and aperturedb_status["status"] == "healthy"
         )
 
         overall_status = "healthy" if services_healthy else "unhealthy"
@@ -84,7 +84,7 @@ async def detailed_health_check():
         return {
             "status": overall_status,
             "timestamp": datetime.utcnow().isoformat(),
-            "services": {"postgresql": postgresql_status, "milvus": milvus_status},
+            "services": {"postgresql": postgresql_status, "aperturedb": aperturedb_status},
             "system": system_metrics,
             "version": "1.0.0",
         }
@@ -95,7 +95,7 @@ async def detailed_health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "services": {
                 "postgresql": {"status": "unhealthy", "error": str(e)},
-                "milvus": {"status": "unhealthy", "error": str(e)},
+                "aperturedb": {"status": "unhealthy", "error": str(e)},
             },
             "system": await get_system_metrics(),
             "error": str(e),
@@ -109,11 +109,11 @@ async def readiness_probe():
     try:
         # データベース接続チェック
         postgresql_status = await check_postgresql_connection()
-        milvus_status = await check_milvus_connection()
+        aperturedb_status = await check_aperturedb_connection()
 
         ready = (
             postgresql_status["status"] == "healthy"
-            and milvus_status["status"] == "healthy"
+            and aperturedb_status["status"] == "healthy"
         )
 
         if ready:

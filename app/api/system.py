@@ -207,7 +207,7 @@ async def get_system_status(
 
         # ベクトルデータベースの状態
         try:
-            # 実際の実装ではMilvusにヘルスチェック
+            # 実際の実装ではApertureDBにヘルスチェック
             components["vector_database"] = ComponentStatus(
                 status="healthy",
                 metadata={

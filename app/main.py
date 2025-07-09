@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pymilvus.exceptions import MilvusException  # type: ignore
+from aperturedb import DBException  # type: ignore
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.auth import AuthHTTPError, admin_router
@@ -191,8 +191,8 @@ def setup_error_handlers(app: FastAPI) -> None:
             },
         )
 
-    @app.exception_handler(MilvusException)
-    async def vector_database_exception_handler(request: Request, exc: MilvusException):
+    @app.exception_handler(DBException)
+    async def vector_database_exception_handler(request: Request, exc: DBException):
         return JSONResponse(
             status_code=500,
             content={

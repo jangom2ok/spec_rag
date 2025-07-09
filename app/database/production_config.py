@@ -49,11 +49,11 @@ class DatabaseConfig:
     postgres_url: str
     postgres_replica_urls: list[str] = field(default_factory=list)
 
-    # Milvus設定
-    milvus_host: str = "localhost"
-    milvus_port: int = 19530
-    milvus_username: str = ""
-    milvus_password: str = ""
+    # ApertureDB設定
+    aperturedb_host: str = "localhost"
+    aperturedb_port: int = 55555
+    aperturedb_username: str = "admin"
+    aperturedb_password: str = "admin"
 
     # Redis設定
     redis_url: str = "redis://localhost:6379/0"
@@ -270,7 +270,7 @@ class HealthCheckConfig:
 
     # チェック対象
     check_postgres: bool = True
-    check_milvus: bool = True
+    check_aperturedb: bool = True
     check_redis: bool = True
     check_connectivity: bool = True
     check_query_performance: bool = True
@@ -577,57 +577,74 @@ class DatabaseHealthChecker:
                 error=str(e)
             )
 
-    async def check_milvus_health(self, host: str, port: int) -> HealthCheckResult:
-        """Milvus ヘルスチェック"""
+    async def check_aperturedb_health(self, host: str, port: int) -> HealthCheckResult:
+        """ApertureDB ヘルスチェック"""
         start_time = time.time()
 
         try:
-            # pymilvusを使用した接続テスト（実際の実装では本物の接続を使用）
+            # aperturedbを使用した接続テスト（実際の実装では本物の接続を使用）
             try:
-                from pymilvus import connections, utility
+                from aperturedb import Client
             except ImportError:
-                # テスト環境でpymilvusが利用できない場合のフォールバック
+                # テスト環境でaperturedbが利用できない場合のフォールバック
                 return HealthCheckResult(
-                    service="milvus",
+                    service="aperturedb",
                     status=HealthCheckStatus.HEALTHY,
                     timestamp=datetime.now(),
                     response_time=100.0,
-                    message="Milvus connection mocked (pymilvus not available)",
+                    message="ApertureDB connection mocked (aperturedb not available)",
                 )
 
-            connection_alias = f"health_check_{int(time.time())}"
-            connections.connect(
-                alias=connection_alias,
+            client = Client(
                 host=host,
                 port=port,
-                timeout=self.config.timeout
+                username="admin",
+                password="admin",
             )
 
             try:
-                # サーバーバージョン取得
-                version = utility.get_server_version(using=connection_alias)
+                # シンプルなクエリで接続チェック
+                query = [{"GetStatus": {}}]
+                response, _ = client.query(query)
 
-                response_time = (time.time() - start_time) * 1000
+                if response and len(response) > 0:
+                    response_time = (time.time() - start_time) * 1000
+                    return HealthCheckResult(
+                        service="aperturedb",
+                        status=HealthCheckStatus.HEALTHY,
+                        timestamp=datetime.now(),
+                        response_time=response_time,
+                        message="ApertureDB connection successful",
+                        metadata={"status": response[0]}
+                    )
+                else:
+                    return HealthCheckResult(
+                        service="aperturedb",
+                        status=HealthCheckStatus.UNHEALTHY,
+                        timestamp=datetime.now(),
+                        response_time=(time.time() - start_time) * 1000,
+                        message="ApertureDB query failed",
+                        error="No response received"
+                    )
+
+            except Exception as query_error:
                 return HealthCheckResult(
-                    service="milvus",
-                    status=HealthCheckStatus.HEALTHY,
+                    service="aperturedb",
+                    status=HealthCheckStatus.UNHEALTHY,
                     timestamp=datetime.now(),
-                    response_time=response_time,
-                    message="Milvus connection successful",
-                    metadata={"version": version}
+                    response_time=(time.time() - start_time) * 1000,
+                    message="ApertureDB query failed",
+                    error=str(query_error)
                 )
-
-            finally:
-                connections.disconnect(connection_alias)
 
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
             return HealthCheckResult(
-                service="milvus",
+                service="aperturedb",
                 status=HealthCheckStatus.UNHEALTHY,
                 timestamp=datetime.now(),
                 response_time=response_time,
-                message="Milvus connection failed",
+                message="ApertureDB connection failed",
                 error=str(e)
             )
 
@@ -705,11 +722,11 @@ class DatabaseHealthChecker:
                 results.append(replica_result)
                 self._health_history.append(replica_result)
 
-        # Milvus ヘルスチェック
-        if self.config.check_milvus:
-            milvus_result = await self.check_milvus_health(db_config.milvus_host, db_config.milvus_port)
-            results.append(milvus_result)
-            self._health_history.append(milvus_result)
+        # ApertureDB ヘルスチェック
+        if self.config.check_aperturedb:
+            aperturedb_result = await self.check_aperturedb_health(db_config.aperturedb_host, db_config.aperturedb_port)
+            results.append(aperturedb_result)
+            self._health_history.append(aperturedb_result)
 
         # Redis ヘルスチェック
         if self.config.check_redis:
@@ -773,8 +790,8 @@ class ProductionDatabaseManager:
         # Redis接続プール初期化
         await self._initialize_redis_pool()
 
-        # Milvus接続初期化
-        await self._initialize_milvus_connection()
+        # ApertureDB接続初期化
+        await self._initialize_aperturedb_connection()
 
         logger.info("Database connections initialized successfully")
 
@@ -871,28 +888,27 @@ class ProductionDatabaseManager:
             if "redis" not in self._connection_pools:
                 raise Exception("Failed to connect to any Redis instance") from e
 
-    async def _initialize_milvus_connection(self) -> None:
-        """Milvus接続初期化"""
+    async def _initialize_aperturedb_connection(self) -> None:
+        """ApertureDB接続初期化"""
         try:
-            from pymilvus import connections
+            from aperturedb import Client
         except ImportError:
-            logger.warning("pymilvus not available, skipping Milvus connection initialization")
+            logger.warning("aperturedb not available, skipping ApertureDB connection initialization")
             return
 
         try:
-            connections.connect(
-                alias="default",
-                host=self.config.milvus_host,
-                port=self.config.milvus_port,
-                user=self.config.milvus_username,
-                password=self.config.milvus_password,
+            client = Client(
+                host=self.config.aperturedb_host,
+                port=self.config.aperturedb_port,
+                username=self.config.aperturedb_username,
+                password=self.config.aperturedb_password,
             )
 
-            self._connection_pools["milvus"] = "default"  # 接続エイリアス
-            logger.info("Milvus connection established")
+            self._connection_pools["aperturedb"] = client  # クライアントインスタンス
+            logger.info("ApertureDB connection established")
 
         except Exception as e:
-            logger.error(f"Failed to connect to Milvus: {e}")
+            logger.error(f"Failed to connect to ApertureDB: {e}")
             raise e
 
     async def get_connection_pool(self, service: str) -> Any:
@@ -924,14 +940,13 @@ class ProductionDatabaseManager:
             except Exception as e:
                 logger.error(f"Error closing Redis pool: {e}")
 
-        # Milvus接続のクローズ
-        if "milvus" in self._connection_pools:
+        # ApertureDB接続のクローズ
+        if "aperturedb" in self._connection_pools:
             try:
-                from pymilvus import connections
-                connections.disconnect("default")
-                logger.info("Milvus connection closed")
+                # ApertureDBクライアントは通常明示的なクローズは不要
+                logger.info("ApertureDB connection closed")
             except Exception as e:
-                logger.error(f"Error closing Milvus connection: {e}")
+                logger.error(f"Error closing ApertureDB connection: {e}")
 
         self._connection_pools.clear()
 
@@ -945,7 +960,7 @@ class ProductionDatabaseManager:
             "active_pools": list(self._connection_pools.keys()),
             "postgres_available": "postgres" in self._connection_pools,
             "redis_available": "redis" in self._connection_pools,
-            "milvus_available": "milvus" in self._connection_pools,
+            "aperturedb_available": "aperturedb" in self._connection_pools,
             "config": self.config.to_dict(),
         }
 

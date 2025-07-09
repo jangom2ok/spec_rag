@@ -1,7 +1,7 @@
 """本番データベース設定テスト
 
 TDD実装：本番環境データベース設定・接続・パフォーマンス検証
-- 接続設定検証: PostgreSQL、Milvus、Redis接続の検証
+- 接続設定検証: PostgreSQL、ApertureDB、Redis接続の検証
 - パフォーマンス設定: 接続プール、タイムアウト、リトライ設定
 - セキュリティ設定: SSL/TLS、認証、暗号化設定の検証
 - 高可用性設定: フェイルオーバー、レプリケーション設定
@@ -36,8 +36,8 @@ def basic_database_config() -> DatabaseConfig:
     """基本的なデータベース設定"""
     return DatabaseConfig(
         postgres_url="postgresql://user:password@localhost:5432/spec_rag",
-        milvus_host="localhost",
-        milvus_port=19530,
+        aperturedb_host="localhost",
+        aperturedb_port=55555,
         redis_url="redis://localhost:6379/0",
         enable_ssl=False,
         connection_timeout=30,
@@ -56,10 +56,10 @@ def production_database_config() -> DatabaseConfig:
             "postgresql://prod_user:secure_password@postgres-replica1.internal:5432/spec_rag_prod",
             "postgresql://prod_user:secure_password@postgres-replica2.internal:5432/spec_rag_prod",
         ],
-        milvus_host="milvus-cluster.internal",
-        milvus_port=19530,
-        milvus_username="milvus_user",
-        milvus_password="secure_milvus_password",
+        aperturedb_host="aperturedb-cluster.internal",
+        aperturedb_port=55555,
+        aperturedb_username="admin",
+        aperturedb_password="secure_aperturedb_password",
         redis_url="redis://redis-cluster.internal:6379/0",
         redis_cluster_nodes=[
             "redis://redis-node1.internal:6379",
@@ -145,7 +145,7 @@ def health_check_config() -> HealthCheckConfig:
         retry_attempts=3,
         retry_delay=2.0,
         check_postgres=True,
-        check_milvus=True,
+        check_aperturedb=True,
         check_redis=True,
         check_connectivity=True,
         check_query_performance=True,
@@ -173,8 +173,8 @@ class TestDatabaseConfig:
         )
 
         assert config.postgres_url == "postgresql://user:password@localhost:5432/test"
-        assert config.milvus_host == "localhost"
-        assert config.milvus_port == 19530
+        assert config.aperturedb_host == "localhost"
+        assert config.aperturedb_port == 55555
         assert config.redis_url == "redis://localhost:6379/0"
         assert config.enable_ssl is False  # デフォルト値
         assert config.connection_timeout == 30  # デフォルト値
@@ -448,13 +448,13 @@ class TestDatabaseHealthChecker:
         assert result.status in [HealthCheckStatus.HEALTHY, HealthCheckStatus.UNHEALTHY]
 
     @pytest.mark.unit
-    async def test_milvus_health_check_success(self, health_check_config: HealthCheckConfig):
-        """Milvus ヘルスチェック（成功）"""
+    async def test_aperturedb_health_check_success(self, health_check_config: HealthCheckConfig):
+        """ApertureDB ヘルスチェック（成功）"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
-        result = await checker.check_milvus_health("localhost", 19530)
+        result = await checker.check_aperturedb_health("localhost", 55555)
 
-        # pymilvusが利用できない場合はフォールバック動作
+        # aperturedbが利用できない場合はフォールバック動作
         assert result.status == HealthCheckStatus.HEALTHY
         assert "mocked" in result.message or "successful" in result.message
 
@@ -479,7 +479,7 @@ class TestDatabaseHealthChecker:
         checker = DatabaseHealthChecker(config=health_check_config)
 
         with patch.object(checker, "check_postgres_health") as mock_postgres, \
-             patch.object(checker, "check_milvus_health") as mock_milvus, \
+             patch.object(checker, "check_aperturedb_health") as mock_aperturedb, \
              patch.object(checker, "check_redis_health") as mock_redis:
 
             # 成功レスポンスをモック
@@ -492,12 +492,12 @@ class TestDatabaseHealthChecker:
             )
 
             mock_postgres.return_value = healthy_result
-            mock_milvus.return_value = healthy_result
+            mock_aperturedb.return_value = healthy_result
             mock_redis.return_value = healthy_result
 
             results = await checker.perform_comprehensive_health_check(production_database_config)
 
-            assert len(results) >= 3  # PostgreSQL, Milvus, Redis
+            assert len(results) >= 3  # PostgreSQL, ApertureDB, Redis
             assert all(result.status == HealthCheckStatus.HEALTHY for result in results)
 
     @pytest.mark.unit
@@ -631,7 +631,7 @@ class TestProductionDatabaseIntegration:
                         message="Healthy"
                     ),
                     HealthCheckResult(
-                        service="milvus",
+                        service="aperturedb",
                         status=HealthCheckStatus.HEALTHY,
                         timestamp=datetime.now(),
                         response_time=30.0,

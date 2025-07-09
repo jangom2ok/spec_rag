@@ -81,7 +81,7 @@ except ImportError:
             return False
 
 
-from app.models.milvus import VectorData
+from app.models.aperturedb import VectorData
 from app.services.embedding_service import (
     BatchEmbeddingRequest,
     EmbeddingConfig,
