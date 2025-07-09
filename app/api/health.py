@@ -5,7 +5,10 @@ from datetime import datetime
 from typing import Any
 
 import psutil
-from aperturedb import DBException  # type: ignore
+try:
+    from aperturedb import DBException
+except ImportError:
+    from app.models.aperturedb_mock import DBException
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
