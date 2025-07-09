@@ -76,26 +76,36 @@ class SearchRequest(BaseModel):
     query: str = Field(..., description="検索クエリ")
     filters: EnhancedFilters | None = Field(None, description="拡張フィルター条件")
     search_options: SearchOptions | None = Field(None, description="検索オプション")
-    ranking_options: RankingOptions | None = Field(None, description="ランキングオプション")
+    ranking_options: RankingOptions | None = Field(
+        None, description="ランキングオプション"
+    )
 
     # レガシー互換性のためのフィールド（既存APIとの後方互換性）
-    max_results: int | None = Field(None, description="最大取得件数（レガシー）", ge=1, le=100)
+    max_results: int | None = Field(
+        None, description="最大取得件数（レガシー）", ge=1, le=100
+    )
     offset: int = Field(0, description="オフセット", ge=0)
     search_mode: SearchMode | None = Field(None, description="検索モード（レガシー）")
     legacy_filters: list[SearchFilterRequest] = Field(
         default_factory=list, description="従来のフィルター条件", alias="legacy_filters"
     )
-    facets: list[str] = Field(default_factory=list, description="ファセット計算フィールド")
+    facets: list[str] = Field(
+        default_factory=list, description="ファセット計算フィールド"
+    )
 
     # レガシー互換性フィールド
-    dense_weight: float | None = Field(None, description="Dense検索重み（レガシー）", ge=0, le=1)
+    dense_weight: float | None = Field(
+        None, description="Dense検索重み（レガシー）", ge=0, le=1
+    )
     sparse_weight: float | None = Field(
         None, description="Sparse検索重み（レガシー）", ge=0, le=1
     )
     similarity_threshold: float | None = Field(
         None, description="類似度閾値（レガシー）", ge=0, le=1
     )
-    enable_reranking: bool | None = Field(None, description="リランキング有効化（レガシー）")
+    enable_reranking: bool | None = Field(
+        None, description="リランキング有効化（レガシー）"
+    )
 
 
 class SourceInfo(BaseModel):
@@ -124,7 +134,9 @@ class SearchResultDocument(BaseModel):
     chunk_type: str | None = Field(None, description="チャンクタイプ")
     title: str = Field(..., description="タイトル")
     content: str = Field(..., description="コンテンツ")
-    highlighted_content: str | None = Field(None, description="ハイライト済みコンテンツ")
+    highlighted_content: str | None = Field(
+        None, description="ハイライト済みコンテンツ"
+    )
     source: SourceInfo | None = Field(None, description="ソース情報")
     metadata: dict[str, Any] | None = Field(None, description="メタデータ")
     context: ContextInfo | None = Field(None, description="コンテキスト情報")
@@ -134,7 +146,9 @@ class SearchResultDocument(BaseModel):
     search_score: float | None = Field(None, description="検索スコア（レガシー）")
     source_type: str | None = Field(None, description="ソースタイプ（レガシー）")
     language: str | None = Field(None, description="言語（レガシー）")
-    document_type: str | None = Field(None, description="ドキュメントタイプ（レガシー）")
+    document_type: str | None = Field(
+        None, description="ドキュメントタイプ（レガシー）"
+    )
     rerank_score: float | None = Field(None, description="リランクスコア（レガシー）")
     ranking_explanation: dict[str, Any] | None = Field(
         None, description="ランキング説明（レガシー）"
@@ -301,14 +315,14 @@ def generate_search_suggestions(query: str, results: list[dict]) -> list[str]:
     """検索結果に基づいて候補を生成"""
     suggestions = []
 
-    # 基本的な候補リスト
-    base_suggestions = [
-        f"{query} 実装",
-        f"{query} 設定",
-        f"{query} エラー",
-        f"{query} 使い方",
-        f"{query} ガイド",
-    ]
+    # 基本的な候補リスト（将来的に使用予定）
+    # base_suggestions = [
+    #     f"{query} 実装",
+    #     f"{query} 設定",
+    #     f"{query} エラー",
+    #     f"{query} 使い方",
+    #     f"{query} ガイド",
+    # ]
 
     # 結果から関連タグを抽出して候補を生成
     tags = set()

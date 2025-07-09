@@ -247,7 +247,9 @@ class TestLoggingAnalysisService:
         for entry in sample_log_entries:
             await service.ingest_log_entry(entry)
 
-        assert len(service._log_buffer) == len(sample_log_entries) - 1  # DEBUGログが除外される
+        assert (
+            len(service._log_buffer) == len(sample_log_entries) - 1
+        )  # DEBUGログが除外される
 
         # ログレベルフィルタリングの確認（DEBUG以下は除外される）
         filtered_logs = [
@@ -255,7 +257,9 @@ class TestLoggingAnalysisService:
             for log in service._log_buffer
             if log.level.value_int >= basic_logging_config.log_level.value_int
         ]
-        assert len(filtered_logs) == len(sample_log_entries) - 1  # DEBUGログが1件除外される
+        assert (
+            len(filtered_logs) == len(sample_log_entries) - 1
+        )  # DEBUGログが1件除外される
 
 
 class TestLogEntryManagement:

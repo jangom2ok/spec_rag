@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 import psutil
+
 try:
     from aperturedb import DBException
 except ImportError:

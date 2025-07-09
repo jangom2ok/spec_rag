@@ -69,16 +69,6 @@ class ResourceMetrics(BaseModel):
     network_io_mbps: float | None = None
 
 
-class SystemMetrics(BaseModel):
-    """システムメトリクスレスポンス（レガシー互換性）"""
-
-    search_metrics: dict[str, Any]
-    embedding_metrics: dict[str, Any]
-    database_metrics: dict[str, Any]
-    performance_metrics: dict[str, Any]
-    timestamp: str
-
-
 class SystemMetricsResponse(BaseModel):
     """システムメトリクスレスポンス"""
 
@@ -86,6 +76,10 @@ class SystemMetricsResponse(BaseModel):
     usage_metrics: UsageMetrics | None = None
     resource_metrics: ResourceMetrics | None = None
     timestamp: datetime
+    # レガシー互換性フィールド
+    search_metrics: dict[str, Any] | None = None
+    embedding_metrics: dict[str, Any] | None = None
+    database_metrics: dict[str, Any] | None = None
 
 
 class ReindexRequest(BaseModel):
@@ -116,7 +110,7 @@ async def get_admin_user(
     """管理者認証用の依存性注入"""
     try:
         return await require_admin_permission(authorization, x_api_key)
-    except:
+    except Exception:
         # フォールバック: 従来の認証ロジック
         # API Key認証を先に試行
         if x_api_key:
@@ -156,7 +150,7 @@ async def get_admin_user(
                 logging.debug(f"JWT認証に失敗: {e}")
                 pass
 
-        raise HTTPException(status_code=403, detail="Admin permission required")
+        raise HTTPException(status_code=403, detail="Admin permission required") from None
 
 
 # メトリクス収集サービス依存性注入
@@ -281,7 +275,7 @@ async def get_system_metrics(
     """
     try:
         # メトリクス収集サービスからデータを取得
-        system_metrics = await metrics_service.get_current_metrics()
+        _ = await metrics_service.get_current_metrics()
 
         # パフォーマンスメトリクス
         performance_metrics = PerformanceMetrics(

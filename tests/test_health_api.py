@@ -136,7 +136,9 @@ class TestHealthCheckErrorScenarios:
         client = TestClient(app)
         response = client.get("/v1/health/detailed")
 
-        assert response.status_code == 200  # ヘルスチェックAPIは200を返すが、ステータスで異常を示す
+        assert (
+            response.status_code == 200
+        )  # ヘルスチェックAPIは200を返すが、ステータスで異常を示す
         data = response.json()
 
         assert data["status"] in ["unhealthy", "degraded"]

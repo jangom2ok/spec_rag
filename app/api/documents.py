@@ -260,10 +260,8 @@ async def update_document(
     if document_update.content is not None:
         existing_doc["content"] = document_update.content
         # コンテンツが変更された場合、content_hashを再計算
-        import hashlib
-
-        content_hash = hashlib.sha256(document_update.content.encode()).hexdigest()
         # 実際の実装では、データベースのcontent_hashフィールドを更新
+        pass
     if document_update.source_type is not None:
         existing_doc["source_type"] = document_update.source_type
 
