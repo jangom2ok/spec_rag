@@ -9,9 +9,7 @@ TDD実装：本番環境データベース設定・接続・パフォーマン�
 """
 
 import asyncio
-import ssl
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -26,7 +24,6 @@ from app.database.production_config import (
     PerformanceConfig,
     ProductionDatabaseManager,
     SecurityConfig,
-    ValidationResult,
     ValidationSeverity,
 )
 
@@ -180,7 +177,9 @@ class TestDatabaseConfig:
         assert config.connection_timeout == 30  # デフォルト値
 
     @pytest.mark.unit
-    def test_production_config_validation(self, production_database_config: DatabaseConfig):
+    def test_production_config_validation(
+        self, production_database_config: DatabaseConfig
+    ):
         """本番設定のバリデーション"""
         config = production_database_config
 
@@ -193,7 +192,9 @@ class TestDatabaseConfig:
     @pytest.mark.unit
     def test_config_validation_invalid_timeout(self):
         """無効なタイムアウト設定のバリデーション"""
-        with pytest.raises(ValueError, match="connection_timeout must be greater than 0"):
+        with pytest.raises(
+            ValueError, match="connection_timeout must be greater than 0"
+        ):
             DatabaseConfig(
                 postgres_url="postgresql://user:password@localhost:5432/test",
                 milvus_host="localhost",
@@ -205,7 +206,9 @@ class TestDatabaseConfig:
     @pytest.mark.unit
     def test_config_validation_invalid_connections(self):
         """無効な接続数設定のバリデーション"""
-        with pytest.raises(ValueError, match="max_connections must be greater than min_connections"):
+        with pytest.raises(
+            ValueError, match="max_connections must be greater than min_connections"
+        ):
             DatabaseConfig(
                 postgres_url="postgresql://user:password@localhost:5432/test",
                 milvus_host="localhost",
@@ -302,7 +305,9 @@ class TestDatabaseValidator:
     """データベース検証のテスト"""
 
     @pytest.mark.unit
-    async def test_validate_basic_configuration(self, basic_database_config: DatabaseConfig):
+    async def test_validate_basic_configuration(
+        self, basic_database_config: DatabaseConfig
+    ):
         """基本設定の検証"""
         validator = DatabaseValidator()
 
@@ -313,7 +318,9 @@ class TestDatabaseValidator:
         assert len(result.errors) == 0
 
     @pytest.mark.unit
-    async def test_validate_production_configuration(self, production_database_config: DatabaseConfig):
+    async def test_validate_production_configuration(
+        self, production_database_config: DatabaseConfig
+    ):
         """本番設定の検証"""
         validator = DatabaseValidator()
 
@@ -352,10 +359,14 @@ class TestDatabaseValidator:
         assert result.is_valid is False
         assert result.has_ssl_enabled is False
         assert len(result.security_violations) > 0
-        assert any("SSL disabled" in violation for violation in result.security_violations)
+        assert any(
+            "SSL disabled" in violation for violation in result.security_violations
+        )
 
     @pytest.mark.unit
-    async def test_validate_performance_settings(self, performance_config: PerformanceConfig):
+    async def test_validate_performance_settings(
+        self, performance_config: PerformanceConfig
+    ):
         """パフォーマンス設定の検証"""
         validator = DatabaseValidator()
 
@@ -383,7 +394,10 @@ class TestDatabaseValidator:
         assert result.is_valid is False
         assert result.has_connection_pooling is False
         assert len(result.performance_violations) > 0
-        assert any("connection pooling disabled" in violation.lower() for violation in result.performance_violations)
+        assert any(
+            "connection pooling disabled" in violation.lower()
+            for violation in result.performance_violations
+        )
 
     @pytest.mark.unit
     async def test_validate_url_format(self):
@@ -416,7 +430,9 @@ class TestDatabaseHealthChecker:
     """データベースヘルスチェックのテスト"""
 
     @pytest.mark.unit
-    async def test_health_checker_initialization(self, health_check_config: HealthCheckConfig):
+    async def test_health_checker_initialization(
+        self, health_check_config: HealthCheckConfig
+    ):
         """ヘルスチェッカーの初期化"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
@@ -424,11 +440,15 @@ class TestDatabaseHealthChecker:
         assert checker._is_monitoring is False
 
     @pytest.mark.unit
-    async def test_postgres_health_check_success(self, health_check_config: HealthCheckConfig):
+    async def test_postgres_health_check_success(
+        self, health_check_config: HealthCheckConfig
+    ):
         """PostgreSQL ヘルスチェック（成功）"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
-        result = await checker.check_postgres_health("postgresql://user:password@localhost:5432/test")
+        result = await checker.check_postgres_health(
+            "postgresql://user:password@localhost:5432/test"
+        )
 
         # asyncpgが利用できない場合はフォールバック動作
         assert result.status == HealthCheckStatus.HEALTHY
@@ -436,19 +456,25 @@ class TestDatabaseHealthChecker:
         assert "mocked" in result.message or "successful" in result.message
 
     @pytest.mark.unit
-    async def test_postgres_health_check_failure(self, health_check_config: HealthCheckConfig):
+    async def test_postgres_health_check_failure(
+        self, health_check_config: HealthCheckConfig
+    ):
         """PostgreSQL ヘルスチェック（失敗）"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
         # 接続失敗をテストするために、実際に無効なURLでテスト
         # ただし、ライブラリが利用できない場合はフォールバック動作になる
-        result = await checker.check_postgres_health("postgresql://invalid:url@nonexistent:5432/test")
+        result = await checker.check_postgres_health(
+            "postgresql://invalid:url@nonexistent:5432/test"
+        )
 
         # フォールバックまたは実際の接続失敗
         assert result.status in [HealthCheckStatus.HEALTHY, HealthCheckStatus.UNHEALTHY]
 
     @pytest.mark.unit
-    async def test_aperturedb_health_check_success(self, health_check_config: HealthCheckConfig):
+    async def test_aperturedb_health_check_success(
+        self, health_check_config: HealthCheckConfig
+    ):
         """ApertureDB ヘルスチェック（成功）"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
@@ -459,7 +485,9 @@ class TestDatabaseHealthChecker:
         assert "mocked" in result.message or "successful" in result.message
 
     @pytest.mark.unit
-    async def test_redis_health_check_success(self, health_check_config: HealthCheckConfig):
+    async def test_redis_health_check_success(
+        self, health_check_config: HealthCheckConfig
+    ):
         """Redis ヘルスチェック（成功）"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
@@ -471,41 +499,48 @@ class TestDatabaseHealthChecker:
 
     @pytest.mark.unit
     async def test_comprehensive_health_check(
-        self, 
-        production_database_config: DatabaseConfig, 
-        health_check_config: HealthCheckConfig
+        self,
+        production_database_config: DatabaseConfig,
+        health_check_config: HealthCheckConfig,
     ):
         """包括的ヘルスチェック"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
-        with patch.object(checker, "check_postgres_health") as mock_postgres, \
-             patch.object(checker, "check_aperturedb_health") as mock_aperturedb, \
-             patch.object(checker, "check_redis_health") as mock_redis:
-
+        with (
+            patch.object(checker, "check_postgres_health") as mock_postgres,
+            patch.object(checker, "check_aperturedb_health") as mock_aperturedb,
+            patch.object(checker, "check_redis_health") as mock_redis,
+        ):
             # 成功レスポンスをモック
             healthy_result = HealthCheckResult(
                 service="mock",
                 status=HealthCheckStatus.HEALTHY,
                 timestamp=datetime.now(),
                 response_time=100.0,
-                message="Healthy"
+                message="Healthy",
             )
 
             mock_postgres.return_value = healthy_result
             mock_aperturedb.return_value = healthy_result
             mock_redis.return_value = healthy_result
 
-            results = await checker.perform_comprehensive_health_check(production_database_config)
+            results = await checker.perform_comprehensive_health_check(
+                production_database_config
+            )
 
             assert len(results) >= 3  # PostgreSQL, ApertureDB, Redis
             assert all(result.status == HealthCheckStatus.HEALTHY for result in results)
 
     @pytest.mark.unit
-    async def test_health_check_performance_monitoring(self, health_check_config: HealthCheckConfig):
+    async def test_health_check_performance_monitoring(
+        self, health_check_config: HealthCheckConfig
+    ):
         """ヘルスチェックのパフォーマンス監視"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
-        result = await checker.check_postgres_health("postgresql://user:password@localhost:5432/test")
+        result = await checker.check_postgres_health(
+            "postgresql://user:password@localhost:5432/test"
+        )
 
         # フォールバック動作でもレスポンス時間は記録される
         assert result.status == HealthCheckStatus.HEALTHY
@@ -525,7 +560,9 @@ class TestProductionDatabaseManager:
         assert manager._health_checker is not None
 
     @pytest.mark.unit
-    async def test_initialize_connections(self, production_database_config: DatabaseConfig):
+    async def test_initialize_connections(
+        self, production_database_config: DatabaseConfig
+    ):
         """接続の初期化"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
@@ -536,7 +573,9 @@ class TestProductionDatabaseManager:
         assert isinstance(manager._connection_pools, dict)
 
     @pytest.mark.unit
-    async def test_connection_retry_mechanism(self, production_database_config: DatabaseConfig):
+    async def test_connection_retry_mechanism(
+        self, production_database_config: DatabaseConfig
+    ):
         """接続リトライメカニズム"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
@@ -548,7 +587,9 @@ class TestProductionDatabaseManager:
         assert isinstance(manager._connection_pools, dict)
 
     @pytest.mark.unit
-    async def test_connection_failover(self, production_database_config: DatabaseConfig):
+    async def test_connection_failover(
+        self, production_database_config: DatabaseConfig
+    ):
         """接続フェイルオーバー"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
@@ -573,7 +614,9 @@ class TestProductionDatabaseManager:
         mock_pool.close.assert_called_once()
 
     @pytest.mark.unit
-    async def test_get_connection_pool(self, production_database_config: DatabaseConfig):
+    async def test_get_connection_pool(
+        self, production_database_config: DatabaseConfig
+    ):
         """接続プールの取得"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
@@ -586,7 +629,9 @@ class TestProductionDatabaseManager:
         assert pool is mock_pool
 
     @pytest.mark.unit
-    async def test_connection_pool_not_found(self, production_database_config: DatabaseConfig):
+    async def test_connection_pool_not_found(
+        self, production_database_config: DatabaseConfig
+    ):
         """存在しない接続プールの取得"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
@@ -609,7 +654,9 @@ class TestProductionDatabaseIntegration:
 
         try:
             # 1. 設定検証
-            config_result = await validator.validate_configuration(production_database_config)
+            config_result = await validator.validate_configuration(
+                production_database_config
+            )
             assert config_result.is_valid is True
 
             # 2. 接続初期化（フォールバック環境）
@@ -621,42 +668,51 @@ class TestProductionDatabaseIntegration:
             # 3. ヘルスチェック実行
             checker = DatabaseHealthChecker(config=health_check_config)
 
-            with patch.object(checker, "perform_comprehensive_health_check") as mock_health:
+            with patch.object(
+                checker, "perform_comprehensive_health_check"
+            ) as mock_health:
                 healthy_results = [
                     HealthCheckResult(
                         service="postgres",
                         status=HealthCheckStatus.HEALTHY,
                         timestamp=datetime.now(),
                         response_time=50.0,
-                        message="Healthy"
+                        message="Healthy",
                     ),
                     HealthCheckResult(
                         service="aperturedb",
                         status=HealthCheckStatus.HEALTHY,
                         timestamp=datetime.now(),
                         response_time=30.0,
-                        message="Healthy"
+                        message="Healthy",
                     ),
                     HealthCheckResult(
                         service="redis",
                         status=HealthCheckStatus.HEALTHY,
                         timestamp=datetime.now(),
                         response_time=10.0,
-                        message="Healthy"
+                        message="Healthy",
                     ),
                 ]
                 mock_health.return_value = healthy_results
 
-                health_results = await checker.perform_comprehensive_health_check(production_database_config)
+                health_results = await checker.perform_comprehensive_health_check(
+                    production_database_config
+                )
 
                 assert len(health_results) == 3
-                assert all(result.status == HealthCheckStatus.HEALTHY for result in health_results)
+                assert all(
+                    result.status == HealthCheckStatus.HEALTHY
+                    for result in health_results
+                )
 
         finally:
             await manager.close_connections()
 
     @pytest.mark.integration
-    async def test_database_performance_under_load(self, production_database_config: DatabaseConfig):
+    async def test_database_performance_under_load(
+        self, production_database_config: DatabaseConfig
+    ):
         """負荷下でのデータベースパフォーマンステスト"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
@@ -664,6 +720,7 @@ class TestProductionDatabaseIntegration:
 
         # 並列接続テスト（接続プールが存在する場合のみ）
         if "postgres" in manager._connection_pools:
+
             async def simulate_connection():
                 pool = await manager.get_connection_pool("postgres")
                 assert pool is not None
@@ -682,7 +739,9 @@ class TestProductionDatabaseIntegration:
         await manager.close_connections()
 
     @pytest.mark.integration
-    async def test_database_failover_recovery(self, production_database_config: DatabaseConfig):
+    async def test_database_failover_recovery(
+        self, production_database_config: DatabaseConfig
+    ):
         """データベースフェイルオーバーと復旧テスト"""
         manager = ProductionDatabaseManager(config=production_database_config)
 

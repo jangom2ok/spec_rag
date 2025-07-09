@@ -249,7 +249,7 @@ metadata:
   namespace: rag-system
 data:
   # アプリケーション設定
-  
+
 ---
 apiVersion: v1
 kind: Secret
@@ -616,7 +616,7 @@ echo "Blue-Green deployment completed successfully!"
 **監視対象**:
 - RAG APIアプリケーションメトリクス
 - PostgreSQLデータベースメトリクス
-- Redisキャッシュメトリクス  
+- Redisキャッシュメトリクス
 - ApertureDBベクトルデータベースメトリクス
 - Kubernetesノードメトリクス
 
@@ -624,7 +624,7 @@ echo "Blue-Green deployment completed successfully!"
 
 **主要なアラートルール**:
 - **APIエラー率**: 5%超過が5分間継続で警告
-- **レスポンス時間**: 95パーセンタイルが2秒超過で警告  
+- **レスポンス時間**: 95パーセンタイルが2秒超過で警告
 - **検索性能**: 95パーセンタイルが5秒超過で警告
 - **データベース接続**: PostgreSQL/ApertureDB接続失敗でクリティカル
 - **リソース使用率**: メモリ90%/ディスク85%超過で警告

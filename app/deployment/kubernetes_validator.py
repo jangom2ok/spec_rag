@@ -185,6 +185,7 @@ class FileValidationResult:
 
 class ManifestValidationError(Exception):
     """マニフェスト検証エラー"""
+
     pass
 
 
@@ -247,8 +248,12 @@ class KubernetesManifestValidator:
             self._validate_spec(manifest, errors, warnings)
 
             is_valid = len(errors) == 0
-            severity = ValidationSeverity.ERROR if errors else (
-                ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO
+            severity = (
+                ValidationSeverity.ERROR
+                if errors
+                else (
+                    ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO
+                )
             )
 
             if errors:
@@ -259,7 +264,11 @@ class KubernetesManifestValidator:
             return ValidationResult(
                 is_valid=is_valid,
                 severity=severity,
-                message=f"Valid {manifest.get('kind', 'Unknown')} manifest" if is_valid else "Validation failed",
+                message=(
+                    f"Valid {manifest.get('kind', 'Unknown')} manifest"
+                    if is_valid
+                    else "Validation failed"
+                ),
                 validation_type="syntax",
                 errors=errors,
                 warnings=warnings,
@@ -276,7 +285,9 @@ class KubernetesManifestValidator:
                 errors=[str(e)],
             )
 
-    def _validate_required_fields(self, manifest: dict[str, Any], errors: list[str]) -> bool:
+    def _validate_required_fields(
+        self, manifest: dict[str, Any], errors: list[str]
+    ) -> bool:
         """必須フィールドの検証"""
         required_fields = ["apiVersion", "kind", "metadata"]
 
@@ -287,7 +298,9 @@ class KubernetesManifestValidator:
 
         return True
 
-    def _validate_api_version(self, manifest: dict[str, Any], errors: list[str]) -> bool:
+    def _validate_api_version(
+        self, manifest: dict[str, Any], errors: list[str]
+    ) -> bool:
         """APIバージョンの検証"""
         api_version = manifest.get("apiVersion", "")
 
@@ -307,16 +320,31 @@ class KubernetesManifestValidator:
 
         return True
 
-    def _validate_kind(self, manifest: dict[str, Any], errors: list[str], warnings: list[str]) -> bool:
+    def _validate_kind(
+        self, manifest: dict[str, Any], errors: list[str], warnings: list[str]
+    ) -> bool:
         """Kindの検証"""
         kind = manifest.get("kind", "")
 
         # サポートされているKind
         supported_kinds = [
-            "Deployment", "Service", "ConfigMap", "Secret", "Ingress",
-            "PersistentVolume", "PersistentVolumeClaim", "ServiceAccount",
-            "Role", "RoleBinding", "ClusterRole", "ClusterRoleBinding",
-            "NetworkPolicy", "Pod", "ReplicaSet", "DaemonSet", "StatefulSet",
+            "Deployment",
+            "Service",
+            "ConfigMap",
+            "Secret",
+            "Ingress",
+            "PersistentVolume",
+            "PersistentVolumeClaim",
+            "ServiceAccount",
+            "Role",
+            "RoleBinding",
+            "ClusterRole",
+            "ClusterRoleBinding",
+            "NetworkPolicy",
+            "Pod",
+            "ReplicaSet",
+            "DaemonSet",
+            "StatefulSet",
         ]
 
         if not kind:
@@ -328,7 +356,9 @@ class KubernetesManifestValidator:
 
         return True
 
-    def _validate_metadata(self, manifest: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    def _validate_metadata(
+        self, manifest: dict[str, Any], errors: list[str], warnings: list[str]
+    ) -> None:
         """メタデータの検証"""
         metadata = manifest.get("metadata", {})
 
@@ -344,7 +374,9 @@ class KubernetesManifestValidator:
         if namespace and not re.match(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", namespace):
             errors.append(f"Invalid namespace format: {namespace}")
 
-    def _validate_spec(self, manifest: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    def _validate_spec(
+        self, manifest: dict[str, Any], errors: list[str], warnings: list[str]
+    ) -> None:
         """Specの検証"""
         kind = manifest.get("kind", "")
         spec = manifest.get("spec", {})
@@ -354,20 +386,28 @@ class KubernetesManifestValidator:
         elif kind == "Service":
             self._validate_service_spec(spec, errors, warnings)
 
-    def _validate_workload_spec(self, spec: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    def _validate_workload_spec(
+        self, spec: dict[str, Any], errors: list[str], warnings: list[str]
+    ) -> None:
         """ワークロードSpecの検証"""
         # レプリカ数の検証
         replicas = spec.get("replicas", 1)
         if replicas < self.config.min_replicas:
-            warnings.append(f"Replicas ({replicas}) below minimum ({self.config.min_replicas})")
+            warnings.append(
+                f"Replicas ({replicas}) below minimum ({self.config.min_replicas})"
+            )
         elif replicas > self.config.max_replicas:
-            warnings.append(f"Replicas ({replicas}) above maximum ({self.config.max_replicas})")
+            warnings.append(
+                f"Replicas ({replicas}) above maximum ({self.config.max_replicas})"
+            )
 
         # セレクタの検証
         if "selector" not in spec:
             errors.append("Missing spec.selector")
 
-    def _validate_service_spec(self, spec: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    def _validate_service_spec(
+        self, spec: dict[str, Any], errors: list[str], warnings: list[str]
+    ) -> None:
         """ServiceSpecの検証"""
         # ポートの検証
         ports = spec.get("ports", [])
@@ -438,7 +478,9 @@ class KubernetesManifestValidator:
             security_violations=violations,
         )
 
-    async def validate_resources(self, manifest: dict[str, Any]) -> ResourceRequirements:
+    async def validate_resources(
+        self, manifest: dict[str, Any]
+    ) -> ResourceRequirements:
         """リソース検証"""
         if not self.config.enable_resource_validation:
             return ResourceRequirements(is_valid=True)
@@ -471,11 +513,15 @@ class KubernetesManifestValidator:
 
                 # CPU制限の検証
                 if cpu_limit and not self._is_cpu_within_limit(cpu_limit):
-                    violations.append(f"CPU limit ({cpu_limit}) exceeds maximum ({self.config.max_cpu_limit})")
+                    violations.append(
+                        f"CPU limit ({cpu_limit}) exceeds maximum ({self.config.max_cpu_limit})"
+                    )
 
                 # メモリ制限の検証
                 if memory_limit and not self._is_memory_within_limit(memory_limit):
-                    violations.append(f"Memory limit ({memory_limit}) exceeds maximum ({self.config.max_memory_limit})")
+                    violations.append(
+                        f"Memory limit ({memory_limit}) exceeds maximum ({self.config.max_memory_limit})"
+                    )
             else:
                 violations.append("Missing resource limits")
 
@@ -537,20 +583,26 @@ class KubernetesManifestValidator:
         # 単位マッピング
         units = {
             "B": 1,
-            "K": 1000, "M": 1000**2, "G": 1000**3,
-            "Ki": 1024, "Mi": 1024**2, "Gi": 1024**3,
+            "K": 1000,
+            "M": 1000**2,
+            "G": 1000**3,
+            "Ki": 1024,
+            "Mi": 1024**2,
+            "Gi": 1024**3,
         }
 
         # 数値と単位を分離
         for unit in sorted(units.keys(), key=len, reverse=True):
             if memory_str.endswith(unit):
-                value = float(memory_str[:-len(unit)])
+                value = float(memory_str[: -len(unit)])
                 return int(value * units[unit])
 
         # 単位なしの場合はバイト単位として扱う
         return int(float(memory_str))
 
-    async def validate_health_checks(self, manifest: dict[str, Any]) -> HealthCheckValidation:
+    async def validate_health_checks(
+        self, manifest: dict[str, Any]
+    ) -> HealthCheckValidation:
         """ヘルスチェック検証"""
         if not self.config.enable_health_check_validation:
             return HealthCheckValidation(is_valid=True)
@@ -599,7 +651,9 @@ class KubernetesManifestValidator:
             health_check_violations=violations,
         )
 
-    def _validate_probe_config(self, probe: dict[str, Any], probe_type: str, violations: list[str]) -> None:
+    def _validate_probe_config(
+        self, probe: dict[str, Any], probe_type: str, violations: list[str]
+    ) -> None:
         """プローブ設定の検証"""
         # 初期遅延時間の検証
         initial_delay = probe.get("initialDelaySeconds", 0)
@@ -616,7 +670,9 @@ class KubernetesManifestValidator:
         if period < 1:
             violations.append(f"{probe_type} probe periodSeconds too short")
 
-    async def validate_labels_and_annotations(self, manifest: dict[str, Any]) -> LabelAnnotationValidation:
+    async def validate_labels_and_annotations(
+        self, manifest: dict[str, Any]
+    ) -> LabelAnnotationValidation:
         """ラベル・アノテーション検証"""
         violations = []
         metadata = manifest.get("metadata", {})
@@ -646,7 +702,9 @@ class KubernetesManifestValidator:
                 missing_annotations.append(required_annotation)
 
         if missing_annotations:
-            violations.append(f"Missing required annotations: {', '.join(missing_annotations)}")
+            violations.append(
+                f"Missing required annotations: {', '.join(missing_annotations)}"
+            )
 
         has_required_labels = len(missing_labels) == 0
         has_required_annotations = len(missing_annotations) == 0
@@ -667,7 +725,9 @@ class KubernetesManifestValidator:
             return False
 
         # Kubernetesラベル値の形式規則
-        return re.match(r"^[a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?$", value) is not None
+        return (
+            re.match(r"^[a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?$", value) is not None
+        )
 
     def _extract_pod_spec(self, manifest: dict[str, Any]) -> dict[str, Any] | None:
         """マニフェストからPod仕様を抽出"""
@@ -683,7 +743,7 @@ class KubernetesManifestValidator:
     async def validate_file(self, file_path: str) -> FileValidationResult:
         """YAMLファイルの検証"""
         try:
-            with open(file_path, encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # YAML解析
@@ -712,7 +772,9 @@ class KubernetesManifestValidator:
         except Exception as e:
             raise ManifestValidationError(f"File validation error: {e}") from e
 
-    async def validate_directory(self, directory_path: str) -> list[FileValidationResult]:
+    async def validate_directory(
+        self, directory_path: str
+    ) -> list[FileValidationResult]:
         """ディレクトリ内のYAMLファイルを検証"""
         directory = Path(directory_path)
         if not directory.exists():
@@ -726,16 +788,20 @@ class KubernetesManifestValidator:
                 result = await self.validate_file(str(yaml_file))
                 results.append(result)
             except ManifestValidationError as e:
-                results.append(FileValidationResult(
-                    file_path=str(yaml_file),
-                    is_valid=False,
-                    validation_results=[],
-                    parse_errors=[str(e)],
-                ))
+                results.append(
+                    FileValidationResult(
+                        file_path=str(yaml_file),
+                        is_valid=False,
+                        validation_results=[],
+                        parse_errors=[str(e)],
+                    )
+                )
 
         return results
 
-    async def validate_comprehensive(self, manifest: dict[str, Any]) -> list[ValidationResult]:
+    async def validate_comprehensive(
+        self, manifest: dict[str, Any]
+    ) -> list[ValidationResult]:
         """包括的なマニフェスト検証"""
         results = []
 
@@ -748,7 +814,11 @@ class KubernetesManifestValidator:
             security_validation = await self.validate_security(manifest)
             security_result = ValidationResult(
                 is_valid=security_validation.is_valid,
-                severity=ValidationSeverity.ERROR if not security_validation.is_valid else ValidationSeverity.INFO,
+                severity=(
+                    ValidationSeverity.ERROR
+                    if not security_validation.is_valid
+                    else ValidationSeverity.INFO
+                ),
                 message="Security validation completed",
                 validation_type="security",
                 errors=security_validation.security_violations,
@@ -760,7 +830,11 @@ class KubernetesManifestValidator:
             resource_validation = await self.validate_resources(manifest)
             resource_result = ValidationResult(
                 is_valid=resource_validation.is_valid,
-                severity=ValidationSeverity.ERROR if not resource_validation.is_valid else ValidationSeverity.INFO,
+                severity=(
+                    ValidationSeverity.ERROR
+                    if not resource_validation.is_valid
+                    else ValidationSeverity.INFO
+                ),
                 message="Resource validation completed",
                 validation_type="resources",
                 errors=resource_validation.resource_violations,
@@ -772,7 +846,11 @@ class KubernetesManifestValidator:
             health_validation = await self.validate_health_checks(manifest)
             health_result = ValidationResult(
                 is_valid=health_validation.is_valid,
-                severity=ValidationSeverity.ERROR if not health_validation.is_valid else ValidationSeverity.INFO,
+                severity=(
+                    ValidationSeverity.ERROR
+                    if not health_validation.is_valid
+                    else ValidationSeverity.INFO
+                ),
                 message="Health check validation completed",
                 validation_type="health_checks",
                 errors=health_validation.health_check_violations,
@@ -783,7 +861,11 @@ class KubernetesManifestValidator:
         label_validation = await self.validate_labels_and_annotations(manifest)
         label_result = ValidationResult(
             is_valid=label_validation.is_valid,
-            severity=ValidationSeverity.WARNING if not label_validation.is_valid else ValidationSeverity.INFO,
+            severity=(
+                ValidationSeverity.WARNING
+                if not label_validation.is_valid
+                else ValidationSeverity.INFO
+            ),
             message="Label and annotation validation completed",
             validation_type="labels_annotations",
             errors=label_validation.label_violations,
@@ -792,7 +874,9 @@ class KubernetesManifestValidator:
 
         return results
 
-    async def validate_multiple_manifests(self, manifests: list[dict[str, Any]]) -> list[ValidationResult]:
+    async def validate_multiple_manifests(
+        self, manifests: list[dict[str, Any]]
+    ) -> list[ValidationResult]:
         """複数マニフェストの並列検証"""
         tasks = [self.validate_manifest(manifest) for manifest in manifests]
         results = await asyncio.gather(*tasks)
@@ -804,6 +888,7 @@ class KubernetesManifestValidator:
             "total_validations": self._validation_count,
             "total_errors": self._error_count,
             "total_warnings": self._warning_count,
-            "success_rate": (self._validation_count - self._error_count) / max(self._validation_count, 1),
+            "success_rate": (self._validation_count - self._error_count)
+            / max(self._validation_count, 1),
             "cache_size": len(self._validation_cache),
         }

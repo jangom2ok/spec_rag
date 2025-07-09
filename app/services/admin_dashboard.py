@@ -113,7 +113,11 @@ class DashboardWidget:
 
     def validate_config(self) -> bool:
         """設定の検証"""
-        if self.type in [WidgetType.LINE_CHART, WidgetType.BAR_CHART, WidgetType.AREA_CHART]:
+        if self.type in [
+            WidgetType.LINE_CHART,
+            WidgetType.BAR_CHART,
+            WidgetType.AREA_CHART,
+        ]:
             return "metrics" in self.config
         elif self.type == WidgetType.GAUGE:
             return "metrics" in self.config and "thresholds" in self.config
@@ -262,7 +266,9 @@ class AdminDashboard:
     async def add_widget(self, widget: DashboardWidget) -> None:
         """ウィジェット追加"""
         if len(self._widgets) >= self.config.max_widgets:
-            raise ValueError(f"Maximum widgets limit reached: {self.config.max_widgets}")
+            raise ValueError(
+                f"Maximum widgets limit reached: {self.config.max_widgets}"
+            )
 
         if not widget.validate_position() or not widget.validate_config():
             raise ValueError("Invalid widget configuration")
@@ -278,7 +284,9 @@ class AdminDashboard:
             del self._widgets[widget_id]
             logger.info(f"Removed widget: {widget_id}")
 
-    async def update_widget_config(self, widget_id: str, new_config: dict[str, Any]) -> None:
+    async def update_widget_config(
+        self, widget_id: str, new_config: dict[str, Any]
+    ) -> None:
         """ウィジェット設定更新"""
         if widget_id not in self._widgets:
             raise ValueError(f"Widget not found: {widget_id}")
@@ -363,12 +371,15 @@ class AdminDashboard:
 
         # 指定期間内の検索イベントを収集
         relevant_events = [
-            event for event in self._search_events
+            event
+            for event in self._search_events
             if start_time <= event.get("timestamp", datetime.now()) <= end_time
         ]
 
         total_searches = len(relevant_events)
-        successful_searches = len([e for e in relevant_events if e.get("success", False)])
+        successful_searches = len(
+            [e for e in relevant_events if e.get("success", False)]
+        )
         failed_searches = total_searches - successful_searches
 
         avg_response_time = 0.0
@@ -376,7 +387,9 @@ class AdminDashboard:
             response_times = [e.get("response_time", 0) for e in relevant_events]
             avg_response_time = mean(response_times)
 
-        success_rate = successful_searches / total_searches if total_searches > 0 else 0.0
+        success_rate = (
+            successful_searches / total_searches if total_searches > 0 else 0.0
+        )
 
         # 人気クエリの集計
         query_counts: dict[str, int] = defaultdict(int)
@@ -387,7 +400,9 @@ class AdminDashboard:
 
         popular_queries = [
             {"query": query, "count": count}
-            for query, count in sorted(query_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+            for query, count in sorted(
+                query_counts.items(), key=lambda x: x[1], reverse=True
+            )[:10]
         ]
 
         analytics = SearchAnalytics(
@@ -413,12 +428,15 @@ class AdminDashboard:
         """ユーザー分析データ取得"""
         # 指定期間内のユーザー活動を収集
         relevant_activities = [
-            activity for activity in self._user_activities
+            activity
+            for activity in self._user_activities
             if start_time <= activity.get("timestamp", datetime.now()) <= end_time
         ]
 
         # ユニークユーザー数
-        active_users = len({activity.get("user_id") for activity in relevant_activities})
+        active_users = len(
+            {activity.get("user_id") for activity in relevant_activities}
+        )
 
         # セッション分析
         sessions = {activity.get("session_id") for activity in relevant_activities}
@@ -444,13 +462,21 @@ class AdminDashboard:
 
         try:
             if report_config.type == ReportType.SYSTEM_STATUS:
-                content = await self._generate_system_status_report(start_time, end_time, report_config)
+                content = await self._generate_system_status_report(
+                    start_time, end_time, report_config
+                )
             elif report_config.type == ReportType.SEARCH_ANALYTICS:
-                content = await self._generate_search_analytics_report(start_time, end_time, report_config)
+                content = await self._generate_search_analytics_report(
+                    start_time, end_time, report_config
+                )
             elif report_config.type == ReportType.USER_ANALYTICS:
-                content = await self._generate_user_analytics_report(start_time, end_time, report_config)
+                content = await self._generate_user_analytics_report(
+                    start_time, end_time, report_config
+                )
             elif report_config.type == ReportType.DASHBOARD_SUMMARY:
-                content = await self._generate_dashboard_summary_report(start_time, end_time, report_config)
+                content = await self._generate_dashboard_summary_report(
+                    start_time, end_time, report_config
+                )
             else:
                 raise ValueError(f"Unsupported report type: {report_config.type}")
 
@@ -610,11 +636,15 @@ class AdminDashboard:
             except Exception as e:
                 logger.error(f"Real-time monitoring error: {e}")
 
-    def set_real_time_callback(self, callback: Callable[[dict[str, Any]], None]) -> None:
+    def set_real_time_callback(
+        self, callback: Callable[[dict[str, Any]], None]
+    ) -> None:
         """リアルタイムコールバック設定"""
         self._real_time_callback = callback
 
-    async def set_user_permissions(self, user_id: str, permissions: dict[str, bool]) -> None:
+    async def set_user_permissions(
+        self, user_id: str, permissions: dict[str, bool]
+    ) -> None:
         """ユーザー権限設定"""
         self._user_permissions[user_id] = permissions
         logger.info(f"Set permissions for user: {user_id}")
@@ -633,7 +663,8 @@ class AdminDashboard:
     ) -> list[dict[str, Any]]:
         """監査ログ取得"""
         return [
-            log for log in self._audit_logs
+            log
+            for log in self._audit_logs
             if start_time <= log.get("timestamp", datetime.now()) <= end_time
         ]
 
@@ -666,4 +697,6 @@ class AdminDashboard:
             return False
 
         cache_time = self._cache_timestamps[cache_key]
-        return datetime.now() - cache_time < timedelta(seconds=self.config.cache_duration)
+        return datetime.now() - cache_time < timedelta(
+            seconds=self.config.cache_duration
+        )

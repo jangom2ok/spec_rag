@@ -65,10 +65,13 @@ def mock_external_services() -> Generator[dict[str, Any], None, None]:
     aperturedb_patch = patch("app.models.aperturedb.Client")
     patches.append(aperturedb_patch)
     mock_client = aperturedb_patch.start()
-    
+
     # ApertureDBクライアントのモック設定
     mock_client_instance = AsyncMock()
-    mock_client_instance.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
+    mock_client_instance.query.return_value = (
+        [{"FindDescriptorSet": {"count": 0}}],
+        [],
+    )
     mock_client.return_value = mock_client_instance
 
     mocks["aperturedb"] = mock_client_instance

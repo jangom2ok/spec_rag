@@ -63,15 +63,17 @@ def mock_external_services(request: Any) -> Generator[dict[str, Any], None, None
     aperturedb_patch = patch("app.models.aperturedb.Client")
     patches.append(aperturedb_patch)
     mock_client = aperturedb_patch.start()
-    
+
     # ApertureDBクライアントのモック設定
     mock_client_instance = AsyncMock()
-    mock_client_instance.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
+    mock_client_instance.query.return_value = (
+        [{"FindDescriptorSet": {"count": 0}}],
+        [],
+    )
     mock_client.return_value = mock_client_instance
 
     # 主要なApertureDBオブジェクトをmocksに保存
-    mocks["aperturedb"] = {
-    }
+    mocks["aperturedb"] = {}
 
     # 認証ミドルウェア（条件付きモック）
     if disable_middleware:

@@ -5,7 +5,11 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from aperturedb import DBException
+
+try:
+    from aperturedb import DBException
+except ImportError:
+    from app.models.aperturedb_mock import DBException
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.exceptions import (
@@ -115,9 +119,7 @@ class TestDatabaseErrorHandling:
     def test_vector_database_error(self, mock_search, test_app):
         """ベクトルデータベースエラーのテスト"""
         # DBExceptionの正しい使用方法
-        mock_search.side_effect = DBException(
-            "ApertureDB connection failed"
-        )
+        mock_search.side_effect = DBException("ApertureDB connection failed")
 
         client = TestClient(test_app)
         response = client.post("/v1/search", json={"query": "test query", "top_k": 10})

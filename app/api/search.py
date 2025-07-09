@@ -37,14 +37,14 @@ class FacetRequest(BaseModel):
 
 class DateRange(BaseModel):
     """日付範囲フィルター"""
-    
+
     from_date: str = Field(alias="from", description="開始日 (YYYY-MM-DD)")
     to_date: str = Field(alias="to", description="終了日 (YYYY-MM-DD)")
 
 
 class EnhancedFilters(BaseModel):
     """拡張フィルター"""
-    
+
     source_types: list[str] | None = Field(None, description="ソースタイプフィルター")
     languages: list[str] | None = Field(None, description="言語フィルター")
     date_range: DateRange | None = Field(None, description="日付範囲フィルター")
@@ -53,7 +53,7 @@ class EnhancedFilters(BaseModel):
 
 class SearchOptions(BaseModel):
     """検索オプション"""
-    
+
     search_type: str = Field("hybrid", description="検索タイプ: dense, sparse, hybrid")
     max_results: int = Field(10, description="最大結果数", ge=1, le=100)
     min_score: float = Field(0.0, description="最小スコア", ge=0.0, le=1.0)
@@ -63,7 +63,7 @@ class SearchOptions(BaseModel):
 
 class RankingOptions(BaseModel):
     """ランキングオプション"""
-    
+
     dense_weight: float = Field(0.7, description="Dense検索重み", ge=0.0, le=1.0)
     sparse_weight: float = Field(0.3, description="Sparse検索重み", ge=0.0, le=1.0)
     rerank: bool = Field(True, description="リランキングを有効にする")
@@ -77,7 +77,7 @@ class SearchRequest(BaseModel):
     filters: EnhancedFilters | None = Field(None, description="拡張フィルター条件")
     search_options: SearchOptions | None = Field(None, description="検索オプション")
     ranking_options: RankingOptions | None = Field(None, description="ランキングオプション")
-    
+
     # レガシー互換性のためのフィールド（既存APIとの後方互換性）
     max_results: int | None = Field(None, description="最大取得件数（レガシー）", ge=1, le=100)
     offset: int = Field(0, description="オフセット", ge=0)
@@ -85,13 +85,13 @@ class SearchRequest(BaseModel):
     legacy_filters: list[SearchFilterRequest] = Field(
         default_factory=list, description="従来のフィルター条件", alias="legacy_filters"
     )
-    facets: list[str] = Field(
-        default_factory=list, description="ファセット計算フィールド"
-    )
+    facets: list[str] = Field(default_factory=list, description="ファセット計算フィールド")
 
     # レガシー互換性フィールド
     dense_weight: float | None = Field(None, description="Dense検索重み（レガシー）", ge=0, le=1)
-    sparse_weight: float | None = Field(None, description="Sparse検索重み（レガシー）", ge=0, le=1)
+    sparse_weight: float | None = Field(
+        None, description="Sparse検索重み（レガシー）", ge=0, le=1
+    )
     similarity_threshold: float | None = Field(
         None, description="類似度閾値（レガシー）", ge=0, le=1
     )
@@ -100,7 +100,7 @@ class SearchRequest(BaseModel):
 
 class SourceInfo(BaseModel):
     """ソース情報"""
-    
+
     type: str = Field(..., description="ソースタイプ")
     url: str | None = Field(None, description="ソースURL")
     author: str | None = Field(None, description="作成者")
@@ -109,7 +109,7 @@ class SourceInfo(BaseModel):
 
 class ContextInfo(BaseModel):
     """コンテキスト情報"""
-    
+
     hierarchy_path: str | None = Field(None, description="階層パス")
     parent_sections: list[str] = Field(default_factory=list, description="親セクション")
     related_chunks: list[str] = Field(default_factory=list, description="関連チャンク")
@@ -128,7 +128,7 @@ class SearchResultDocument(BaseModel):
     source: SourceInfo | None = Field(None, description="ソース情報")
     metadata: dict[str, Any] | None = Field(None, description="メタデータ")
     context: ContextInfo | None = Field(None, description="コンテキスト情報")
-    
+
     # レガシー互換性フィールド
     id: str | None = Field(None, description="ID（レガシー）")
     search_score: float | None = Field(None, description="検索スコア（レガシー）")
@@ -136,7 +136,9 @@ class SearchResultDocument(BaseModel):
     language: str | None = Field(None, description="言語（レガシー）")
     document_type: str | None = Field(None, description="ドキュメントタイプ（レガシー）")
     rerank_score: float | None = Field(None, description="リランクスコア（レガシー）")
-    ranking_explanation: dict[str, Any] | None = Field(None, description="ランキング説明（レガシー）")
+    ranking_explanation: dict[str, Any] | None = Field(
+        None, description="ランキング説明（レガシー）"
+    )
 
 
 class FacetValue(BaseModel):
@@ -163,13 +165,17 @@ class SearchResponse(BaseModel):
     results: list[SearchResultDocument] = Field(..., description="検索結果")
     facets: dict[str, dict[str, int]] | None = Field(None, description="ファセット")
     suggestions: list[str] | None = Field(None, description="検索候補")
-    
+
     # レガシー互換性フィールド
     success: bool | None = Field(None, description="成功フラグ（レガシー）")
     total_hits: int | None = Field(None, description="総ヒット数（レガシー）")
     search_time: float | None = Field(None, description="検索時間秒（レガシー）")
-    documents: list[SearchResultDocument] | None = Field(None, description="ドキュメント（レガシー）")
-    legacy_facets: list[SearchFacet] | None = Field(None, description="ファセット（レガシー）", alias="legacy_facets")
+    documents: list[SearchResultDocument] | None = Field(
+        None, description="ドキュメント（レガシー）"
+    )
+    legacy_facets: list[SearchFacet] | None = Field(
+        None, description="ファセット（レガシー）", alias="legacy_facets"
+    )
     error_message: str | None = Field(None, description="エラーメッセージ")
 
 
@@ -225,55 +231,76 @@ def highlight_content(content: str, query: str) -> str:
     """コンテンツにハイライトを追加"""
     if not query or not content:
         return content
-    
+
     import re
+
     # クエリの単語を分割
     query_words = query.split()
     highlighted_content = content
-    
+
     for word in query_words:
         if len(word) > 2:  # 短すぎる単語はスキップ
             pattern = re.compile(re.escape(word), re.IGNORECASE)
             highlighted_content = pattern.sub(f"**{word}**", highlighted_content)
-    
+
     return highlighted_content
 
 
-def convert_enhanced_filters_to_legacy(enhanced_filters: EnhancedFilters | None) -> list[SearchFilter]:
+def convert_enhanced_filters_to_legacy(
+    enhanced_filters: EnhancedFilters | None,
+) -> list[SearchFilter]:
     """拡張フィルターを従来のフィルター形式に変換"""
     legacy_filters = []
-    
+
     if not enhanced_filters:
         return legacy_filters
-    
+
     if enhanced_filters.source_types:
         legacy_filters.append(
-            SearchFilter(field="source_type", value=enhanced_filters.source_types, operator="in")
+            SearchFilter(
+                field="source_type", value=enhanced_filters.source_types, operator="in"
+            )
         )
-    
+
     if enhanced_filters.languages:
         legacy_filters.append(
-            SearchFilter(field="language", value=enhanced_filters.languages, operator="in")
+            SearchFilter(
+                field="language", value=enhanced_filters.languages, operator="in"
+            )
         )
-    
+
     if enhanced_filters.tags:
         legacy_filters.append(
-            SearchFilter(field="metadata.tags", value=enhanced_filters.tags, operator="contains_any")
+            SearchFilter(
+                field="metadata.tags",
+                value=enhanced_filters.tags,
+                operator="contains_any",
+            )
         )
-    
+
     if enhanced_filters.date_range:
-        legacy_filters.extend([
-            SearchFilter(field="updated_at", value=enhanced_filters.date_range.from_date, operator="gte"),
-            SearchFilter(field="updated_at", value=enhanced_filters.date_range.to_date, operator="lte")
-        ])
-    
+        legacy_filters.extend(
+            [
+                SearchFilter(
+                    field="updated_at",
+                    value=enhanced_filters.date_range.from_date,
+                    operator="gte",
+                ),
+                SearchFilter(
+                    field="updated_at",
+                    value=enhanced_filters.date_range.to_date,
+                    operator="lte",
+                ),
+            ]
+        )
+
     return legacy_filters
 
 
 def generate_search_suggestions(query: str, results: list[dict]) -> list[str]:
     """検索結果に基づいて候補を生成"""
     suggestions = []
-    
+
     # 基本的な候補リスト
     base_suggestions = [
         f"{query} 実装",
@@ -282,7 +309,7 @@ def generate_search_suggestions(query: str, results: list[dict]) -> list[str]:
         f"{query} 使い方",
         f"{query} ガイド",
     ]
-    
+
     # 結果から関連タグを抽出して候補を生成
     tags = set()
     for result in results[:5]:  # 上位5件から抽出
@@ -290,11 +317,11 @@ def generate_search_suggestions(query: str, results: list[dict]) -> list[str]:
         if isinstance(metadata, dict) and "tags" in metadata:
             if isinstance(metadata["tags"], list):
                 tags.update(metadata["tags"][:3])  # 各結果から最大3個のタグ
-    
+
     # タグベースの候補を追加
     for tag in list(tags)[:3]:  # 最大3個のタグベース候補
         suggestions.append(f"{tag} {query}")
-    
+
     # 重複除去とフィルタリング
     unique_suggestions = list(dict.fromkeys(suggestions))
     return unique_suggestions[:5]  # 最大5個の候補
@@ -315,15 +342,15 @@ async def get_hybrid_search_engine() -> HybridSearchEngine:
     )
 
     # 実際のサービスを注入
-    from app.services.embedding_service import EmbeddingService, EmbeddingConfig
-    from app.repositories.document_repository import DocumentRepository
     from app.repositories.chunk_repository import DocumentChunkRepository
-    
+    from app.repositories.document_repository import DocumentRepository
+    from app.services.embedding_service import EmbeddingConfig, EmbeddingService
+
     # サービスの初期化
     embedding_config = EmbeddingConfig()
     embedding_service = EmbeddingService(embedding_config)
     await embedding_service.initialize()
-    
+
     document_repository = DocumentRepository()
     chunk_repository = DocumentChunkRepository()
 
@@ -345,12 +372,13 @@ async def search_documents(
 
     BGE-M3を使用したdense/sparse vectorsハイブリッド検索を実行します。
     RRF（Reciprocal Rank Fusion）で結果を統合し、関連性スコアリングで最適化します。
-    
+
     新しい検索API仕様（filters, search_options, ranking_options）をサポートします。
     """
     import time
+
     start_time = time.time()
-    
+
     try:
         # 読み取り権限をチェック
         if "read" not in current_user.get("permissions", []):
@@ -359,10 +387,10 @@ async def search_documents(
         # 検索オプションの処理
         search_options = request.search_options or SearchOptions()
         ranking_options = request.ranking_options or RankingOptions()
-        
+
         # レガシー互換性: 古いフィールドがある場合は優先
         max_results = request.max_results or search_options.max_results
-        
+
         # 検索モードの決定
         search_mode = SearchMode.HYBRID
         if search_options.search_type == "dense":
@@ -400,17 +428,19 @@ async def search_documents(
 
         # フィルターの変換
         search_filters = []
-        
+
         # 新しいフィルター形式
         if request.filters:
             search_filters.extend(convert_enhanced_filters_to_legacy(request.filters))
-        
+
         # レガシーフィルター
         if request.legacy_filters:
-            search_filters.extend([
-                SearchFilter(field=f.field, value=f.value, operator=f.operator)
-                for f in request.legacy_filters
-            ])
+            search_filters.extend(
+                [
+                    SearchFilter(field=f.field, value=f.value, operator=f.operator)
+                    for f in request.legacy_filters
+                ]
+            )
 
         # 検索クエリの構築
         search_query = SearchQuery(
@@ -436,8 +466,10 @@ async def search_documents(
                 # ハイライト処理
                 highlighted_content = None
                 if search_options.highlight:
-                    highlighted_content = highlight_content(doc.get("content", ""), request.query)
-                
+                    highlighted_content = highlight_content(
+                        doc.get("content", ""), request.query
+                    )
+
                 # ソース情報の構築
                 source_info = None
                 if search_options.include_metadata:
@@ -445,18 +477,22 @@ async def search_documents(
                         type=doc.get("source_type", "unknown"),
                         url=doc.get("metadata", {}).get("url"),
                         author=doc.get("metadata", {}).get("author"),
-                        last_updated=doc.get("updated_at")
+                        last_updated=doc.get("updated_at"),
                     )
-                
+
                 # コンテキスト情報の構築
                 context_info = None
                 if search_options.include_metadata:
                     context_info = ContextInfo(
                         hierarchy_path=doc.get("hierarchy_path"),
-                        parent_sections=doc.get("metadata", {}).get("parent_sections", []),
-                        related_chunks=doc.get("metadata", {}).get("related_chunks", [])
+                        parent_sections=doc.get("metadata", {}).get(
+                            "parent_sections", []
+                        ),
+                        related_chunks=doc.get("metadata", {}).get(
+                            "related_chunks", []
+                        ),
                     )
-                
+
                 # 結果ドキュメントの作成
                 result_doc = SearchResultDocument(
                     document_id=doc.get("id", doc.get("document_id", "")),
@@ -467,7 +503,9 @@ async def search_documents(
                     content=doc.get("content", ""),
                     highlighted_content=highlighted_content,
                     source=source_info,
-                    metadata=doc.get("metadata") if search_options.include_metadata else None,
+                    metadata=(
+                        doc.get("metadata") if search_options.include_metadata else None
+                    ),
                     context=context_info,
                     # レガシー互換性
                     id=doc.get("id"),
@@ -489,7 +527,9 @@ async def search_documents(
                     }
 
             # 検索候補の生成
-            suggestions = generate_search_suggestions(request.query, search_result.documents)
+            suggestions = generate_search_suggestions(
+                request.query, search_result.documents
+            )
 
             return SearchResponse(
                 query=request.query,
@@ -538,7 +578,7 @@ async def semantic_search(
     search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
 ):
     """セマンティック検索
-    
+
     Dense vectorのみを使用したセマンティック検索を実行します。
     文脈的な意味の類似性に基づいて検索結果を返します。
     """
@@ -630,7 +670,9 @@ async def semantic_search(
         raise
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Semantic search failed: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Semantic search failed: {str(e)}"
+        ) from e
 
 
 @router.post("/keyword", response_model=SearchResponse)
@@ -640,7 +682,7 @@ async def keyword_search(
     search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
 ):
     """キーワード検索
-    
+
     Sparse vectorのみを使用したキーワードベースの検索を実行します。
     完全一致や部分一致に基づいて検索結果を返します。
     """
@@ -732,7 +774,9 @@ async def keyword_search(
         raise
     except Exception as e:
         logger.error(f"Keyword search failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Keyword search failed: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Keyword search failed: {str(e)}"
+        ) from e
 
 
 @router.get("/suggestions", response_model=SearchSuggestionsResponse)
@@ -846,12 +890,12 @@ async def search_semantic(
     search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
 ):
     """セマンティック検索（Dense Vector重視）
-    
+
     BGE-M3のdense vectorを使用した意味的検索を実行します。
     """
     # SemanticモードでRequestを上書き
     request.search_mode = SearchMode.SEMANTIC
-    
+
     # 通常の検索エンドポイントを呼び出し
     return await search_documents(request, current_user, search_engine)
 
@@ -863,11 +907,11 @@ async def search_keyword(
     search_engine: HybridSearchEngine = Depends(get_hybrid_search_engine),
 ):
     """キーワード検索（Sparse Vector重視）
-    
+
     BGE-M3のsparse vectorを使用したキーワードベース検索を実行します。
     """
     # KeywordモードでRequestを上書き
     request.search_mode = SearchMode.KEYWORD
-    
+
     # 通常の検索エンドポイントを呼び出し
     return await search_documents(request, current_user, search_engine)

@@ -2,11 +2,16 @@
 
 import asyncio
 import json
+import os
 import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-from aperturedb import Client, Utils
+try:
+    from aperturedb import Client
+except ImportError:
+    # Use mock for testing and CI/CD environments
+    from app.models.aperturedb_mock import Client
 from pydantic import BaseModel, Field
 
 
@@ -62,10 +67,10 @@ class VectorData(BaseModel):
 class ApertureDBCollection(ABC):
     """ApertureDBコレクションの基底クラス"""
 
-    def __init__(self, host: str = "localhost", port: int = 55555):
-        self.host = host
-        self.port = port
-        self.collection_name = self.get_collection_name()
+    def __init__(self, host: str = "localhost", port: int = 55555) -> None:
+        self.host: str = host
+        self.port: int = port
+        self.collection_name: str = self.get_collection_name()
         self.client: Client | None = None
         self.connect()
 
@@ -75,8 +80,8 @@ class ApertureDBCollection(ABC):
             self.client = Client(
                 host=self.host,
                 port=self.port,
-                username="admin",
-                password="admin",
+                username=os.getenv("APERTUREDB_USERNAME", "admin"),
+                password=os.getenv("APERTUREDB_PASSWORD", "admin"),
             )
             self._initialize_collection()
         except Exception as e:
@@ -90,30 +95,32 @@ class ApertureDBCollection(ABC):
 
         # デスクリプターセットを作成（コレクションの代わり）
         descriptor_set_name = self.get_collection_name()
-        
+
         # デスクリプターセットが存在するかチェック
-        query = [{
-            "FindDescriptorSet": {
-                "with_name": descriptor_set_name,
-                "results": {
-                    "count": True
+        query = [
+            {
+                "FindDescriptorSet": {
+                    "with_name": descriptor_set_name,
+                    "results": {"count": True},
                 }
             }
-        }]
-        
+        ]
+
         response, _ = self.client.query(query)
-        
+
         if response[0]["FindDescriptorSet"]["count"] == 0:
             # デスクリプターセットが存在しない場合は作成
             vector_dim = self.get_vector_dimension()
-            query = [{
-                "AddDescriptorSet": {
-                    "name": descriptor_set_name,
-                    "dimensions": vector_dim,
-                    "metric": "L2",
-                    "engine": "HNSW"
+            query = [
+                {
+                    "AddDescriptorSet": {
+                        "name": descriptor_set_name,
+                        "dimensions": vector_dim,
+                        "metric": "L2",
+                        "engine": "HNSW",
+                    }
                 }
-            }]
+            ]
             self.client.query(query)
 
     @abstractmethod
@@ -148,27 +155,31 @@ class ApertureDBCollection(ABC):
 
             # ベクトルデータの準備
             if self.collection_name.endswith("dense") and item.vector:
-                query = [{
-                    "AddDescriptor": {
-                        "set": descriptor_set_name,
-                        "properties": properties,
-                        "descriptor": item.vector
+                query = [
+                    {
+                        "AddDescriptor": {
+                            "set": descriptor_set_name,
+                            "properties": properties,
+                            "descriptor": item.vector,
+                        }
                     }
-                }]
+                ]
             elif self.collection_name.endswith("sparse") and item.sparse_vector:
                 # Sparse vectorの場合、JSON文字列として保存
                 properties["sparse_vector"] = json.dumps(item.sparse_vector)
                 properties["vocabulary_size"] = item.vocabulary_size
-                
+
                 # ApertureDBはsparse vectorを直接サポートしないため、
                 # プロパティとして保存し、検索は別途実装
-                query = [{
-                    "AddEntity": {
-                        "_ref": 1,
-                        "class": "SparseVector",
-                        "properties": properties
+                query = [
+                    {
+                        "AddEntity": {
+                            "_ref": 1,
+                            "class": "SparseVector",
+                            "properties": properties,
+                        }
                     }
-                }]
+                ]
             else:
                 continue
 
@@ -180,7 +191,7 @@ class ApertureDBCollection(ABC):
 
     async def search(
         self,
-        query_vectors: list[list[float] | dict[int, float]],
+        query_vectors: list[Any],
         top_k: int = 10,
         filters: dict[str, Any] | None = None,
         output_fields: list[str] | None = None,
@@ -195,35 +206,33 @@ class ApertureDBCollection(ABC):
         for query_vector in query_vectors:
             if isinstance(query_vector, list):
                 # Dense vector検索
-                query = [{
-                    "FindDescriptor": {
-                        "set": descriptor_set_name,
-                        "k_neighbors": top_k,
-                        "descriptor": query_vector,
-                        "results": {
-                            "all_properties": True
+                query = [
+                    {
+                        "FindDescriptor": {
+                            "set": descriptor_set_name,
+                            "k_neighbors": top_k,
+                            "descriptor": query_vector,
+                            "results": {"all_properties": True},
                         }
                     }
-                }]
-                
+                ]
+
                 if filters:
-                    query[0]["FindDescriptor"]["constraints"] = self._build_constraints(filters)
+                    query[0]["FindDescriptor"]["constraints"] = self._build_constraints(
+                        filters
+                    )
 
                 response, _ = self.client.query(query)
-                
+
                 if response[0]["FindDescriptor"]["returned"] > 0:
                     entities = response[0]["FindDescriptor"]["entities"]
-                    
-                    result = {
-                        "ids": [],
-                        "distances": [],
-                        "entities": []
-                    }
-                    
+
+                    result = {"ids": [], "distances": [], "entities": []}
+
                     for entity in entities:
                         result["ids"].append(entity["id"])
                         result["distances"].append(entity["_distance"])
-                        
+
                         # エンティティのプロパティを整形
                         entity_dict = {
                             "document_id": entity.get("document_id"),
@@ -231,17 +240,13 @@ class ApertureDBCollection(ABC):
                             "chunk_type": entity.get("chunk_type"),
                         }
                         result["entities"].append(entity_dict)
-                    
+
                     results.append(result)
             else:
                 # Sparse vector検索（カスタム実装が必要）
                 # ApertureDBはsparse vectorを直接サポートしないため、
                 # 代替実装を提供
-                results.append({
-                    "ids": [],
-                    "distances": [],
-                    "entities": []
-                })
+                results.append({"ids": [], "distances": [], "entities": []})
 
         await asyncio.sleep(0)  # async化のため
         return results
@@ -252,42 +257,44 @@ class ApertureDBCollection(ABC):
             raise RuntimeError("Client not initialized")
 
         descriptor_set_name = self.get_collection_name()
-        
+
         # まず該当するデスクリプタを検索
-        query = [{
-            "FindDescriptor": {
-                "set": descriptor_set_name,
-                "constraints": {
-                    "document_id": ["==", document_id]
-                },
-                "results": {
-                    "count": True
+        query = [
+            {
+                "FindDescriptor": {
+                    "set": descriptor_set_name,
+                    "constraints": {"document_id": ["==", document_id]},
+                    "results": {"count": True},
                 }
             }
-        }]
-        
+        ]
+
         response, _ = self.client.query(query)
-        count = response[0]["FindDescriptor"]["count"]
-        
+        # レスポンスの形式を確認
+        if response and len(response) > 0 and "FindDescriptor" in response[0]:
+            count = response[0]["FindDescriptor"].get("count", 0)
+        else:
+            count = 0
+
         # 削除クエリ
-        query = [{
-            "DeleteDescriptor": {
-                "set": descriptor_set_name,
-                "constraints": {
-                    "document_id": ["==", document_id]
+        query = [
+            {
+                "DeleteDescriptor": {
+                    "set": descriptor_set_name,
+                    "constraints": {"document_id": ["==", document_id]},
                 }
             }
-        }]
-        
+        ]
+
         self.client.query(query)
-        
+
         await asyncio.sleep(0)  # async化のため
         return {"delete_count": count}
 
     def _build_constraints(self, filters: dict[str, Any]) -> dict[str, Any]:
         """ApertureDB用の制約条件を構築"""
-        constraints = {}
-        
+        constraints: dict[str, Any] = {}
+
         for key, value in filters.items():
             if isinstance(value, str):
                 constraints[key] = ["==", value]
@@ -296,7 +303,7 @@ class ApertureDBCollection(ABC):
             elif isinstance(value, list):
                 # IN句の場合
                 constraints[key] = ["in", value]
-                
+
         return constraints
 
 

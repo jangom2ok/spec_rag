@@ -177,9 +177,7 @@ Future work should explore additional optimization techniques.""",
 
         result = await chunker.chunk_document(sample_document)
 
-        assert (
-            len(result.chunks) >= 2
-        )  # 十分長いドキュメントなので複数チャンクになるはず
+        assert len(result.chunks) >= 2  # 十分長いドキュメントなので複数チャンクになるはず
 
         # オーバーラップの検証
         for i in range(len(result.chunks) - 1):

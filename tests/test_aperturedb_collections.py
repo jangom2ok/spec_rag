@@ -20,7 +20,10 @@ class TestApertureDBCollection:
         # Mock ApertureDB connection
         with patch("app.models.aperturedb.Client") as mock_client:
             mock_client.return_value = Mock()
-            mock_client.return_value.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
+            mock_client.return_value.query.return_value = (
+                [{"FindDescriptorSet": {"count": 0}}],
+                [],
+            )
 
             dense_collection = DenseVectorCollection()
             sparse_collection = SparseVectorCollection()
@@ -37,11 +40,14 @@ class TestApertureDBCollection:
         """接続初期化のテスト"""
         with patch("app.models.aperturedb.Client") as mock_client:
             mock_client_instance = Mock()
-            mock_client_instance.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
+            mock_client_instance.query.return_value = (
+                [{"FindDescriptorSet": {"count": 0}}],
+                [],
+            )
             mock_client.return_value = mock_client_instance
 
             collection = DenseVectorCollection()
-            
+
             # クライアントが作成されていることを確認
             assert collection.client is not None
             mock_client.assert_called_once_with(
@@ -61,7 +67,10 @@ class TestDenseVectorCollection:
         with patch("app.models.aperturedb.Client") as mock_client:
             mock_client_instance = Mock()
             # デスクリプターセットの初期化
-            mock_client_instance.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
+            mock_client_instance.query.return_value = (
+                [{"FindDescriptorSet": {"count": 0}}],
+                [],
+            )
             mock_client.return_value = mock_client_instance
 
             yield mock_client_instance
@@ -83,20 +92,23 @@ class TestDenseVectorCollection:
         )
 
         # 挿入成功をモック
-        mock_aperturedb_client.query.return_value = ([{"AddDescriptor": {"status": 0}}], [])
+        mock_aperturedb_client.query.return_value = (
+            [{"AddDescriptor": {"status": 0}}],
+            [],
+        )
 
         # 挿入の実行
         result = await collection.insert([vector_data])
 
         # 結果の確認
         assert result["primary_keys"] == ["test-id-1"]
-        
+
         # ApertureDBクライアントの呼び出し確認
         # 初期化時の呼び出しを除いた2回目の呼び出しを確認
         assert mock_aperturedb_client.query.call_count >= 2
         last_call = mock_aperturedb_client.query.call_args_list[-1]
         query = last_call[0][0][0]
-        
+
         assert "AddDescriptor" in query
         assert query["AddDescriptor"]["set"] == "document_vectors_dense"
         assert len(query["AddDescriptor"]["descriptor"]) == 1024
@@ -107,27 +119,32 @@ class TestDenseVectorCollection:
         collection.client = mock_aperturedb_client
 
         # 検索結果をモック
-        mock_aperturedb_client.query.return_value = ([{
-            "FindDescriptor": {
-                "returned": 2,
-                "entities": [
-                    {
-                        "id": "doc-1",
-                        "_distance": 0.1,
-                        "document_id": "doc-1",
-                        "chunk_id": "chunk-1",
-                        "chunk_type": "paragraph"
-                    },
-                    {
-                        "id": "doc-2",
-                        "_distance": 0.3,
-                        "document_id": "doc-2",
-                        "chunk_id": "chunk-2",
-                        "chunk_type": "section"
+        mock_aperturedb_client.query.return_value = (
+            [
+                {
+                    "FindDescriptor": {
+                        "returned": 2,
+                        "entities": [
+                            {
+                                "id": "doc-1",
+                                "_distance": 0.1,
+                                "document_id": "doc-1",
+                                "chunk_id": "chunk-1",
+                                "chunk_type": "paragraph",
+                            },
+                            {
+                                "id": "doc-2",
+                                "_distance": 0.3,
+                                "document_id": "doc-2",
+                                "chunk_id": "chunk-2",
+                                "chunk_type": "section",
+                            },
+                        ],
                     }
-                ]
-            }
-        }], [])
+                }
+            ],
+            [],
+        )
 
         # 検索実行
         query_vector = np.random.random(1024).tolist()
@@ -148,12 +165,10 @@ class TestDenseVectorCollection:
 
         # 削除対象の検索結果をモック
         mock_aperturedb_client.query.side_effect = [
-            # 初期化時のクエリ
-            ([{"FindDescriptorSet": {"count": 0}}], []),
             # 削除対象の検索
             ([{"FindDescriptor": {"count": 3}}], []),
             # 削除実行
-            ([{"DeleteDescriptor": {"status": 0}}], [])
+            ([{"DeleteDescriptor": {"status": 0}}], []),
         ]
 
         # 削除実行
@@ -171,7 +186,10 @@ class TestSparseVectorCollection:
         """ApertureDBのクライアントをモック"""
         with patch("app.models.aperturedb.Client") as mock_client:
             mock_client_instance = Mock()
-            mock_client_instance.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
+            mock_client_instance.query.return_value = (
+                [{"FindDescriptorSet": {"count": 0}}],
+                [],
+            )
             mock_client.return_value = mock_client_instance
 
             yield mock_client_instance
@@ -180,8 +198,11 @@ class TestSparseVectorCollection:
         """Sparse Vectorコレクション名のテスト"""
         with patch("app.models.aperturedb.Client") as mock_client:
             mock_client.return_value = Mock()
-            mock_client.return_value.query.return_value = ([{"FindDescriptorSet": {"count": 0}}], [])
-            
+            mock_client.return_value.query.return_value = (
+                [{"FindDescriptorSet": {"count": 0}}],
+                [],
+            )
+
             collection = SparseVectorCollection()
             assert collection.get_collection_name() == "document_vectors_sparse"
 
@@ -209,12 +230,12 @@ class TestSparseVectorCollection:
 
         # 結果確認
         assert result["primary_keys"] == ["sparse-test-1"]
-        
+
         # クライアントの呼び出し確認
         assert mock_aperturedb_client.query.call_count >= 2
         last_call = mock_aperturedb_client.query.call_args_list[-1]
         query = last_call[0][0][0]
-        
+
         assert "AddEntity" in query
         assert query["AddEntity"]["class"] == "SparseVector"
         assert query["AddEntity"]["properties"]["vocabulary_size"] == 1000
@@ -223,14 +244,15 @@ class TestSparseVectorCollection:
         """ハイブリッド検索の準備テスト"""
         dense_collection = DenseVectorCollection()
         sparse_collection = SparseVectorCollection()
-        
+
         dense_collection.client = mock_aperturedb_client
         sparse_collection.client = mock_aperturedb_client
 
         # 両方のコレクションでの検索結果をモック
-        with patch.object(dense_collection, "search") as mock_dense_search, \
-             patch.object(sparse_collection, "search") as mock_sparse_search:
-            
+        with (
+            patch.object(dense_collection, "search") as mock_dense_search,
+            patch.object(sparse_collection, "search") as mock_sparse_search,
+        ):
             mock_dense_search.return_value = [
                 {"ids": ["doc-1", "doc-2"], "distances": [0.1, 0.3], "entities": []}
             ]

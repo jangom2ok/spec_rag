@@ -312,7 +312,6 @@ class TestQueryExpansionService:
                 expansion_service, "_expand_with_semantics", new_callable=AsyncMock
             ) as mock_semantics,
         ):
-
             mock_terms.return_value = [
                 QueryTerm(term="machine", pos_tag="NOUN", importance=0.8),
                 QueryTerm(term="learning", pos_tag="NOUN", importance=0.9),
@@ -385,7 +384,6 @@ class TestQueryExpansionService:
                 expansion_service, "_expand_with_synonyms", new_callable=AsyncMock
             ) as mock_synonyms,
         ):
-
             mock_terms.return_value = [
                 QueryTerm(term="機械学習", pos_tag="NOUN", importance=0.9),
                 QueryTerm(term="アルゴリズム", pos_tag="NOUN", importance=0.8),
@@ -565,7 +563,6 @@ class TestQueryExpansionService:
                 expansion_service, "_extract_query_terms", new_callable=AsyncMock
             ) as mock_terms,
         ):
-
             cache_key = "expansion_cache_key_123"
             mock_cache_key.return_value = cache_key
             mock_get_cache.return_value = None  # キャッシュなし
@@ -661,7 +658,6 @@ class TestQueryExpansionService:
                 expansion_service, "_expand_with_concepts", new_callable=AsyncMock
             ) as mock_concepts,
         ):
-
             # Setup comprehensive mocks
             mock_terms.return_value = [
                 QueryTerm(term="machine", pos_tag="NOUN", importance=0.8),

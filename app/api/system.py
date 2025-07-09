@@ -8,8 +8,6 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from app.core.auth import require_admin_permission, validate_api_key
-from app.services.embedding_service import EmbeddingService, EmbeddingConfig
-from app.services.hybrid_search_engine import HybridSearchEngine, SearchConfig
 from app.services.metrics_collection import (
     MetricsCollectionService,
     SystemMetrics,
@@ -21,7 +19,7 @@ router = APIRouter(prefix="/v1", tags=["system"])
 
 class ComponentStatus(BaseModel):
     """コンポーネント状態"""
-    
+
     status: str  # "healthy", "degraded", "unhealthy"
     response_time_ms: float | None = None
     error_message: str | None = None
@@ -30,7 +28,7 @@ class ComponentStatus(BaseModel):
 
 class SystemStatus(BaseModel):
     """システム状況レスポンス（レガシー互換性）"""
-    
+
     status: str  # healthy, degraded, unhealthy
     components: dict[str, dict[str, Any]]
     version: str
@@ -40,7 +38,7 @@ class SystemStatus(BaseModel):
 
 class SystemStatusResponse(BaseModel):
     """システム状態レスポンス"""
-    
+
     system_status: str  # "healthy", "degraded", "unhealthy"
     timestamp: datetime
     components: dict[str, ComponentStatus]
@@ -49,14 +47,14 @@ class SystemStatusResponse(BaseModel):
 
 class PerformanceMetrics(BaseModel):
     """パフォーマンスメトリクス"""
-    
+
     search_metrics: dict[str, float]
     embedding_metrics: dict[str, float] | None = None
 
 
 class UsageMetrics(BaseModel):
     """使用状況メトリクス"""
-    
+
     daily_active_users: int
     total_searches_today: int
     popular_queries: list[str]
@@ -64,7 +62,7 @@ class UsageMetrics(BaseModel):
 
 class ResourceMetrics(BaseModel):
     """リソースメトリクス"""
-    
+
     cpu_usage_percent: float
     memory_usage_percent: float
     disk_usage_percent: float
@@ -73,7 +71,7 @@ class ResourceMetrics(BaseModel):
 
 class SystemMetrics(BaseModel):
     """システムメトリクスレスポンス（レガシー互換性）"""
-    
+
     search_metrics: dict[str, Any]
     embedding_metrics: dict[str, Any]
     database_metrics: dict[str, Any]
@@ -83,7 +81,7 @@ class SystemMetrics(BaseModel):
 
 class SystemMetricsResponse(BaseModel):
     """システムメトリクスレスポンス"""
-    
+
     performance_metrics: PerformanceMetrics
     usage_metrics: UsageMetrics | None = None
     resource_metrics: ResourceMetrics | None = None
@@ -92,7 +90,7 @@ class SystemMetricsResponse(BaseModel):
 
 class ReindexRequest(BaseModel):
     """リインデックスリクエスト"""
-    
+
     collection_name: str | None = None  # None の場合は全コレクション
     force: bool = False  # 強制実行フラグ
     background: bool = True  # バックグラウンド実行
@@ -103,7 +101,7 @@ class ReindexRequest(BaseModel):
 
 class ReindexResponse(BaseModel):
     """リインデックスレスポンス"""
-    
+
     success: bool
     task_id: str | None = None
     message: str
@@ -113,8 +111,7 @@ class ReindexResponse(BaseModel):
 
 
 async def get_admin_user(
-    authorization: str | None = Header(None), 
-    x_api_key: str | None = Header(None)
+    authorization: str | None = Header(None), x_api_key: str | None = Header(None)
 ) -> dict:
     """管理者認証用の依存性注入"""
     try:
@@ -135,10 +132,16 @@ async def get_admin_user(
         if authorization and authorization.startswith("Bearer "):
             token = authorization.split(" ")[1]
             try:
-                from app.core.auth import is_token_blacklisted, users_storage, verify_token
+                from app.core.auth import (
+                    is_token_blacklisted,
+                    users_storage,
+                    verify_token,
+                )
 
                 if is_token_blacklisted(token):
-                    raise HTTPException(status_code=401, detail="Token has been revoked")
+                    raise HTTPException(
+                        status_code=401, detail="Token has been revoked"
+                    )
 
                 payload = verify_token(token)
                 email = payload.get("sub")
@@ -168,7 +171,7 @@ async def get_system_status(
     current_user: dict = Depends(get_admin_user),
 ):
     """システム状態取得
-    
+
     システム全体の健康状態とコンポーネントの状態を返します。
     管理者権限が必要です。
     """
@@ -184,7 +187,7 @@ async def get_system_status(
             metadata={
                 "active_connections": 23,
                 "uptime_seconds": 86400,
-            }
+            },
         )
 
         # 埋め込みサービスの状態
@@ -196,12 +199,11 @@ async def get_system_status(
                     "model_loaded": True,
                     "gpu_memory_usage": "12.5GB/24GB",
                     "processing_queue": 5,
-                }
+                },
             )
         except Exception as e:
             components["embedding_service"] = ComponentStatus(
-                status="unhealthy",
-                error_message=str(e)
+                status="unhealthy", error_message=str(e)
             )
             overall_status = "degraded"
 
@@ -214,19 +216,18 @@ async def get_system_status(
                     "collections": {
                         "dense_vectors": {
                             "total_vectors": 125000,
-                            "index_status": "built"
+                            "index_status": "built",
                         },
                         "sparse_vectors": {
                             "total_vectors": 125000,
-                            "index_status": "built"
-                        }
+                            "index_status": "built",
+                        },
                     }
-                }
+                },
             )
         except Exception as e:
             components["vector_database"] = ComponentStatus(
-                status="unhealthy",
-                error_message=str(e)
+                status="unhealthy", error_message=str(e)
             )
             overall_status = "unhealthy"
 
@@ -238,12 +239,11 @@ async def get_system_status(
                 metadata={
                     "connection_pool": "8/20",
                     "slow_queries": 0,
-                }
+                },
             )
         except Exception as e:
             components["metadata_database"] = ComponentStatus(
-                status="unhealthy",
-                error_message=str(e)
+                status="unhealthy", error_message=str(e)
             )
             overall_status = "unhealthy"
 
@@ -275,7 +275,7 @@ async def get_system_metrics(
     metrics_service: MetricsCollectionService = Depends(get_metrics_service),
 ):
     """システムメトリクス取得
-    
+
     システムのパフォーマンスメトリクス、使用状況、リソース使用量を返します。
     管理者権限が必要です。
     """
@@ -297,7 +297,7 @@ async def get_system_metrics(
                 "avg_processing_time_ms": 1234.0,
                 "queue_depth": 5.0,
                 "gpu_utilization_percent": 78.0,
-            }
+            },
         )
 
         # 使用状況メトリクス
@@ -308,7 +308,7 @@ async def get_system_metrics(
                 "API認証",
                 "JWT実装",
                 "セキュリティ設定",
-            ]
+            ],
         )
 
         # リソースメトリクス
@@ -339,7 +339,7 @@ async def reindex_documents(
     current_user: dict = Depends(get_admin_user),
 ):
     """ドキュメントリインデックス
-    
+
     ベクトルデータベースのインデックスを再構築します。
     管理者権限が必要です。
     """
@@ -349,20 +349,20 @@ async def reindex_documents(
 
         # リインデックスタスクを開始
         task_id = str(uuid.uuid4())
-        
+
         if request.background:
             # バックグラウンドでの実行
             # 実際の実装では、Celeryタスクを開始
             logger.info(f"Starting background reindex task: {task_id}")
-            
+
             estimated_completion = datetime.now() + timedelta(hours=2)
-            
+
             # レガシー互換性: 推定実行時間計算
             estimated_duration = None
             if request.source_types:
                 estimated_docs = 100 * len(request.source_types)  # 仮の計算
                 estimated_duration = estimated_docs * 0.5  # 1ドキュメント0.5秒と仮定
-            
+
             return ReindexResponse(
                 success=True,
                 task_id=task_id,
@@ -373,10 +373,10 @@ async def reindex_documents(
         else:
             # 同期実行
             logger.info(f"Starting synchronous reindex task: {task_id}")
-            
+
             # 実際の実装では、ここでリインデックス処理を実行
             # await reindex_service.reindex(collection_name=request.collection_name, force=request.force)
-            
+
             return ReindexResponse(
                 success=True,
                 task_id=task_id,
@@ -401,7 +401,7 @@ async def get_reindex_status(
         # タスクID検証の簡易実装
         if not task_id or len(task_id) != 36:  # UUID length check
             raise HTTPException(status_code=404, detail="Task not found")
-        
+
         # モック状況データ
         status_data = {
             "task_id": task_id,
@@ -411,16 +411,15 @@ async def get_reindex_status(
             "total_documents": 1000,
             "current_phase": "embedding_generation",
             "estimated_completion": "2024-01-01T15:30:00Z",
-            "errors": []
+            "errors": [],
         }
-        
+
         return status_data
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Reindex status retrieval failed: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Status retrieval failed: {str(e)}"
+            status_code=500, detail=f"Status retrieval failed: {str(e)}"
         ) from e

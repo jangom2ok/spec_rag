@@ -352,7 +352,6 @@ class TestHybridSearchEngine:
                 ],
             },
         ) as _mock_facets:
-
             facets = search_engine._calculate_facets(
                 mock_documents, sample_search_query.facets
             )
@@ -520,7 +519,6 @@ class TestHybridSearchEngine:
                 search_engine, "_retrieve_documents", new_callable=AsyncMock
             ) as mock_retrieve,
         ):
-
             # Setup mocks
             mock_embed.return_value = {
                 "dense": [0.1] * 1024,

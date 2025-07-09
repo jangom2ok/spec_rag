@@ -301,7 +301,6 @@ class TestSearchDiversityService:
                 new_callable=AsyncMock,
             ) as mock_similarity,
         ):
-
             mock_similarity.return_value = np.random.random((5, 5))
             # preserve_top_results=1なので、残り2個だけ返す（合計3個になるように）
             mock_mmr.return_value = diversification_request.candidates[1:3]
@@ -548,7 +547,6 @@ class TestSearchDiversityService:
                 diversity_service, "_diversify_with_mmr", new_callable=AsyncMock
             ) as mock_mmr,
         ):
-
             cache_key = "diversity_cache_key_123"
             mock_cache_key.return_value = cache_key
             mock_get_cache.return_value = None  # キャッシュなし
@@ -637,7 +635,6 @@ class TestSearchDiversityService:
                 diversity_service, "_diversify_with_mmr", new_callable=AsyncMock
             ) as mock_mmr,
         ):
-
             # Setup mocks
             mock_similarity.return_value = np.random.random((5, 5))
             # preserve_top_results=1で最高スコアが自動で保持されるので、残り2個だけ返す

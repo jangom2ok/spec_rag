@@ -5,7 +5,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from aperturedb import DBException  # type: ignore
+
+try:
+    from aperturedb import DBException  # type: ignore
+except ImportError:
+    from app.models.aperturedb_mock import DBException  # type: ignore
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.auth import AuthHTTPError, admin_router

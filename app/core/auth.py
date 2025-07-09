@@ -436,8 +436,7 @@ async def require_admin_permission(
     authorization: str | None = None, x_api_key: str | None = None
 ) -> dict:
     """管理者権限を要求（依存性注入用）"""
-    from fastapi import Header
-    
+
     # 認証情報を取得
     if x_api_key:
         api_key_info = validate_api_key(x_api_key)
@@ -447,13 +446,13 @@ async def require_admin_permission(
                 "permissions": api_key_info["permissions"],
                 "auth_type": "api_key",
             }
-    
+
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
         try:
             if is_token_blacklisted(token):
                 raise HTTPException(status_code=401, detail="Token has been revoked")
-            
+
             payload = verify_token(token)
             email = payload.get("sub")
             if email:
@@ -465,8 +464,5 @@ async def require_admin_permission(
                     return user_info
         except Exception:
             pass
-    
-    raise HTTPException(
-        status_code=403, 
-        detail="Administrator privileges required"
-    )
+
+    raise HTTPException(status_code=403, detail="Administrator privileges required")

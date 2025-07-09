@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import Any
 
 import psutil
-from fastapi import APIRouter, HTTPException
 from aperturedb import DBException  # type: ignore
+from fastapi import APIRouter, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
 router = APIRouter(prefix="/v1/health", tags=["health"])
@@ -84,7 +84,10 @@ async def detailed_health_check():
         return {
             "status": overall_status,
             "timestamp": datetime.utcnow().isoformat(),
-            "services": {"postgresql": postgresql_status, "aperturedb": aperturedb_status},
+            "services": {
+                "postgresql": postgresql_status,
+                "aperturedb": aperturedb_status,
+            },
             "system": system_metrics,
             "version": "1.0.0",
         }

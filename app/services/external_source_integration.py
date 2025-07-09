@@ -293,7 +293,6 @@ class ConfluenceConnector(BaseConnector):
             "expand": "body.storage,space,version,metadata.properties",
         }
 
-
         # 増分同期
         if incremental and self.config.last_sync_time:
             params["lastModified"] = self.config.last_sync_time

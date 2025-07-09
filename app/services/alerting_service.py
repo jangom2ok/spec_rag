@@ -84,7 +84,7 @@ class AlertCondition:
             return value == self.threshold
         elif self.operator == ComparisonOperator.NOT_EQUAL:
             return value != self.threshold
-        
+
         return False  # type: ignore[unreachable]
 
 
@@ -141,10 +141,7 @@ class EscalationPolicy:
         if not self.enabled:
             return []
 
-        return [
-            rule for rule in self.rules
-            if rule.get("severity") == severity.value
-        ]
+        return [rule for rule in self.rules if rule.get("severity") == severity.value]
 
 
 @dataclass
@@ -354,7 +351,9 @@ class AlertingService:
         self._suppress_rules[rule.id] = rule
         logger.info(f"Added suppress rule: {rule.id}")
 
-    async def evaluate_metric(self, metric_name: str, value: float) -> list[AlertTriggerEvent]:
+    async def evaluate_metric(
+        self, metric_name: str, value: float
+    ) -> list[AlertTriggerEvent]:
         """メトリクス評価・アラート判定"""
         triggered_alerts: list[AlertTriggerEvent] = []
 
@@ -465,7 +464,9 @@ class AlertingService:
             except Exception as e:
                 logger.error(f"Alert callback error: {e}")
 
-    async def send_alert_notifications(self, alert: AlertTriggerEvent) -> list[dict[str, Any]]:
+    async def send_alert_notifications(
+        self, alert: AlertTriggerEvent
+    ) -> list[dict[str, Any]]:
         """アラート通知送信"""
         sent_notifications = []
 
@@ -478,21 +479,25 @@ class AlertingService:
                 sent_notifications.append(notification_result)
 
                 # 通知履歴に記録
-                self._notification_history.append({
-                    "channel_id": channel.id,
-                    "alert_id": alert.rule_id,
-                    "severity": alert.severity.value,
-                    "sent_at": datetime.now(),
-                    "success": notification_result.get("success", False),
-                })
+                self._notification_history.append(
+                    {
+                        "channel_id": channel.id,
+                        "alert_id": alert.rule_id,
+                        "severity": alert.severity.value,
+                        "sent_at": datetime.now(),
+                        "success": notification_result.get("success", False),
+                    }
+                )
 
             except Exception as e:
                 logger.error(f"Failed to send notification via {channel.id}: {e}")
-                sent_notifications.append({
-                    "channel_id": channel.id,
-                    "success": False,
-                    "error": str(e),
-                })
+                sent_notifications.append(
+                    {
+                        "channel_id": channel.id,
+                        "success": False,
+                        "error": str(e),
+                    }
+                )
 
         return sent_notifications
 
@@ -507,7 +512,10 @@ class AlertingService:
         elif channel.type == AlertChannel.WEBHOOK:
             return await self._send_webhook_notification(channel, alert)
         else:
-            return {"success": False, "error": f"Unsupported channel type: {channel.type}"}
+            return {
+                "success": False,
+                "error": f"Unsupported channel type: {channel.type}",
+            }
 
     async def _send_email_notification(
         self, channel: NotificationChannel, alert: AlertTriggerEvent
@@ -562,17 +570,37 @@ Triggered At: {alert.triggered_at}
             payload = {
                 "channel": config.get("channel", "#alerts"),
                 "username": config.get("username", "AlertBot"),
-                "icon_emoji": ":warning:" if alert.severity == AlertSeverity.WARNING else ":fire:",
+                "icon_emoji": (
+                    ":warning:" if alert.severity == AlertSeverity.WARNING else ":fire:"
+                ),
                 "attachments": [
                     {
-                        "color": "danger" if alert.severity == AlertSeverity.CRITICAL else "warning",
+                        "color": (
+                            "danger"
+                            if alert.severity == AlertSeverity.CRITICAL
+                            else "warning"
+                        ),
                         "title": f"[{alert.severity.value}] {alert.rule_name}",
                         "text": alert.description,
                         "fields": [
                             {"title": "Metric", "value": alert.metric, "short": True},
-                            {"title": "Value", "value": str(alert.value), "short": True},
-                            {"title": "Threshold", "value": str(alert.threshold), "short": True},
-                            {"title": "Time", "value": alert.triggered_at.strftime("%Y-%m-%d %H:%M:%S"), "short": True},
+                            {
+                                "title": "Value",
+                                "value": str(alert.value),
+                                "short": True,
+                            },
+                            {
+                                "title": "Threshold",
+                                "value": str(alert.threshold),
+                                "short": True,
+                            },
+                            {
+                                "title": "Time",
+                                "value": alert.triggered_at.strftime(
+                                    "%Y-%m-%d %H:%M:%S"
+                                ),
+                                "short": True,
+                            },
                         ],
                     }
                 ],
@@ -580,7 +608,9 @@ Triggered At: {alert.triggered_at}
 
             # Webhook送信（モック環境では実際に送信しない）
             if config.get("mock", True):
-                logger.info(f"Mock Slack notification sent to {config.get('channel', '#alerts')}")
+                logger.info(
+                    f"Mock Slack notification sent to {config.get('channel', '#alerts')}"
+                )
                 return {"success": True, "channel_id": channel.id}
 
             # 実際のWebhook送信
@@ -589,7 +619,11 @@ Triggered At: {alert.triggered_at}
                     if response.status == 200:
                         return {"success": True, "channel_id": channel.id}
                     else:
-                        return {"success": False, "channel_id": channel.id, "error": f"HTTP {response.status}"}
+                        return {
+                            "success": False,
+                            "channel_id": channel.id,
+                            "error": f"HTTP {response.status}",
+                        }
 
         except Exception as e:
             return {"success": False, "channel_id": channel.id, "error": str(e)}
@@ -624,7 +658,11 @@ Triggered At: {alert.triggered_at}
                     if 200 <= response.status < 300:
                         return {"success": True, "channel_id": channel.id}
                     else:
-                        return {"success": False, "channel_id": channel.id, "error": f"HTTP {response.status}"}
+                        return {
+                            "success": False,
+                            "channel_id": channel.id,
+                            "error": f"HTTP {response.status}",
+                        }
 
         except Exception as e:
             return {"success": False, "channel_id": channel.id, "error": str(e)}
@@ -647,13 +685,15 @@ Triggered At: {alert.triggered_at}
         grouped_alerts = []
         for group_key, alerts in groups.items():
             if len(alerts) >= 1:  # 1個以上のアラートがある場合グルーピング情報を作成
-                grouped_alerts.append({
-                    "group_key": group_key,
-                    "alert_count": len(alerts),
-                    "alerts": [alert.to_dict() for alert in alerts],
-                    "tags": alerts[0].tags if alerts else {},
-                    "grouped_at": datetime.now(),
-                })
+                grouped_alerts.append(
+                    {
+                        "group_key": group_key,
+                        "alert_count": len(alerts),
+                        "alerts": [alert.to_dict() for alert in alerts],
+                        "tags": alerts[0].tags if alerts else {},
+                        "grouped_at": datetime.now(),
+                    }
+                )
 
         return grouped_alerts
 
@@ -690,11 +730,13 @@ Triggered At: {alert.triggered_at}
                     await self._execute_escalation_step(alert, channels)
 
                 # エスカレーション履歴に記録
-                self._escalation_history[alert.rule_id].append({
-                    "step": step,
-                    "executed_at": datetime.now(),
-                    "alert_id": alert.rule_id,
-                })
+                self._escalation_history[alert.rule_id].append(
+                    {
+                        "step": step,
+                        "executed_at": datetime.now(),
+                        "alert_id": alert.rule_id,
+                    }
+                )
 
     async def _delayed_escalation(
         self, alert: AlertTriggerEvent, channels: list[str], delay: int
@@ -721,14 +763,16 @@ Triggered At: {alert.triggered_at}
     ) -> list[AlertTriggerEvent]:
         """アラート履歴取得"""
         return [
-            alert for alert in self._alert_history
+            alert
+            for alert in self._alert_history
             if start_time <= alert.triggered_at <= end_time
         ]
 
     async def _cleanup_expired_suppressions(self) -> None:
         """期限切れ抑制ルールのクリーンアップ"""
         expired_rules = [
-            rule_id for rule_id, rule in self._suppress_rules.items()
+            rule_id
+            for rule_id, rule in self._suppress_rules.items()
             if rule.is_expired()
         ]
 
@@ -743,18 +787,24 @@ Triggered At: {alert.triggered_at}
 
         for alert_list in self._active_alerts.values():
             for alert in alert_list:
-                if alert.triggered_at <= cutoff_time and alert.severity == AlertSeverity.CRITICAL:
+                if (
+                    alert.triggered_at <= cutoff_time
+                    and alert.severity == AlertSeverity.CRITICAL
+                ):
                     # 15分以上継続しているクリティカルアラートはエスカレーション
                     await self.trigger_escalation(alert)
 
     async def _cleanup_old_data(self) -> None:
         """古いデータのクリーンアップ"""
         try:
-            cutoff_time = datetime.now() - timedelta(days=self.config.alert_retention_days)
+            cutoff_time = datetime.now() - timedelta(
+                days=self.config.alert_retention_days
+            )
 
             # 古いアラート履歴をクリーンアップ
             old_alerts = [
-                alert for alert in self._alert_history
+                alert
+                for alert in self._alert_history
                 if alert.triggered_at < cutoff_time
             ]
 
@@ -764,7 +814,8 @@ Triggered At: {alert.triggered_at}
             # 古いエスカレーション履歴をクリーンアップ
             for rule_id in list(self._escalation_history.keys()):
                 self._escalation_history[rule_id] = [
-                    entry for entry in self._escalation_history[rule_id]
+                    entry
+                    for entry in self._escalation_history[rule_id]
                     if entry["executed_at"] >= cutoff_time
                 ]
 
