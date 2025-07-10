@@ -7,9 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 try:
-    from aperturedb import DBException  # type: ignore
+    from aperturedb import DBException
 except ImportError:
-    from app.models.aperturedb_mock import DBException  # type: ignore
+    from app.models.aperturedb_mock import DBException
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.auth import AuthHTTPError, admin_router

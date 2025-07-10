@@ -49,7 +49,7 @@ class MockClient:
             return [{}], []
 
 
-class DBException(Exception):
+class DBError(Exception):
     """Mock ApertureDB exception"""
 
     pass
@@ -63,3 +63,4 @@ class Utils:
 
 # Export mock classes
 Client = MockClient
+DBException = DBError  # Export with original name for compatibility

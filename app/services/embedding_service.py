@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 
 try:
     import torch as torch_module
-    from FlagEmbedding import FlagModel  # type: ignore
+    from FlagEmbedding import FlagModel
 
     HAS_EMBEDDING_LIBS = True
 except ImportError:

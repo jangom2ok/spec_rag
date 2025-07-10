@@ -156,7 +156,16 @@ async def get_admin_user(
 async def get_metrics_service() -> MetricsCollectionService:
     """メトリクス収集サービスの依存性注入"""
     # 実際の実装では、DIコンテナやファクトリを使用
-    return MetricsCollectionService()
+    from app.services.metrics_collection import MetricsConfig, MetricType
+
+    config = MetricsConfig(
+        metric_types=[MetricType.SEARCH_METRICS, MetricType.SYSTEM_METRICS],
+        collection_interval=60,
+        retention_days=30,
+        enable_real_time=True,
+        enable_aggregation=True,
+    )
+    return MetricsCollectionService(config)
 
 
 @router.get("/status", response_model=SystemStatusResponse)
@@ -274,7 +283,28 @@ async def get_system_metrics(
     """
     try:
         # メトリクス収集サービスからデータを取得
-        _ = await metrics_service.get_current_metrics()
+        # Note: get_current_metrics doesn't exist, we'll use query_metrics instead
+        from datetime import timedelta
+
+        from app.services.metrics_collection import (
+            AggregationType,
+            MetricsRequest,
+            MetricType,
+            TimeWindow,
+        )
+
+        end_time = datetime.now()
+        start_time = end_time - timedelta(hours=1)
+
+        request = MetricsRequest(
+            metric_types=[MetricType.SEARCH_METRICS, MetricType.SYSTEM_METRICS],
+            start_time=start_time,
+            end_time=end_time,
+            time_window=TimeWindow.HOUR,
+            aggregation_type=AggregationType.AVG,
+        )
+
+        _ = await metrics_service.query_metrics(request)
 
         # パフォーマンスメトリクス
         performance_metrics = PerformanceMetrics(

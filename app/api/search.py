@@ -264,7 +264,7 @@ def convert_enhanced_filters_to_legacy(
     enhanced_filters: EnhancedFilters | None,
 ) -> list[SearchFilter]:
     """拡張フィルターを従来のフィルター形式に変換"""
-    legacy_filters = []
+    legacy_filters: list[SearchFilter] = []
 
     if not enhanced_filters:
         return legacy_filters
@@ -365,8 +365,9 @@ async def get_hybrid_search_engine() -> HybridSearchEngine:
     embedding_service = EmbeddingService(embedding_config)
     await embedding_service.initialize()
 
-    document_repository = DocumentRepository()
-    chunk_repository = DocumentChunkRepository()
+    # TODO: Properly inject database session
+    document_repository = DocumentRepository(None)  # type: ignore
+    chunk_repository = DocumentChunkRepository(None)  # type: ignore
 
     return HybridSearchEngine(
         config=search_config,
@@ -399,8 +400,16 @@ async def search_documents(
             raise HTTPException(status_code=403, detail="Read permission required")
 
         # 検索オプションの処理
-        search_options = request.search_options or SearchOptions()
-        ranking_options = request.ranking_options or RankingOptions()
+        search_options = request.search_options or SearchOptions(
+            search_type="hybrid",
+            max_results=10,
+            min_score=0.0,
+            include_metadata=True,
+            highlight=False,
+        )
+        ranking_options = request.ranking_options or RankingOptions(
+            dense_weight=0.7, sparse_weight=0.3, rerank=True, diversity=False
+        )
 
         # レガシー互換性: 古いフィールドがある場合は優先
         max_results = request.max_results or search_options.max_results
@@ -408,9 +417,9 @@ async def search_documents(
         # 検索モードの決定
         search_mode = SearchMode.HYBRID
         if search_options.search_type == "dense":
-            search_mode = SearchMode.DENSE
+            search_mode = SearchMode.SEMANTIC
         elif search_options.search_type == "sparse":
-            search_mode = SearchMode.SPARSE
+            search_mode = SearchMode.KEYWORD
         elif request.search_mode:  # レガシー互換性
             search_mode = request.search_mode
 
@@ -575,6 +584,7 @@ async def search_documents(
                 total_hits=0,
                 search_time=search_time_ms / 1000,
                 documents=[],
+                legacy_facets=None,
                 error_message=search_result.error_message,
             )
 
@@ -602,7 +612,7 @@ async def semantic_search(
             raise HTTPException(status_code=403, detail="Read permission required")
 
         # セマンティック検索用にモードを強制設定
-        search_engine.config.search_mode = SearchMode.DENSE
+        search_engine.config.search_mode = SearchMode.SEMANTIC
         search_engine.config.dense_weight = 1.0
         search_engine.config.sparse_weight = 0.0
 
@@ -615,7 +625,7 @@ async def semantic_search(
         # 検索フィルターの変換
         search_filters = [
             SearchFilter(field=f.field, value=f.value, operator=f.operator)
-            for f in request.filters
+            for f in request.legacy_filters
         ]
 
         # 検索クエリの構築（セマンティック検索用）
@@ -623,8 +633,8 @@ async def semantic_search(
             text=request.query,
             filters=search_filters,
             facets=request.facets,
-            search_mode=SearchMode.DENSE,
-            max_results=request.max_results,
+            search_mode=SearchMode.SEMANTIC,
+            max_results=request.max_results or 10,
             offset=request.offset,
         )
 
@@ -635,14 +645,22 @@ async def semantic_search(
         if search_result.success:
             result_documents = [
                 SearchResultDocument(
-                    id=doc["id"],
+                    document_id=doc["id"],
+                    chunk_id=doc.get("chunk_id"),
+                    score=doc.get("search_score", 0.0),
+                    chunk_type=doc.get("chunk_type"),
                     title=doc.get("title", ""),
                     content=doc.get("content", ""),
+                    highlighted_content=doc.get("highlighted_content"),
+                    source=None,  # TODO: Convert source info
+                    metadata=doc.get("metadata"),
+                    context=None,  # TODO: Convert context info
+                    # レガシー互換性
+                    id=doc["id"],
                     search_score=doc.get("search_score", 0.0),
                     source_type=doc.get("source_type"),
                     language=doc.get("language"),
                     document_type=doc.get("document_type"),
-                    metadata=doc.get("metadata"),
                     rerank_score=doc.get("rerank_score"),
                     ranking_explanation=doc.get("ranking_explanation"),
                 )
@@ -663,20 +681,36 @@ async def semantic_search(
                 ]
 
             return SearchResponse(
-                success=True,
                 query=search_result.query,
+                total_results=search_result.total_hits,
+                returned_results=len(result_documents),
+                search_time_ms=search_result.search_time * 1000,
+                results=result_documents,
+                facets=None,  # TODO: Convert facets to new format
+                suggestions=None,
+                # レガシー互換性
+                success=True,
                 total_hits=search_result.total_hits,
                 search_time=search_result.search_time,
                 documents=result_documents,
-                facets=response_facets,
+                legacy_facets=response_facets,
+                error_message=None,
             )
         else:
             return SearchResponse(
-                success=False,
                 query=search_result.query,
+                total_results=0,
+                returned_results=0,
+                search_time_ms=search_result.search_time * 1000,
+                results=[],
+                facets=None,
+                suggestions=None,
+                # レガシー互換性
+                success=False,
                 total_hits=0,
                 search_time=search_result.search_time,
                 documents=[],
+                legacy_facets=None,
                 error_message=search_result.error_message,
             )
 
@@ -706,7 +740,7 @@ async def keyword_search(
             raise HTTPException(status_code=403, detail="Read permission required")
 
         # キーワード検索用にモードを強制設定
-        search_engine.config.search_mode = SearchMode.SPARSE
+        search_engine.config.search_mode = SearchMode.KEYWORD
         search_engine.config.dense_weight = 0.0
         search_engine.config.sparse_weight = 1.0
 
@@ -719,7 +753,7 @@ async def keyword_search(
         # 検索フィルターの変換
         search_filters = [
             SearchFilter(field=f.field, value=f.value, operator=f.operator)
-            for f in request.filters
+            for f in request.legacy_filters
         ]
 
         # 検索クエリの構築（キーワード検索用）
@@ -727,8 +761,8 @@ async def keyword_search(
             text=request.query,
             filters=search_filters,
             facets=request.facets,
-            search_mode=SearchMode.SPARSE,
-            max_results=request.max_results,
+            search_mode=SearchMode.KEYWORD,
+            max_results=request.max_results or 10,
             offset=request.offset,
         )
 
@@ -739,14 +773,22 @@ async def keyword_search(
         if search_result.success:
             result_documents = [
                 SearchResultDocument(
-                    id=doc["id"],
+                    document_id=doc["id"],
+                    chunk_id=doc.get("chunk_id"),
+                    score=doc.get("search_score", 0.0),
+                    chunk_type=doc.get("chunk_type"),
                     title=doc.get("title", ""),
                     content=doc.get("content", ""),
+                    highlighted_content=doc.get("highlighted_content"),
+                    source=None,  # TODO: Convert source info
+                    metadata=doc.get("metadata"),
+                    context=None,  # TODO: Convert context info
+                    # レガシー互換性
+                    id=doc["id"],
                     search_score=doc.get("search_score", 0.0),
                     source_type=doc.get("source_type"),
                     language=doc.get("language"),
                     document_type=doc.get("document_type"),
-                    metadata=doc.get("metadata"),
                     rerank_score=doc.get("rerank_score"),
                     ranking_explanation=doc.get("ranking_explanation"),
                 )
@@ -767,20 +809,36 @@ async def keyword_search(
                 ]
 
             return SearchResponse(
-                success=True,
                 query=search_result.query,
+                total_results=search_result.total_hits,
+                returned_results=len(result_documents),
+                search_time_ms=search_result.search_time * 1000,
+                results=result_documents,
+                facets=None,  # TODO: Convert facets to new format
+                suggestions=None,
+                # レガシー互換性
+                success=True,
                 total_hits=search_result.total_hits,
                 search_time=search_result.search_time,
                 documents=result_documents,
-                facets=response_facets,
+                legacy_facets=response_facets,
+                error_message=None,
             )
         else:
             return SearchResponse(
-                success=False,
                 query=search_result.query,
+                total_results=0,
+                returned_results=0,
+                search_time_ms=search_result.search_time * 1000,
+                results=[],
+                facets=None,
+                suggestions=None,
+                # レガシー互換性
+                success=False,
                 total_hits=0,
                 search_time=search_result.search_time,
                 documents=[],
+                legacy_facets=None,
                 error_message=search_result.error_message,
             )
 

@@ -1,11 +1,14 @@
 """ドキュメント操作API"""
 
 import logging
+import os
+from collections.abc import AsyncGenerator
 from enum import Enum
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.auth import validate_api_key
 from app.repositories.chunk_repository import DocumentChunkRepository
@@ -24,6 +27,29 @@ from app.services.document_processing_service import (
 from app.services.metadata_extractor import ExtractionConfig
 
 logger = logging.getLogger(__name__)
+
+# Database configuration
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname"
+)
+
+# For testing, use sqlite with aiosqlite driver
+if os.getenv("TESTING", "false").lower() == "true":
+    DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+
+engine = create_async_engine(DATABASE_URL)
+SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
+
+# Dependency to get the database session
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Get database session"""
+    async with SessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
 
 router = APIRouter(prefix="/v1/documents", tags=["documents"])
 
@@ -247,7 +273,7 @@ async def update_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # 部分更新のロジック（実際の実装では、データベースを更新）
-    existing_doc = {
+    existing_doc: dict[str, Any] = {
         "id": document_id,
         "title": "Test Document",
         "content": "Test content",
@@ -269,11 +295,13 @@ async def update_document(
 
 
 # Document Processing Service dependency
-async def get_document_processing_service() -> DocumentProcessingService:
+async def get_document_processing_service(
+    db: AsyncSession = Depends(get_db),
+) -> DocumentProcessingService:
     """ドキュメント処理サービスの依存性注入"""
     # 実際の実装では、DIコンテナやファクトリを使用
-    document_repo = DocumentRepository()
-    chunk_repo = DocumentChunkRepository()
+    document_repo = DocumentRepository(db)
+    chunk_repo = DocumentChunkRepository(db)
     return DocumentProcessingService(
         document_repository=document_repo, chunk_repository=chunk_repo
     )
@@ -534,6 +562,8 @@ async def _background_document_processing(
         logger.error(f"Background processing failed: {e}")
 
 
-def get_document_repository() -> DocumentRepository:
+async def get_document_repository(
+    db: AsyncSession = Depends(get_db),
+) -> DocumentRepository:
     """ドキュメントリポジトリの依存性注入"""
-    return DocumentRepository()
+    return DocumentRepository(db)

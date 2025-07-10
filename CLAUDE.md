@@ -69,6 +69,11 @@ bandit -r app/
 
 # Run all quality checks (via pre-commit)
 pre-commit run --all-files
+
+# 自動コード品質チェック（すべてのチェックが通るまで自動修正を繰り返す）
+./scripts/check_code_quality.sh   # Bash版
+# または
+python scripts/check_code_quality.py  # Python版
 ```
 
 ### Database Operations

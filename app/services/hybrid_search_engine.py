@@ -241,11 +241,15 @@ class HybridSearchEngine:
             search_tasks = []
 
             if self.config.search_mode in [SearchMode.HYBRID, SearchMode.SEMANTIC]:
-                dense_task = self._search_dense_vectors(embeddings["dense"], query)
+                dense_vector = embeddings["dense"]
+                if isinstance(dense_vector, np.ndarray):
+                    dense_vector = dense_vector.tolist()
+                dense_task = self._search_dense_vectors(dense_vector, query)
                 search_tasks.append(("dense", dense_task))
 
             if self.config.search_mode in [SearchMode.HYBRID, SearchMode.KEYWORD]:
-                sparse_task = self._search_sparse_vectors(embeddings["sparse"], query)
+                sparse_vector = embeddings["sparse"]
+                sparse_task = self._search_sparse_vectors(sparse_vector, query)
                 search_tasks.append(("sparse", sparse_task))
 
             # 検索結果を並行取得
@@ -348,7 +352,9 @@ class HybridSearchEngine:
             "sparse": embedding_result.sparse_vector,
         }
 
-    def _extract_keywords_as_sparse(self, text: str) -> dict[str, float]:
+    def _extract_keywords_as_sparse(
+        self, text: str
+    ) -> dict[str, float] | dict[int, float]:
         """テキストからキーワードを抽出してsparse vectorとして返す"""
         # 簡易的なキーワード抽出
         import re
@@ -408,7 +414,7 @@ class HybridSearchEngine:
         return sparse_vector
 
     async def _search_dense_vectors(
-        self, query_vector: list[float], query: SearchQuery
+        self, query_vector: list[float] | np.ndarray, query: SearchQuery
     ) -> VectorSearchResult:
         """Dense vector検索"""
         start_time = datetime.now()
@@ -433,7 +439,7 @@ class HybridSearchEngine:
         )
 
     async def _search_sparse_vectors(
-        self, query_vector: dict[str, float], query: SearchQuery
+        self, query_vector: dict[str, float] | dict[int, float], query: SearchQuery
     ) -> VectorSearchResult:
         """Sparse vector検索"""
         start_time = datetime.now()
@@ -491,7 +497,7 @@ class HybridSearchEngine:
     ) -> list[tuple[str, float]]:
         """重み付き和による融合"""
 
-        combined_scores = defaultdict(float)
+        combined_scores: dict[str, float] = defaultdict(float)
 
         if dense_result:
             for doc_id, score in zip(
@@ -577,13 +583,18 @@ class HybridSearchEngine:
         score_map = dict(search_results)
 
         for doc in mock_documents:
-            if doc["id"] in score_map:
+            doc_id: str = str(doc["id"])
+            if doc_id in score_map:
                 doc_copy = doc.copy()
-                doc_copy["search_score"] = score_map[doc["id"]]
+                doc_copy["search_score"] = score_map[doc_id]
                 result_docs.append(doc_copy)
 
         # スコア順でソート
-        result_docs.sort(key=lambda x: x["search_score"], reverse=True)
+        def get_score(doc: dict[str, Any]) -> float:
+            score = doc.get("search_score", 0)
+            return float(score) if score is not None else 0.0
+
+        result_docs.sort(key=get_score, reverse=True)
 
         return result_docs
 
@@ -973,21 +984,21 @@ class HybridSearchEngine:
 
         while remaining_docs:
             best_doc = None
-            best_score = -1
+            best_score = -1.0
 
             for doc in remaining_docs:
                 category = doc.get("metadata", {}).get("category", "unknown")
                 base_score = doc.get("search_score", 0)
 
                 # 多様性ボーナス
-                diversity_bonus = 0
+                diversity_bonus = 0.0
                 if category not in selected_categories:
                     diversity_bonus = diversity_factor
 
                 total_score = base_score + diversity_bonus
 
                 if total_score > best_score:
-                    best_score = total_score
+                    best_score = float(total_score)
                     best_doc = doc
 
             if best_doc:
@@ -1113,7 +1124,7 @@ class HybridSearchEngine:
                 metrics[f"precision_at_{k}"] = 0.0
 
         # Mean Average Precision (MAP)
-        ap_sum = 0
+        ap_sum = 0.0
         relevant_found = 0
         for i, doc in enumerate(ranked_documents):
             if relevance_labels.get(doc["id"], 0) == 1:
@@ -1125,22 +1136,22 @@ class HybridSearchEngine:
         metrics["map"] = ap_sum / total_relevant if total_relevant > 0 else 0.0
 
         # NDCG@5
-        dcg = 0
+        dcg = 0.0
         for i, doc in enumerate(ranked_documents[:5]):
             relevance = relevance_labels.get(doc["id"], 0)
             if i == 0:
-                dcg += relevance
+                dcg = dcg + float(relevance)
             else:
-                dcg += relevance / np.log2(i + 1)
+                dcg = dcg + float(relevance) / np.log2(i + 1)
 
         # Ideal DCG
         ideal_relevances = sorted(relevance_labels.values(), reverse=True)[:5]
-        idcg = 0
+        idcg = 0.0
         for i, rel in enumerate(ideal_relevances):
             if i == 0:
-                idcg += rel
+                idcg = idcg + float(rel)
             else:
-                idcg += rel / np.log2(i + 1)
+                idcg = idcg + float(rel) / np.log2(i + 1)
 
         metrics["ndcg"] = dcg / idcg if idcg > 0 else 0.0
 

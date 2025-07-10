@@ -449,7 +449,7 @@ class SemanticChunker:
         sections = []
         lines = content.split("\n")
         current_section_title = ""
-        current_section_content = []
+        current_section_content: list[str] = []
 
         for line in lines:
             if line.strip().startswith("#"):
@@ -570,7 +570,7 @@ class HierarchicalChunker:
                 }
             ]
 
-        hierarchy = []
+        hierarchy: list[dict[str, Any]] = []
         lines = content.split("\n")
         _current_section = None
 
@@ -689,7 +689,7 @@ class DocumentChunker:
 
     def __init__(self, config: ChunkingConfig):
         self.config = config
-        self._chunkers = {
+        self._chunkers: dict[ChunkingStrategy, Any] = {
             ChunkingStrategy.FIXED_SIZE: FixedSizeChunker(config),
             ChunkingStrategy.SEMANTIC: SemanticChunker(config),
             ChunkingStrategy.HIERARCHICAL: HierarchicalChunker(config),

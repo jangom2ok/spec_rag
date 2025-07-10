@@ -1,5 +1,6 @@
 """認証・認可システムのコア機能"""
 
+import logging
 import os
 import secrets
 from dataclasses import dataclass
@@ -462,7 +463,7 @@ async def require_admin_permission(
                     user_info["email"] = email
                     user_info["auth_type"] = "jwt"
                     return user_info
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(f"Failed to verify admin token: {e}")
 
     raise HTTPException(status_code=403, detail="Administrator privileges required")

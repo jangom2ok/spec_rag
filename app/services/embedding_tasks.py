@@ -9,9 +9,9 @@ import logging
 from typing import Any
 
 try:
-    import redis  # type: ignore
-    from celery import Celery  # type: ignore
-    from celery.result import AsyncResult  # type: ignore
+    import redis
+    from celery import Celery
+    from celery.result import AsyncResult
 
     HAS_CELERY = True
     HAS_REDIS = True

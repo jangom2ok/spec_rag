@@ -631,7 +631,7 @@ class DatabaseHealthChecker:
 
             try:
                 # シンプルなクエリで接続チェック
-                query = [{"GetStatus": {}}]
+                query: list[dict[str, Any]] = [{"GetStatus": {}}]
                 response, _ = client.query(query)
 
                 if response and len(response) > 0:
