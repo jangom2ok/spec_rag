@@ -75,7 +75,7 @@ def setup_error_handlers(app: FastAPI) -> None:
     """エラーハンドラーを設定する"""
 
     @app.exception_handler(404)
-    async def not_found_handler(request: Request, exc: HTTPException):
+    async def not_found_handler(request: Request, exc: HTTPException) -> JSONResponse:
         return JSONResponse(
             status_code=404,
             content={
@@ -90,7 +90,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(405)
-    async def method_not_allowed_handler(request: Request, exc: HTTPException):
+    async def method_not_allowed_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=405,
             content={
@@ -107,7 +109,7 @@ def setup_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
-    ):
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=422,
             content={
@@ -123,7 +125,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException):
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
         # 認証関連のHTTPExceptionの場合
         if exc.status_code == 401:
             return JSONResponse(
@@ -167,7 +171,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(SQLAlchemyError)
-    async def database_exception_handler(request: Request, exc: SQLAlchemyError):
+    async def database_exception_handler(
+        request: Request, exc: SQLAlchemyError
+    ) -> JSONResponse:
         if isinstance(exc, IntegrityError):
             return JSONResponse(
                 status_code=409,
@@ -196,7 +202,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(DBException)
-    async def vector_database_exception_handler(request: Request, exc: DBException):
+    async def vector_database_exception_handler(
+        request: Request, exc: DBException
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=500,
             content={
@@ -211,7 +219,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(AuthHTTPError)
-    async def authentication_exception_handler(request: Request, exc: AuthHTTPError):
+    async def authentication_exception_handler(
+        request: Request, exc: AuthHTTPError
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -226,7 +236,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(RAGSystemError)
-    async def rag_system_exception_handler(request: Request, exc: RAGSystemError):
+    async def rag_system_exception_handler(
+        request: Request, exc: RAGSystemError
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -241,7 +253,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(Exception)
-    async def general_exception_handler(request: Request, exc: Exception):
+    async def general_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=500,
             content={
@@ -270,6 +284,6 @@ def read_root() -> dict[str, str]:
 
 
 @app.options("/")
-def options_root():
+def options_root() -> dict[str, str]:
     """ルートエンドポイントのOPTIONSメソッド（CORS対応）"""
     return {"message": "OK"}

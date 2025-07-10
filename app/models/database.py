@@ -11,7 +11,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.types import String, TypeDecorator
 
 
-class UUIDType(TypeDecorator):
+class UUIDType(TypeDecorator[str]):
     """UUID型のカスタムタイプ"""
 
     impl = String

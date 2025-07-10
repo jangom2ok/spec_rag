@@ -127,7 +127,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 @router.post(
     "/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED
 )
-async def register_user(user_data: UserRegister):
+async def register_user(user_data: UserRegister) -> MessageResponse:
     """ユーザー登録"""
     # ユーザーが既に存在するかチェック
     if user_data.email in users_storage:
@@ -196,7 +196,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(request: RefreshTokenRequest):
+async def refresh_token(request: RefreshTokenRequest) -> TokenResponse:
     """トークンリフレッシュ"""
     try:
         payload = verify_token(request.refresh_token)
