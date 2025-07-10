@@ -3,7 +3,7 @@
 EmbeddingTasksとRedisの統合テスト - 外部依存をモックで解決
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

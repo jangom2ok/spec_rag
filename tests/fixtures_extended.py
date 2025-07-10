@@ -8,10 +8,9 @@ This file provides comprehensive fixtures for mocking:
 - NLP models
 """
 
-import asyncio
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any, AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import pytest_asyncio
@@ -19,7 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.models.database import Base
-
 
 # ==================== Celery/Redis Fixtures ====================
 
@@ -204,7 +202,9 @@ def mock_cuda_available():
     """Mock CUDA availability."""
     with patch("torch.cuda.is_available", return_value=False):
         with patch("torch.cuda.device_count", return_value=0):
-            with patch("torch.cuda.get_device_name", side_effect=RuntimeError("No CUDA")):
+            with patch(
+                "torch.cuda.get_device_name", side_effect=RuntimeError("No CUDA")
+            ):
                 yield
 
 

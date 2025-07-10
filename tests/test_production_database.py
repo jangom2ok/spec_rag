@@ -574,7 +574,11 @@ class TestProductionDatabaseManager:
 
     @pytest.mark.unit
     async def test_initialize_connections(
-        self, production_database_config: DatabaseConfig, mock_asyncpg_pool, mock_redis_client, mock_aperturedb_client
+        self,
+        production_database_config: DatabaseConfig,
+        mock_asyncpg_pool,
+        mock_redis_client,
+        mock_aperturedb_client,
     ):
         """接続の初期化"""
         manager = ProductionDatabaseManager(config=production_database_config)
@@ -594,17 +598,17 @@ class TestProductionDatabaseManager:
 
         # Mock to simulate retry behavior
         call_count = 0
-        
+
         async def mock_create_pool(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             if call_count < 3:
                 raise Exception("Connection failed")
             return mock_asyncpg_pool
-        
+
         with patch("asyncpg.create_pool", side_effect=mock_create_pool):
             await manager.initialize_connections()
-        
+
         # リトライが機能したことを確認
         assert call_count >= 1
         assert isinstance(manager._connection_pools, dict)
@@ -617,24 +621,24 @@ class TestProductionDatabaseManager:
         # Add replica URLs
         production_database_config.postgres_replica_urls = [
             "postgresql://user:password@replica1:5432/spec_rag",
-            "postgresql://user:password@replica2:5432/spec_rag"
+            "postgresql://user:password@replica2:5432/spec_rag",
         ]
-        
+
         manager = ProductionDatabaseManager(config=production_database_config)
-        
+
         # Mock primary failure, replica success
         call_count = 0
-        
+
         async def mock_create_pool(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             if call_count == 1:
                 raise Exception("Primary failed")
             return mock_asyncpg_pool
-        
+
         with patch("asyncpg.create_pool", side_effect=mock_create_pool):
             await manager.initialize_connections()
-        
+
         # フェイルオーバーが機能したことを確認
         assert call_count >= 2  # Primary failed, replica succeeded
 
@@ -687,7 +691,7 @@ class TestProductionDatabaseIntegration:
         health_check_config: HealthCheckConfig,
         mock_asyncpg_pool,
         mock_redis_client,
-        mock_aperturedb_client
+        mock_aperturedb_client,
     ):
         """エンドツーエンドデータベースセットアップ"""
         manager = ProductionDatabaseManager(config=production_database_config)
@@ -702,8 +706,12 @@ class TestProductionDatabaseIntegration:
 
             # 2. 接続初期化（モック使用）
             with patch("asyncpg.create_pool", return_value=mock_asyncpg_pool):
-                with patch("redis.asyncio.ConnectionPool.from_url", return_value=Mock()):
-                    with patch("aperturedb.Client", return_value=mock_aperturedb_client):
+                with patch(
+                    "redis.asyncio.ConnectionPool.from_url", return_value=Mock()
+                ):
+                    with patch(
+                        "aperturedb.Client", return_value=mock_aperturedb_client
+                    ):
                         await manager.initialize_connections()
 
             # 接続プールが初期化されたことを確認
@@ -792,7 +800,7 @@ class TestProductionDatabaseIntegration:
         production_database_config.postgres_replica_urls = [
             "postgresql://user:password@replica1:5432/spec_rag"
         ]
-        
+
         manager = ProductionDatabaseManager(config=production_database_config)
 
         # フェイルオーバーシナリオをシミュレート

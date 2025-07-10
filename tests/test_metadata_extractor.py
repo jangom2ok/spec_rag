@@ -317,7 +317,7 @@ The API returns standard HTTP status codes:
                 for _ in range(2 if tag in ["ul", "ol", "table"] else 0)
             ]
             mock_bs.return_value = mock_soup
-            
+
             extractor = MetadataExtractor(config=basic_config)
 
         result = await extractor.extract_metadata(sample_confluence_document)
@@ -339,7 +339,10 @@ The API returns standard HTTP status codes:
 
     @pytest.mark.unit
     async def test_entity_extraction(
-        self, basic_config: ExtractionConfig, sample_markdown_document: dict[str, Any], mock_spacy_model
+        self,
+        basic_config: ExtractionConfig,
+        sample_markdown_document: dict[str, Any],
+        mock_spacy_model,
     ):
         """エンティティ抽出テスト"""
         extractor = MetadataExtractor(config=basic_config)
@@ -364,7 +367,10 @@ The API returns standard HTTP status codes:
 
     @pytest.mark.unit
     async def test_keyword_extraction(
-        self, basic_config: ExtractionConfig, sample_markdown_document: dict[str, Any], mock_spacy_model
+        self,
+        basic_config: ExtractionConfig,
+        sample_markdown_document: dict[str, Any],
+        mock_spacy_model,
     ):
         """キーワード抽出テスト"""
         # Mock keyword extraction
@@ -374,7 +380,7 @@ The API returns standard HTTP status codes:
                 {"text": "authentication", "score": 0.85},
                 {"text": "REST", "score": 0.8},
             ]
-            
+
             extractor = MetadataExtractor(config=basic_config)
 
         result = await extractor.extract_metadata(sample_markdown_document)
@@ -468,7 +474,9 @@ The API returns standard HTTP status codes:
         assert "empty" in result.error_message.lower()
 
     @pytest.mark.unit
-    async def test_large_document_handling(self, basic_config: ExtractionConfig, mock_spacy_model):
+    async def test_large_document_handling(
+        self, basic_config: ExtractionConfig, mock_spacy_model
+    ):
         """大きなドキュメントの処理テスト"""
         # Disable NLP processing for large documents to avoid memory issues
         config = ExtractionConfig(

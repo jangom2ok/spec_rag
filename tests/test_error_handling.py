@@ -1,15 +1,12 @@
 """エラーハンドリングのテスト"""
 
-from unittest.mock import patch, Mock, AsyncMock
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
-try:
-    from aperturedb import DBException
-except ImportError:
-    from app.models.aperturedb_mock import DBException
+# ApertureDB exceptions are handled via the mock fixtures
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.exceptions import (
@@ -121,14 +118,20 @@ class TestDatabaseErrorHandling:
     def test_vector_database_error(self, test_app, mock_aperturedb_client):
         """ベクトルデータベースエラーのテスト"""
         # Mock ApertureDB to raise error
-        mock_aperturedb_client.query.side_effect = Exception("ApertureDB connection failed")
-        
+        mock_aperturedb_client.query.side_effect = Exception(
+            "ApertureDB connection failed"
+        )
+
         with patch("app.api.search.search_documents") as mock_search:
             # Make search_documents raise VectorDatabaseError when called
-            mock_search.side_effect = VectorDatabaseError("ApertureDB connection failed")
+            mock_search.side_effect = VectorDatabaseError(
+                "ApertureDB connection failed"
+            )
 
             client = TestClient(test_app)
-            response = client.post("/v1/search", json={"query": "test query", "top_k": 10})
+            response = client.post(
+                "/v1/search", json={"query": "test query", "top_k": 10}
+            )
 
             # Check that error handler works correctly
             # With proper error handling, should return error status
