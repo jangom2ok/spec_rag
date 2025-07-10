@@ -3,6 +3,7 @@
 import logging
 import os
 import secrets
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -352,7 +353,9 @@ def check_user_resource_permission(
 
 
 # デコレーター関数
-def require_permission(required_permission: Permission):
+def require_permission(
+    required_permission: Permission,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """権限要求デコレーター"""
 
     def decorator(func):
@@ -372,7 +375,9 @@ def require_permission(required_permission: Permission):
     return decorator
 
 
-def require_role(required_role: str):
+def require_role(
+    required_role: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """ロール要求デコレーター"""
 
     def decorator(func):
@@ -391,7 +396,9 @@ def require_role(required_role: str):
     return decorator
 
 
-def require_resource_permission(resource_type: str, required_permission: str):
+def require_resource_permission(
+    resource_type: str, required_permission: str
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """リソース権限要求デコレーター"""
 
     def decorator(func):
