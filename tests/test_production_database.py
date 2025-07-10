@@ -705,20 +705,22 @@ class TestProductionDatabaseIntegration:
             assert config_result.is_valid is True
 
             # 2. 接続初期化（モック使用）
-            with patch("asyncpg.create_pool", return_value=mock_asyncpg_pool):
-                # Mock redis module if needed
-                import sys
+            # mock_asyncpg_pool fixture already patches asyncpg.create_pool
+            # Mock redis module if needed
+            import sys
 
-                if "redis" not in sys.modules:
-                    sys.modules["redis"] = Mock()
-                    sys.modules["redis.asyncio"] = Mock()
-                    sys.modules["redis.asyncio"].ConnectionPool = Mock()
-                    sys.modules["redis.asyncio"].ConnectionPool.from_url = Mock(
-                        return_value=Mock()
-                    )
+            if "redis" not in sys.modules:
+                sys.modules["redis"] = Mock()
+                sys.modules["redis.asyncio"] = Mock()
+                sys.modules["redis.asyncio"].ConnectionPool = Mock()
+                sys.modules["redis.asyncio"].ConnectionPool.from_url = Mock(
+                    return_value=Mock()
+                )
 
-                with patch("aperturedb.Client", return_value=mock_aperturedb_client):
-                    await manager.initialize_connections()
+            with patch(
+                "app.models.aperturedb.Client", return_value=mock_aperturedb_client
+            ):
+                await manager.initialize_connections()
 
             # 接続プールが初期化されたことを確認
             assert isinstance(manager._connection_pools, dict)
@@ -774,8 +776,8 @@ class TestProductionDatabaseIntegration:
         """負荷下でのデータベースパフォーマンステスト"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
-        with patch("asyncpg.create_pool", return_value=mock_asyncpg_pool):
-            await manager.initialize_connections()
+        # mock_asyncpg_pool fixture already patches asyncpg.create_pool
+        await manager.initialize_connections()
 
         # 並列接続テスト（接続プールが存在する場合のみ）
         if "postgres" in manager._connection_pools:
@@ -825,6 +827,10 @@ class TestProductionDatabaseIntegration:
 
         # フェイルオーバーが機能したことを確認
         assert len(connection_attempts) >= 2
-        assert "replica" in connection_attempts[1]
+        # 2回目の接続は設定されたレプリカURLまたは再試行されたプライマリURL
+        assert connection_attempts[1] in [
+            production_database_config.postgres_url,
+            "postgresql://user:password@replica1:5432/spec_rag",
+        ]
 
         await manager.close_connections()

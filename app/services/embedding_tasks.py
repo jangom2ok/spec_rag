@@ -6,7 +6,7 @@ Celeryを使用した非同期埋め込み処理。
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Union
 
 try:
     import redis
@@ -19,7 +19,7 @@ except ImportError:
     # テスト環境での代替
     HAS_CELERY = False
     HAS_REDIS = False
-    redis = None
+    redis = None  # type: ignore
 
     class MockConf:
         def update(self, **kwargs):
@@ -382,15 +382,6 @@ def embedding_health_check_task() -> dict[str, Any]:
         return {"status": "unhealthy", "reason": f"Health check task failed: {str(e)}"}
 
 
-try:
-    import redis
-
-    HAS_REDIS = True
-except ImportError:
-    HAS_REDIS = False
-    redis = None
-
-
 def get_redis_health() -> dict[str, Any]:
     """Redisの接続状態をチェック"""
     if not HAS_REDIS or redis is None:
@@ -400,30 +391,24 @@ def get_redis_health() -> dict[str, Any]:
         # 同期版のRedisクライアントを使用
         client = redis.Redis.from_url("redis://localhost:6379/0", decode_responses=True)
         client.ping()
-        # info()は辞書を返す
+        # info()は辞書を返す - 明示的なキャスト
         info_result = client.info()
+        if not isinstance(info_result, dict):
+            return {"status": "unhealthy", "reason": "Unexpected Redis info response type"}
 
         # 型安全な辞書アクセス
         try:
             redis_version = (
-                info_result["redis_version"]
-                if "redis_version" in info_result
-                else "unknown"
+                info_result.get("redis_version", "unknown")
             )
             connected_clients = (
-                info_result["connected_clients"]
-                if "connected_clients" in info_result
-                else 0
+                info_result.get("connected_clients", 0)
             )
             used_memory = (
-                info_result["used_memory_human"]
-                if "used_memory_human" in info_result
-                else "unknown"
+                info_result.get("used_memory_human", "unknown")
             )
             uptime = (
-                info_result["uptime_in_seconds"]
-                if "uptime_in_seconds" in info_result
-                else 0
+                info_result.get("uptime_in_seconds", 0)
             )
         except (TypeError, KeyError):
             # 何らかの理由で辞書アクセスが失敗した場合のフォールバック
