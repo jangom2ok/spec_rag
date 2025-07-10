@@ -708,12 +708,15 @@ class TestProductionDatabaseIntegration:
             with patch("asyncpg.create_pool", return_value=mock_asyncpg_pool):
                 # Mock redis module if needed
                 import sys
+
                 if "redis" not in sys.modules:
                     sys.modules["redis"] = Mock()
                     sys.modules["redis.asyncio"] = Mock()
                     sys.modules["redis.asyncio"].ConnectionPool = Mock()
-                    sys.modules["redis.asyncio"].ConnectionPool.from_url = Mock(return_value=Mock())
-                
+                    sys.modules["redis.asyncio"].ConnectionPool.from_url = Mock(
+                        return_value=Mock()
+                    )
+
                 with patch("aperturedb.Client", return_value=mock_aperturedb_client):
                     await manager.initialize_connections()
 

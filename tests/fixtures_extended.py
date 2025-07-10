@@ -230,7 +230,7 @@ def mock_spacy_model():
     """Mock spaCy NLP model."""
     # Create a mock that doesn't require the actual module
     mock_load = Mock()
-    
+
     with patch("app.services.metadata_extractor.spacy", create=True) as mock_spacy:
         mock_spacy.load = mock_load
         # Create mock NLP model

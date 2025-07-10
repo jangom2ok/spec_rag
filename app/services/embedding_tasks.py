@@ -101,7 +101,7 @@ try:
 except ImportError:
     # テスト用ダミークラス
     class MockChunkRepository:
-        def __init__(self) -> None:
+        def __init__(self, session=None) -> None:
             pass
 
         async def get_by_document_id(self, document_id):
@@ -156,8 +156,8 @@ class EmbeddingTaskService:
         self.embedding_service = EmbeddingService(config)
         await self.embedding_service.initialize()
 
-        # リポジトリの初期化
-        self.chunk_repository = ChunkRepository()
+        # リポジトリの初期化（セッションなしでモック）
+        self.chunk_repository = ChunkRepository(None)  # type: ignore
 
         logger.info("EmbeddingTaskService initialized")
 

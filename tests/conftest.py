@@ -55,9 +55,9 @@ def setup_auth_overrides(request, test_app):
 
         test_app.dependency_overrides[get_current_user_or_api_key] = mock_current_user
         test_app.dependency_overrides[get_current_user] = mock_current_user
-        
+
         yield
-        
+
         # クリーンアップ
         test_app.dependency_overrides.clear()
     else:

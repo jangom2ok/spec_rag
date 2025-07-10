@@ -4,7 +4,6 @@ TDD実装：テストケース→実装→リファクタの順序で実装
 """
 
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
@@ -457,9 +456,7 @@ The API returns standard HTTP status codes:
         assert "empty" in result.error_message.lower()
 
     @pytest.mark.unit
-    async def test_large_document_handling(
-        self, basic_config: ExtractionConfig
-    ):
+    async def test_large_document_handling(self, basic_config: ExtractionConfig):
         """大きなドキュメントの処理テスト"""
         # Disable NLP processing for large documents to avoid memory issues
         config = ExtractionConfig(

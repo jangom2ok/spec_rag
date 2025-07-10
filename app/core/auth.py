@@ -6,7 +6,7 @@ import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 import jwt
 from fastapi import HTTPException, status
@@ -103,7 +103,7 @@ class TokenData(BaseModel):
 
 # JWT関連関数
 def create_access_token(
-    data: dict[str, any], expires_delta: timedelta | None = None
+    data: dict[str, Any], expires_delta: timedelta | None = None
 ) -> str:
     """アクセストークンを生成"""
     to_encode = data.copy()
@@ -127,7 +127,7 @@ def create_access_token(
     return encoded_jwt
 
 
-def create_refresh_token(data: dict[str, any]) -> str:
+def create_refresh_token(data: dict[str, Any]) -> str:
     """リフレッシュトークンを生成"""
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -136,7 +136,7 @@ def create_refresh_token(data: dict[str, any]) -> str:
     return encoded_jwt
 
 
-def verify_token(token: str) -> dict[str, any]:
+def verify_token(token: str) -> dict[str, Any]:
     """トークンを検証"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -152,7 +152,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(email: str, password: str) -> dict[str, any] | None:
+def authenticate_user(email: str, password: str) -> dict[str, Any] | None:
     """ユーザー認証"""
     user = users_storage.get(email)
     if not user:
