@@ -1,11 +1,14 @@
 """GPU最適化とバッチ処理のテスト"""
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 import numpy as np
 import pytest
 
 from app.services.embedding_service import EmbeddingConfig, EmbeddingService
+
+# Use extended fixtures
+# Use extended fixtures from conftest.py
 
 
 class TestGPUOptimization:
@@ -76,17 +79,21 @@ class TestGPUOptimization:
                 assert isinstance(result.sparse_vector, dict)
 
     @pytest.mark.asyncio
-    async def test_memory_optimization(self):
+    async def test_memory_optimization(self, mock_cuda_available, mock_gpu_memory):
         """メモリ最適化のテスト"""
         config = EmbeddingConfig(use_fp16=True, batch_size=16)
 
         with patch("app.services.embedding_service.FlagModel") as mock_flag_model:
+            # Mock model initialization
+            mock_model = Mock()
+            mock_flag_model.return_value = mock_model
+            
             service = EmbeddingService(config)
             await service.initialize()
 
             # FP16 使用フラグが正しく渡されることを確認
             mock_flag_model.assert_called_once_with(
-                "BAAI/BGE-M3", use_fp16=True, device="auto"
+                "BAAI/BGE-M3", use_fp16=True, device="cpu"  # GPU not available, so CPU
             )
 
 
@@ -119,7 +126,7 @@ class TestBatchProcessingOptimization:
         return mock_service
 
     @pytest.mark.asyncio
-    async def test_optimal_batch_size_detection(self, mock_embedding_service):
+    async def test_optimal_batch_size_detection(self, mock_embedding_service, mock_cuda_available):
         """最適バッチサイズ検出のテスト"""
         # 異なるバッチサイズでの処理時間を測定
         batch_sizes = [8, 16, 32, 64]

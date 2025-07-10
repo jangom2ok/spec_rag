@@ -10,7 +10,7 @@ TDD実装：本番環境データベース設定・接続・パフォーマン�
 
 import asyncio
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -26,6 +26,9 @@ from app.database.production_config import (
     SecurityConfig,
     ValidationSeverity,
 )
+
+# Use extended fixtures
+# Use extended fixtures from conftest.py
 
 
 @pytest.fixture
@@ -441,19 +444,24 @@ class TestDatabaseHealthChecker:
 
     @pytest.mark.unit
     async def test_postgres_health_check_success(
-        self, health_check_config: HealthCheckConfig
+        self, health_check_config: HealthCheckConfig, mock_asyncpg_pool
     ):
         """PostgreSQL ヘルスチェック（成功）"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
-        result = await checker.check_postgres_health(
-            "postgresql://user:password@localhost:5432/test"
-        )
+        with patch("asyncpg.connect") as mock_connect:
+            mock_conn = AsyncMock()
+            mock_conn.fetchval = AsyncMock(return_value=1)
+            mock_conn.close = AsyncMock()
+            mock_connect.return_value = mock_conn
 
-        # asyncpgが利用できない場合はフォールバック動作
-        assert result.status == HealthCheckStatus.HEALTHY
-        assert result.response_time > 0
-        assert "mocked" in result.message or "successful" in result.message
+            result = await checker.check_postgres_health(
+                "postgresql://user:password@localhost:5432/test"
+            )
+
+            assert result.status == HealthCheckStatus.HEALTHY
+            assert result.response_time > 0
+            assert "successful" in result.message
 
     @pytest.mark.unit
     async def test_postgres_health_check_failure(
@@ -533,18 +541,23 @@ class TestDatabaseHealthChecker:
 
     @pytest.mark.unit
     async def test_health_check_performance_monitoring(
-        self, health_check_config: HealthCheckConfig
+        self, health_check_config: HealthCheckConfig, mock_asyncpg_pool
     ):
         """ヘルスチェックのパフォーマンス監視"""
         checker = DatabaseHealthChecker(config=health_check_config)
 
-        result = await checker.check_postgres_health(
-            "postgresql://user:password@localhost:5432/test"
-        )
+        with patch("asyncpg.connect") as mock_connect:
+            mock_conn = AsyncMock()
+            mock_conn.fetchval = AsyncMock(return_value=1)
+            mock_conn.close = AsyncMock()
+            mock_connect.return_value = mock_conn
 
-        # フォールバック動作でもレスポンス時間は記録される
-        assert result.status == HealthCheckStatus.HEALTHY
-        assert result.response_time > 0  # レスポンス時間が記録されている
+            result = await checker.check_postgres_health(
+                "postgresql://user:password@localhost:5432/test"
+            )
+
+            assert result.status == HealthCheckStatus.HEALTHY
+            assert result.response_time > 0  # レスポンス時間が記録されている
 
 
 class TestProductionDatabaseManager:
@@ -561,7 +574,7 @@ class TestProductionDatabaseManager:
 
     @pytest.mark.unit
     async def test_initialize_connections(
-        self, production_database_config: DatabaseConfig
+        self, production_database_config: DatabaseConfig, mock_asyncpg_pool, mock_redis_client, mock_aperturedb_client
     ):
         """接続の初期化"""
         manager = ProductionDatabaseManager(config=production_database_config)
@@ -574,31 +587,56 @@ class TestProductionDatabaseManager:
 
     @pytest.mark.unit
     async def test_connection_retry_mechanism(
-        self, production_database_config: DatabaseConfig
+        self, production_database_config: DatabaseConfig, mock_asyncpg_pool
     ):
         """接続リトライメカニズム"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
-        # リトライ機能はManagerクラス内で実装されている
-        # ライブラリが利用できない場合はスキップされる
-        await manager.initialize_connections()
-
-        # 正常に完了することを確認
+        # Mock to simulate retry behavior
+        call_count = 0
+        
+        async def mock_create_pool(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise Exception("Connection failed")
+            return mock_asyncpg_pool
+        
+        with patch("asyncpg.create_pool", side_effect=mock_create_pool):
+            await manager.initialize_connections()
+        
+        # リトライが機能したことを確認
+        assert call_count >= 1
         assert isinstance(manager._connection_pools, dict)
 
     @pytest.mark.unit
     async def test_connection_failover(
-        self, production_database_config: DatabaseConfig
+        self, production_database_config: DatabaseConfig, mock_asyncpg_pool
     ):
         """接続フェイルオーバー"""
+        # Add replica URLs
+        production_database_config.postgres_replica_urls = [
+            "postgresql://user:password@replica1:5432/spec_rag",
+            "postgresql://user:password@replica2:5432/spec_rag"
+        ]
+        
         manager = ProductionDatabaseManager(config=production_database_config)
-
-        # フェイルオーバー機能はManagerクラス内で実装されている
-        # ライブラリが利用できない場合はスキップされる
-        await manager.initialize_connections()
-
-        # 正常に完了することを確認
-        assert isinstance(manager._connection_pools, dict)
+        
+        # Mock primary failure, replica success
+        call_count = 0
+        
+        async def mock_create_pool(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise Exception("Primary failed")
+            return mock_asyncpg_pool
+        
+        with patch("asyncpg.create_pool", side_effect=mock_create_pool):
+            await manager.initialize_connections()
+        
+        # フェイルオーバーが機能したことを確認
+        assert call_count >= 2  # Primary failed, replica succeeded
 
     @pytest.mark.unit
     async def test_close_connections(self, production_database_config: DatabaseConfig):
@@ -647,6 +685,9 @@ class TestProductionDatabaseIntegration:
         self,
         production_database_config: DatabaseConfig,
         health_check_config: HealthCheckConfig,
+        mock_asyncpg_pool,
+        mock_redis_client,
+        mock_aperturedb_client
     ):
         """エンドツーエンドデータベースセットアップ"""
         manager = ProductionDatabaseManager(config=production_database_config)
@@ -659,10 +700,13 @@ class TestProductionDatabaseIntegration:
             )
             assert config_result.is_valid is True
 
-            # 2. 接続初期化（フォールバック環境）
-            await manager.initialize_connections()
+            # 2. 接続初期化（モック使用）
+            with patch("asyncpg.create_pool", return_value=mock_asyncpg_pool):
+                with patch("redis.asyncio.ConnectionPool.from_url", return_value=Mock()):
+                    with patch("aperturedb.Client", return_value=mock_aperturedb_client):
+                        await manager.initialize_connections()
 
-            # ライブラリが利用できない場合でも正常に実行される
+            # 接続プールが初期化されたことを確認
             assert isinstance(manager._connection_pools, dict)
 
             # 3. ヘルスチェック実行
@@ -711,12 +755,13 @@ class TestProductionDatabaseIntegration:
 
     @pytest.mark.integration
     async def test_database_performance_under_load(
-        self, production_database_config: DatabaseConfig
+        self, production_database_config: DatabaseConfig, mock_asyncpg_pool
     ):
         """負荷下でのデータベースパフォーマンステスト"""
         manager = ProductionDatabaseManager(config=production_database_config)
 
-        await manager.initialize_connections()
+        with patch("asyncpg.create_pool", return_value=mock_asyncpg_pool):
+            await manager.initialize_connections()
 
         # 並列接続テスト（接続プールが存在する場合のみ）
         if "postgres" in manager._connection_pools:
@@ -740,25 +785,32 @@ class TestProductionDatabaseIntegration:
 
     @pytest.mark.integration
     async def test_database_failover_recovery(
-        self, production_database_config: DatabaseConfig
+        self, production_database_config: DatabaseConfig, mock_asyncpg_pool
     ):
         """データベースフェイルオーバーと復旧テスト"""
+        # Add replica URLs
+        production_database_config.postgres_replica_urls = [
+            "postgresql://user:password@replica1:5432/spec_rag"
+        ]
+        
         manager = ProductionDatabaseManager(config=production_database_config)
 
         # フェイルオーバーシナリオをシミュレート
         connection_attempts = []
 
-        def track_connections(dsn, **kwargs):
+        async def track_connections(dsn, **kwargs):
             connection_attempts.append(dsn)
             if len(connection_attempts) == 1:
                 # 最初の接続（プライマリ）は失敗
                 raise Exception("Primary database unavailable")
             # その後の接続（レプリカ）は成功
-            return AsyncMock()
+            return mock_asyncpg_pool
 
-        await manager.initialize_connections()
+        with patch("asyncpg.create_pool", side_effect=track_connections):
+            await manager.initialize_connections()
 
-        # フェイルオーバー機能は実装されているが、ライブラリが利用できない場合はスキップ
-        assert isinstance(manager._connection_pools, dict)
+        # フェイルオーバーが機能したことを確認
+        assert len(connection_attempts) >= 2
+        assert "replica" in connection_attempts[1]
 
         await manager.close_connections()

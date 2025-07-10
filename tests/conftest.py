@@ -20,6 +20,12 @@ os.environ["APERTUREDB_HOST"] = "localhost"
 os.environ["APERTUREDB_PORT"] = "55555"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
+# Import extended fixtures
+try:
+    from fixtures_extended import *  # noqa: F403, F401
+except ImportError:
+    pass  # Extended fixtures not available
+
 
 @pytest.fixture(scope="session")
 def test_app() -> FastAPI:
