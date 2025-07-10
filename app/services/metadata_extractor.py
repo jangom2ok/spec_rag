@@ -683,7 +683,8 @@ class MetadataExtractor:
                     structure = self.structure_extractor.extract_markdown_structure(
                         content
                     )
-                elif doc_type == DocumentType.HTML:
+                elif doc_type in [DocumentType.HTML, DocumentType.CONFLUENCE]:
+                    # ConfluenceドキュメントもHTML構造を含む
                     structure = self.structure_extractor.extract_html_structure(content)
 
                 if structure:

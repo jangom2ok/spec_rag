@@ -52,7 +52,7 @@ class TestEmbeddingTaskService:
         mock_chunk.content = "テストコンテンツ"
         mock_chunk.chunk_type = "paragraph"
 
-        mock_repo.get_chunks_by_document_id.return_value = [mock_chunk]
+        mock_repo.get_by_document_id.return_value = [mock_chunk]
         return mock_repo
 
     @pytest.fixture
@@ -88,9 +88,7 @@ class TestEmbeddingTaskService:
         """チャンクが存在しない場合のテスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
             # チャンクリポジトリが空のリストを返すように設定
-            embedding_task_service.chunk_repository.get_chunks_by_document_id.return_value = (
-                []
-            )
+            embedding_task_service.chunk_repository.get_by_document_id.return_value = []
 
             document_id = "empty-doc"
             result = await embedding_task_service.process_document_chunks(document_id)
@@ -194,8 +192,7 @@ class TestCeleryTasks:
     def test_process_document_embedding_task_success(
         self,
         mock_celery_app,
-        local_embedding_service,
-        mock_chunk_repository,
+        mock_embedding_service,
         mock_aperturedb_client,
     ):
         """ドキュメント埋め込みタスクの成功テスト"""
@@ -262,7 +259,7 @@ class TestCeleryTasks:
                 assert "Processing error" in result["message"]
 
     def test_process_batch_texts_task_success(
-        self, mock_celery_app, local_embedding_service
+        self, mock_celery_app, mock_embedding_service
     ):
         """バッチテキストタスクの成功テスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
@@ -328,7 +325,7 @@ class TestCeleryTasks:
                         pytest.skip("Celery tasks not available")
 
     def test_embedding_health_check_task_success(
-        self, mock_celery_app, local_embedding_service
+        self, mock_celery_app, mock_embedding_service
     ):
         """ヘルスチェックタスクの成功テスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):

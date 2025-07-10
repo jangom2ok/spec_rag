@@ -706,13 +706,16 @@ class TestProductionDatabaseIntegration:
 
             # 2. 接続初期化（モック使用）
             with patch("asyncpg.create_pool", return_value=mock_asyncpg_pool):
-                with patch(
-                    "redis.asyncio.ConnectionPool.from_url", return_value=Mock()
-                ):
-                    with patch(
-                        "aperturedb.Client", return_value=mock_aperturedb_client
-                    ):
-                        await manager.initialize_connections()
+                # Mock redis module if needed
+                import sys
+                if "redis" not in sys.modules:
+                    sys.modules["redis"] = Mock()
+                    sys.modules["redis.asyncio"] = Mock()
+                    sys.modules["redis.asyncio"].ConnectionPool = Mock()
+                    sys.modules["redis.asyncio"].ConnectionPool.from_url = Mock(return_value=Mock())
+                
+                with patch("aperturedb.Client", return_value=mock_aperturedb_client):
+                    await manager.initialize_connections()
 
             # 接続プールが初期化されたことを確認
             assert isinstance(manager._connection_pools, dict)

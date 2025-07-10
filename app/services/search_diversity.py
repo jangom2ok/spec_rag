@@ -64,7 +64,7 @@ class DiversityConfig:
     # タイムアウト設定
     timeout: float = 30.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """設定値のバリデーション"""
         if not 0 <= self.diversity_factor <= 1:
             raise ValueError("diversity_factor must be between 0 and 1")
@@ -96,10 +96,10 @@ class DiversityCandidate:
     content: str
     title: str
     score: float
-    embedding: np.ndarray | None = None
+    embedding: np.ndarray[Any, np.dtype[np.float64]] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """後処理"""
         if self.embedding is None:
             # デフォルトの埋め込みベクトルを生成（実際はembedding serviceから取得）
@@ -112,7 +112,7 @@ class ClusterResult:
 
     cluster_id: int
     candidates: list[DiversityCandidate]
-    centroid: np.ndarray
+    centroid: np.ndarray[Any, np.dtype[np.float64]]
     coherence_score: float = 0.0
 
 
@@ -214,7 +214,7 @@ class MMRDiversifier(BaseDiversifier):
         candidate: DiversityCandidate,
         selected: list[DiversityCandidate],
         diversity_factor: float,
-        similarity_matrix: np.ndarray = None,
+        similarity_matrix: np.ndarray[Any, np.dtype[np.float64]] | None = None,
         all_candidates: list[DiversityCandidate] = None,
     ) -> float:
         """MMRスコア計算"""

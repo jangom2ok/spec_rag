@@ -55,7 +55,13 @@ except ImportError:
 
         def task(self, *args, **kwargs):
             def decorator(func):
-                func.delay = lambda *a, **k: type("MockResult", (), {})()
+                import uuid
+
+                func.delay = lambda *a, **k: type(
+                    "MockResult",
+                    (),
+                    {"id": f"mock-task-{uuid.uuid4().hex[:8]}", "state": "PENDING"},
+                )()
                 return func
 
             return decorator
@@ -95,7 +101,7 @@ try:
 except ImportError:
     # テスト用ダミークラス
     class MockChunkRepository:
-        def __init__(self):
+        def __init__(self) -> None:
             pass
 
         async def get_by_document_id(self, document_id):
@@ -139,11 +145,11 @@ celery_app.conf.update(
 class EmbeddingTaskService:
     """埋め込みタスクサービス"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.embedding_service: EmbeddingService | None = None
         self.chunk_repository: ChunkRepository | None = None
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """サービスの初期化"""
         # 埋め込みサービスの初期化
         config = EmbeddingConfig()
@@ -478,7 +484,7 @@ class EmbeddingTaskManager:
     """埋め込みタスク管理クラス"""
 
     @staticmethod
-    def submit_document_processing(document_id: str):
+    def submit_document_processing(document_id: str) -> Any:
         """ドキュメント処理タスクの投入
 
         Args:
@@ -505,7 +511,7 @@ class EmbeddingTaskManager:
         return process_batch_texts_task.delay(texts, metadata)
 
     @staticmethod
-    def get_task_status(task_id: str):
+    def get_task_status(task_id: str) -> dict[str, Any]:
         """タスクステータスの取得
 
         Args:
@@ -530,7 +536,7 @@ class EmbeddingTaskManager:
         }
 
     @staticmethod
-    def cancel_task(task_id: str):
+    def cancel_task(task_id: str) -> dict[str, Any]:
         """タスクのキャンセル
 
         Args:
@@ -548,7 +554,7 @@ class EmbeddingTaskManager:
         }
 
     @staticmethod
-    def get_queue_status():
+    def get_queue_status() -> dict[str, Any]:
         """キューのステータス取得
 
         Returns:
@@ -558,7 +564,31 @@ class EmbeddingTaskManager:
         return {"active_tasks": 1, "scheduled_tasks": 1, "workers": ["worker1"]}
 
     @staticmethod
-    def get_system_health():
+    def get_worker_status() -> dict[str, Any]:
+        """ワーカーステータスの取得
+
+        Returns:
+            Dict[str, Any]: ワーカーステータス
+        """
+        if HAS_CELERY:
+            inspect = celery_app.control.inspect()
+            return {
+                "active_tasks": inspect.active() or {},
+                "scheduled_tasks": inspect.scheduled() or {},
+                "reserved_tasks": inspect.reserved() or {},
+                "stats": inspect.stats() or {},
+            }
+        else:
+            # モック実装
+            return {
+                "active_tasks": {},
+                "scheduled_tasks": {},
+                "reserved_tasks": {},
+                "stats": {},
+            }
+
+    @staticmethod
+    def get_system_health() -> dict[str, Any]:
         """システムのヘルスチェック
 
         Returns:

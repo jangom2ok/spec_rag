@@ -128,6 +128,20 @@ class TestDatabaseErrorHandling:
                 "ApertureDB connection failed"
             )
 
+            # 認証をバイパスするためのモック
+            def mock_current_user():
+                return {
+                    "sub": "test@example.com",
+                    "role": "admin",
+                    "permissions": ["read", "write", "admin"],
+                }
+
+            from app.api.search import get_current_user_or_api_key
+
+            test_app.dependency_overrides[get_current_user_or_api_key] = (
+                mock_current_user
+            )
+
             client = TestClient(test_app)
             response = client.post(
                 "/v1/search", json={"query": "test query", "top_k": 10}
@@ -136,6 +150,9 @@ class TestDatabaseErrorHandling:
             # Check that error handler works correctly
             # With proper error handling, should return error status
             assert response.status_code in [200, 500]  # Either mock success or error
+
+            # Clean up override
+            test_app.dependency_overrides.clear()
 
     @patch("app.api.documents.create_document")
     def test_database_constraint_violation(self, mock_create, test_app):

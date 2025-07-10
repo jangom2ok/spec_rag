@@ -127,7 +127,7 @@ class TestEmbeddingTaskManager:
 
         with patch("app.services.embedding_tasks.HAS_CELERY", True):
             with patch(
-                "app.services.embedding_tasks.process_document_embedding"
+                "app.services.embedding_tasks.process_document_embedding_task"
             ) as mock_task:
                 mock_task.delay.return_value = mock_task_result
 
@@ -145,20 +145,20 @@ class TestEmbeddingTaskManager:
 
         with patch("app.services.embedding_tasks.HAS_CELERY", True):
             with patch(
-                "app.services.embedding_tasks.process_batch_embedding"
+                "app.services.embedding_tasks.process_batch_texts_task"
             ) as mock_task:
                 mock_task.delay.return_value = mock_task_result
 
-                batch_request = {
-                    "texts": ["text1", "text2", "text3"],
+                texts = ["text1", "text2", "text3"]
+                metadata = {
                     "chunk_ids": ["chunk1", "chunk2", "chunk3"],
                     "document_ids": ["doc1", "doc1", "doc2"],
                 }
 
-                result = EmbeddingTaskManager.submit_batch_processing(batch_request)
+                result = EmbeddingTaskManager.submit_batch_processing(texts, metadata)
 
                 assert result.id == "batch_task_67890"
-                mock_task.delay.assert_called_once_with(batch_request)
+                mock_task.delay.assert_called_once_with(texts, metadata)
 
     @pytest.mark.asyncio
     async def test_get_task_status(self, mock_celery_app):

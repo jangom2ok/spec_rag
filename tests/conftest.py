@@ -33,23 +33,35 @@ def test_app() -> FastAPI:
     from app.main import create_app
 
     app = create_app()
-
-    # テスト用の認証情報を返すモック関数
-    def mock_current_user():
-        return {
-            "sub": "test@example.com",
-            "role": "admin",
-            "permissions": ["read", "write", "admin"],
-        }
-
-    # 認証依存関係をオーバーライド
-    from app.api.auth import get_current_user
-    from app.api.documents import get_current_user_or_api_key
-
-    app.dependency_overrides[get_current_user_or_api_key] = mock_current_user
-    app.dependency_overrides[get_current_user] = mock_current_user
-
     return app
+
+
+@pytest.fixture(autouse=True)
+def setup_auth_overrides(request, test_app):
+    """認証のオーバーライドを設定"""
+    # no_auth_middlewareマーカーがある場合、認証をバイパス
+    if "no_auth_middleware" in request.keywords:
+        # テスト用の認証情報を返すモック関数
+        def mock_current_user():
+            return {
+                "sub": "test@example.com",
+                "role": "admin",
+                "permissions": ["read", "write", "admin"],
+            }
+
+        # 認証依存関係をオーバーライド
+        from app.api.auth import get_current_user
+        from app.api.documents import get_current_user_or_api_key
+
+        test_app.dependency_overrides[get_current_user_or_api_key] = mock_current_user
+        test_app.dependency_overrides[get_current_user] = mock_current_user
+        
+        yield
+        
+        # クリーンアップ
+        test_app.dependency_overrides.clear()
+    else:
+        yield
 
 
 @pytest.fixture
