@@ -16,8 +16,8 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
-from sklearn.cluster import KMeans  # type: ignore[import-untyped]
-from sklearn.metrics.pairwise import cosine_similarity  # type: ignore[import-untyped]
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import cosine_similarity
 
 logger = logging.getLogger(__name__)
 
@@ -974,7 +974,7 @@ class SearchDiversityService:
             "algorithm": self.config.algorithm.value,
         }
         content_str = json.dumps(cache_content, sort_keys=True)
-        return hashlib.md5(content_str.encode()).hexdigest()  # noqa: S324
+        return hashlib.sha256(content_str.encode()).hexdigest()
 
     async def _get_from_cache(self, cache_key: str) -> DiversificationResult | None:
         """キャッシュから取得"""

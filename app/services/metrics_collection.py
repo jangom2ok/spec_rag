@@ -572,8 +572,8 @@ class MetricsCollectionService:
             return [
                 self._business_metric_to_dict(m) for m in self._business_metrics_buffer
             ]
-
-        return []
+        else:
+            return []
 
     def _search_metric_to_dict(self, metric: SearchMetrics) -> dict[str, Any]:
         """検索メトリクスを辞書に変換"""
@@ -746,8 +746,8 @@ class MetricsCollectionService:
             return monday.strftime("%Y-%m-%d")
         elif time_window == TimeWindow.MONTH:
             return timestamp.strftime("%Y-%m")
-
-        return timestamp.isoformat()
+        else:
+            return timestamp.isoformat()
 
     async def _aggregate_group(
         self, group_data: list[dict[str, Any]], aggregation_type: AggregationType

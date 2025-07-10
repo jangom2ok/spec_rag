@@ -1,7 +1,7 @@
 """本番データベース設定
 
 TDD実装：本番環境データベース設定・接続・パフォーマンス検証
-- 接続設定検証: PostgreSQL、Milvus、Redis接続の検証
+- 接続設定検証: PostgreSQL、ApertureDB、Redis接続の検証
 - パフォーマンス設定: 接続プール、タイムアウト、リトライ設定
 - セキュリティ設定: SSL/TLS、認証、暗号化設定の検証
 - 高可用性設定: フェイルオーバー、レプリケーション設定
@@ -10,6 +10,7 @@ TDD実装：本番環境データベース設定・接続・パフォーマン�
 
 import asyncio
 import logging
+import os
 import re
 import ssl
 import time
@@ -49,11 +50,11 @@ class DatabaseConfig:
     postgres_url: str
     postgres_replica_urls: list[str] = field(default_factory=list)
 
-    # Milvus設定
-    milvus_host: str = "localhost"
-    milvus_port: int = 19530
-    milvus_username: str = ""
-    milvus_password: str = ""
+    # ApertureDB設定
+    aperturedb_host: str = "localhost"
+    aperturedb_port: int = 55555
+    aperturedb_username: str = "admin"
+    aperturedb_password: str = "admin"
 
     # Redis設定
     redis_url: str = "redis://localhost:6379/0"
@@ -130,21 +131,25 @@ class SecurityConfig:
     enable_encryption_at_rest: bool = False
     enable_encryption_in_transit: bool = False
     min_tls_version: str = "TLSv1.2"
-    cipher_suites: list[str] = field(default_factory=lambda: [
-        "ECDHE-RSA-AES256-GCM-SHA384",
-        "ECDHE-RSA-AES128-GCM-SHA256"
-    ])
+    cipher_suites: list[str] = field(
+        default_factory=lambda: [
+            "ECDHE-RSA-AES256-GCM-SHA384",
+            "ECDHE-RSA-AES128-GCM-SHA256",
+        ]
+    )
 
     # 認証・認可設定
     enable_authentication: bool = True
     enable_authorization: bool = True
-    password_policy: dict[str, Any] = field(default_factory=lambda: {
-        "min_length": 8,
-        "require_uppercase": True,
-        "require_lowercase": True,
-        "require_numbers": True,
-        "require_special_chars": False,
-    })
+    password_policy: dict[str, Any] = field(
+        default_factory=lambda: {
+            "min_length": 8,
+            "require_uppercase": True,
+            "require_lowercase": True,
+            "require_numbers": True,
+            "require_special_chars": False,
+        }
+    )
 
     def create_ssl_context(self) -> ssl.SSLContext:
         """SSL コンテキストを作成"""
@@ -195,7 +200,9 @@ class SecurityConfig:
             return False
 
         # 特殊文字チェック
-        if policy.get("require_special_chars", False) and not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        if policy.get("require_special_chars", False) and not re.search(
+            r"[!@#$%^&*(),.?\":{}|<>]", password
+        ):
             return False
 
         return True
@@ -270,7 +277,7 @@ class HealthCheckConfig:
 
     # チェック対象
     check_postgres: bool = True
-    check_milvus: bool = True
+    check_aperturedb: bool = True
     check_redis: bool = True
     check_connectivity: bool = True
     check_query_performance: bool = True
@@ -278,11 +285,13 @@ class HealthCheckConfig:
 
     # パフォーマンス閾値
     max_replication_lag: float = 60.0  # 秒
-    performance_thresholds: dict[str, float] = field(default_factory=lambda: {
-        "max_query_time": 5.0,
-        "max_connection_time": 2.0,
-        "min_available_connections": 10,
-    })
+    performance_thresholds: dict[str, float] = field(
+        default_factory=lambda: {
+            "max_query_time": 5.0,
+            "max_connection_time": 2.0,
+            "min_available_connections": 10,
+        }
+    )
 
     def to_dict(self) -> dict[str, Any]:
         """辞書形式に変換"""
@@ -363,15 +372,19 @@ class DatabaseValidator:
             warnings.append(f"Very high max_connections: {config.max_connections}")
 
         if config.connection_timeout < 5:
-            warnings.append(f"Very short connection timeout: {config.connection_timeout}s")
+            warnings.append(
+                f"Very short connection timeout: {config.connection_timeout}s"
+            )
 
         # SSL設定検証
         if config.enable_ssl:
             if not config.ssl_cert_path:
                 warnings.append("SSL enabled but no certificate path specified")
 
-        severity = ValidationSeverity.ERROR if errors else (
-            ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO
+        severity = (
+            ValidationSeverity.ERROR
+            if errors
+            else (ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO)
         )
 
         return ValidationResult(
@@ -382,14 +395,18 @@ class DatabaseValidator:
             validation_type="configuration",
         )
 
-    async def validate_security_settings(self, config: SecurityConfig) -> ValidationResult:
+    async def validate_security_settings(
+        self, config: SecurityConfig
+    ) -> ValidationResult:
         """セキュリティ設定の検証"""
         errors = []
         warnings = []
         security_violations = []
 
         has_ssl_enabled = config.enable_ssl
-        has_strong_encryption = config.enable_encryption_at_rest and config.enable_encryption_in_transit
+        has_strong_encryption = (
+            config.enable_encryption_at_rest and config.enable_encryption_in_transit
+        )
 
         # SSL設定の検証
         if not config.enable_ssl:
@@ -417,11 +434,15 @@ class DatabaseValidator:
         # パスワードポリシーの検証
         policy = config.password_policy
         if policy.get("min_length", 0) < 8:
-            security_violations.append("Weak password policy - minimum length too short")
+            security_violations.append(
+                "Weak password policy - minimum length too short"
+            )
             warnings.append("Password minimum length should be at least 8 characters")
 
-        severity = ValidationSeverity.ERROR if errors else (
-            ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO
+        severity = (
+            ValidationSeverity.ERROR
+            if errors
+            else (ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO)
         )
 
         return ValidationResult(
@@ -435,14 +456,18 @@ class DatabaseValidator:
             security_violations=security_violations,
         )
 
-    async def validate_performance_settings(self, config: PerformanceConfig) -> ValidationResult:
+    async def validate_performance_settings(
+        self, config: PerformanceConfig
+    ) -> ValidationResult:
         """パフォーマンス設定の検証"""
         errors = []
         warnings = []
         performance_violations = []
 
         has_connection_pooling = config.enable_connection_pooling
-        has_query_optimization = config.enable_query_cache and config.enable_prepared_statements
+        has_query_optimization = (
+            config.enable_query_cache and config.enable_prepared_statements
+        )
 
         # 接続プール設定の検証
         if not config.enable_connection_pooling:
@@ -467,8 +492,10 @@ class DatabaseValidator:
             performance_violations.append("Query cache disabled")
             warnings.append("Enable query cache to improve performance")
 
-        severity = ValidationSeverity.ERROR if errors else (
-            ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO
+        severity = (
+            ValidationSeverity.ERROR
+            if errors
+            else (ValidationSeverity.WARNING if warnings else ValidationSeverity.INFO)
         )
 
         return ValidationResult(
@@ -560,7 +587,7 @@ class DatabaseHealthChecker:
                         timestamp=datetime.now(),
                         response_time=(time.time() - start_time) * 1000,
                         message="PostgreSQL query failed",
-                        error="Unexpected query result"
+                        error="Unexpected query result",
                     )
 
             finally:
@@ -574,61 +601,78 @@ class DatabaseHealthChecker:
                 timestamp=datetime.now(),
                 response_time=response_time,
                 message="PostgreSQL connection failed",
-                error=str(e)
+                error=str(e),
             )
 
-    async def check_milvus_health(self, host: str, port: int) -> HealthCheckResult:
-        """Milvus ヘルスチェック"""
+    async def check_aperturedb_health(self, host: str, port: int) -> HealthCheckResult:
+        """ApertureDB ヘルスチェック"""
         start_time = time.time()
 
         try:
-            # pymilvusを使用した接続テスト（実際の実装では本物の接続を使用）
+            # aperturedbを使用した接続テスト（実際の実装では本物の接続を使用）
             try:
-                from pymilvus import connections, utility
+                from aperturedb import Client
             except ImportError:
-                # テスト環境でpymilvusが利用できない場合のフォールバック
+                # テスト環境でaperturedbが利用できない場合のフォールバック
                 return HealthCheckResult(
-                    service="milvus",
+                    service="aperturedb",
                     status=HealthCheckStatus.HEALTHY,
                     timestamp=datetime.now(),
                     response_time=100.0,
-                    message="Milvus connection mocked (pymilvus not available)",
+                    message="ApertureDB connection mocked (aperturedb not available)",
                 )
 
-            connection_alias = f"health_check_{int(time.time())}"
-            connections.connect(
-                alias=connection_alias,
+            client = Client(
                 host=host,
                 port=port,
-                timeout=self.config.timeout
+                username=os.getenv("APERTUREDB_USERNAME", "admin"),
+                password=os.getenv("APERTUREDB_PASSWORD", "admin"),
             )
 
             try:
-                # サーバーバージョン取得
-                version = utility.get_server_version(using=connection_alias)
+                # シンプルなクエリで接続チェック
+                query: list[dict[str, Any]] = [{"GetStatus": {}}]
+                response, _ = client.query(query)
 
-                response_time = (time.time() - start_time) * 1000
+                if response and len(response) > 0:
+                    response_time = (time.time() - start_time) * 1000
+                    return HealthCheckResult(
+                        service="aperturedb",
+                        status=HealthCheckStatus.HEALTHY,
+                        timestamp=datetime.now(),
+                        response_time=response_time,
+                        message="ApertureDB connection successful",
+                        metadata={"status": response[0]},
+                    )
+                else:
+                    return HealthCheckResult(
+                        service="aperturedb",
+                        status=HealthCheckStatus.UNHEALTHY,
+                        timestamp=datetime.now(),
+                        response_time=(time.time() - start_time) * 1000,
+                        message="ApertureDB query failed",
+                        error="No response received",
+                    )
+
+            except Exception as query_error:
                 return HealthCheckResult(
-                    service="milvus",
-                    status=HealthCheckStatus.HEALTHY,
+                    service="aperturedb",
+                    status=HealthCheckStatus.UNHEALTHY,
                     timestamp=datetime.now(),
-                    response_time=response_time,
-                    message="Milvus connection successful",
-                    metadata={"version": version}
+                    response_time=(time.time() - start_time) * 1000,
+                    message="ApertureDB query failed",
+                    error=str(query_error),
                 )
-
-            finally:
-                connections.disconnect(connection_alias)
 
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
             return HealthCheckResult(
-                service="milvus",
+                service="aperturedb",
                 status=HealthCheckStatus.UNHEALTHY,
                 timestamp=datetime.now(),
                 response_time=response_time,
-                message="Milvus connection failed",
-                error=str(e)
+                message="ApertureDB connection failed",
+                error=str(e),
             )
 
     async def check_redis_health(self, redis_url: str) -> HealthCheckResult:
@@ -671,7 +715,7 @@ class DatabaseHealthChecker:
                         timestamp=datetime.now(),
                         response_time=(time.time() - start_time) * 1000,
                         message="Redis ping failed",
-                        error="No response to ping"
+                        error="No response to ping",
                     )
 
             finally:
@@ -685,10 +729,12 @@ class DatabaseHealthChecker:
                 timestamp=datetime.now(),
                 response_time=response_time,
                 message="Redis connection failed",
-                error=str(e)
+                error=str(e),
             )
 
-    async def perform_comprehensive_health_check(self, db_config: DatabaseConfig) -> list[HealthCheckResult]:
+    async def perform_comprehensive_health_check(
+        self, db_config: DatabaseConfig
+    ) -> list[HealthCheckResult]:
         """包括的ヘルスチェック実行"""
         results = []
 
@@ -705,11 +751,13 @@ class DatabaseHealthChecker:
                 results.append(replica_result)
                 self._health_history.append(replica_result)
 
-        # Milvus ヘルスチェック
-        if self.config.check_milvus:
-            milvus_result = await self.check_milvus_health(db_config.milvus_host, db_config.milvus_port)
-            results.append(milvus_result)
-            self._health_history.append(milvus_result)
+        # ApertureDB ヘルスチェック
+        if self.config.check_aperturedb:
+            aperturedb_result = await self.check_aperturedb_health(
+                db_config.aperturedb_host, db_config.aperturedb_port
+            )
+            results.append(aperturedb_result)
+            self._health_history.append(aperturedb_result)
 
         # Redis ヘルスチェック
         if self.config.check_redis:
@@ -743,10 +791,14 @@ class DatabaseHealthChecker:
         logger.info("Stopping database health monitoring")
         self._is_monitoring = False
 
-    def get_health_history(self, service: str = None, limit: int = 100) -> list[HealthCheckResult]:
+    def get_health_history(
+        self, service: str = None, limit: int = 100
+    ) -> list[HealthCheckResult]:
         """ヘルスチェック履歴取得"""
         if service:
-            filtered_history = [result for result in self._health_history if result.service == service]
+            filtered_history = [
+                result for result in self._health_history if result.service == service
+            ]
             return list(filtered_history)[-limit:]
         else:
             return list(self._health_history)[-limit:]
@@ -773,8 +825,8 @@ class ProductionDatabaseManager:
         # Redis接続プール初期化
         await self._initialize_redis_pool()
 
-        # Milvus接続初期化
-        await self._initialize_milvus_connection()
+        # ApertureDB接続初期化
+        await self._initialize_aperturedb_connection()
 
         logger.info("Database connections initialized successfully")
 
@@ -783,7 +835,9 @@ class ProductionDatabaseManager:
         try:
             import asyncpg  # noqa: F401
         except ImportError:
-            logger.warning("asyncpg not available, skipping PostgreSQL pool initialization")
+            logger.warning(
+                "asyncpg not available, skipping PostgreSQL pool initialization"
+            )
             return
 
         postgres_urls = self.config.get_postgres_urls()
@@ -808,14 +862,18 @@ class ProductionDatabaseManager:
                 logger.error(f"Failed to connect to PostgreSQL {i}: {e}")
                 if i == len(postgres_urls) - 1:
                     # 全ての接続に失敗
-                    raise Exception("Failed to connect to any PostgreSQL database") from e
+                    raise Exception(
+                        "Failed to connect to any PostgreSQL database"
+                    ) from e
 
     async def _create_postgres_pool_with_retry(self, url: str) -> Any:
         """リトライ機能付きPostgreSQL接続プール作成"""
         try:
             import asyncpg
         except ImportError as e:
-            raise ImportError("asyncpg is required for PostgreSQL connection pooling") from e
+            raise ImportError(
+                "asyncpg is required for PostgreSQL connection pooling"
+            ) from e
 
         for attempt in range(self.config.connection_retry_attempts):
             try:
@@ -829,7 +887,9 @@ class ProductionDatabaseManager:
 
             except Exception as e:
                 if attempt < self.config.connection_retry_attempts - 1:
-                    logger.warning(f"PostgreSQL connection attempt {attempt + 1} failed: {e}")
+                    logger.warning(
+                        f"PostgreSQL connection attempt {attempt + 1} failed: {e}"
+                    )
                     await asyncio.sleep(self.config.connection_retry_delay)
                 else:
                     raise
@@ -871,28 +931,29 @@ class ProductionDatabaseManager:
             if "redis" not in self._connection_pools:
                 raise Exception("Failed to connect to any Redis instance") from e
 
-    async def _initialize_milvus_connection(self) -> None:
-        """Milvus接続初期化"""
+    async def _initialize_aperturedb_connection(self) -> None:
+        """ApertureDB接続初期化"""
         try:
-            from pymilvus import connections
+            from aperturedb import Client
         except ImportError:
-            logger.warning("pymilvus not available, skipping Milvus connection initialization")
+            logger.warning(
+                "aperturedb not available, skipping ApertureDB connection initialization"
+            )
             return
 
         try:
-            connections.connect(
-                alias="default",
-                host=self.config.milvus_host,
-                port=self.config.milvus_port,
-                user=self.config.milvus_username,
-                password=self.config.milvus_password,
+            client = Client(
+                host=self.config.aperturedb_host,
+                port=self.config.aperturedb_port,
+                username=self.config.aperturedb_username,
+                password=self.config.aperturedb_password,
             )
 
-            self._connection_pools["milvus"] = "default"  # 接続エイリアス
-            logger.info("Milvus connection established")
+            self._connection_pools["aperturedb"] = client  # クライアントインスタンス
+            logger.info("ApertureDB connection established")
 
         except Exception as e:
-            logger.error(f"Failed to connect to Milvus: {e}")
+            logger.error(f"Failed to connect to ApertureDB: {e}")
             raise e
 
     async def get_connection_pool(self, service: str) -> Any:
@@ -924,20 +985,21 @@ class ProductionDatabaseManager:
             except Exception as e:
                 logger.error(f"Error closing Redis pool: {e}")
 
-        # Milvus接続のクローズ
-        if "milvus" in self._connection_pools:
+        # ApertureDB接続のクローズ
+        if "aperturedb" in self._connection_pools:
             try:
-                from pymilvus import connections
-                connections.disconnect("default")
-                logger.info("Milvus connection closed")
+                # ApertureDBクライアントは通常明示的なクローズは不要
+                logger.info("ApertureDB connection closed")
             except Exception as e:
-                logger.error(f"Error closing Milvus connection: {e}")
+                logger.error(f"Error closing ApertureDB connection: {e}")
 
         self._connection_pools.clear()
 
     async def perform_health_check(self) -> list[HealthCheckResult]:
         """ヘルスチェック実行"""
-        return await self._health_checker.perform_comprehensive_health_check(self.config)
+        return await self._health_checker.perform_comprehensive_health_check(
+            self.config
+        )
 
     def get_connection_status(self) -> dict[str, Any]:
         """接続状況取得"""
@@ -945,7 +1007,6 @@ class ProductionDatabaseManager:
             "active_pools": list(self._connection_pools.keys()),
             "postgres_available": "postgres" in self._connection_pools,
             "redis_available": "redis" in self._connection_pools,
-            "milvus_available": "milvus" in self._connection_pools,
+            "aperturedb_available": "aperturedb" in self._connection_pools,
             "config": self.config.to_dict(),
         }
-

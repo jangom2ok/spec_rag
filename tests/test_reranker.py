@@ -233,7 +233,6 @@ class TestRerankerService:
                 reranker, "_generate_explanations", new_callable=AsyncMock
             ) as mock_explain,
         ):
-
             mock_scores.return_value = [0.91, 0.87, 0.83, 0.74, 0.69]
             mock_explain.return_value = [
                 {
@@ -278,7 +277,6 @@ class TestRerankerService:
                 reranker, "_get_cross_encoder_scores", new_callable=AsyncMock
             ) as mock_scores,
         ):
-
             cache_key = "rerank_cache_key_123"
             mock_cache_key.return_value = cache_key
             mock_get_cache.return_value = None  # キャッシュなし
@@ -565,7 +563,6 @@ class TestColBERTReranker:
             patch.object(reranker, "_encode_query") as mock_encode_q,
             patch.object(reranker, "_encode_documents") as mock_encode_d,
         ):
-
             # クエリとドキュメントのトークン表現をモック
             mock_encode_q.return_value = np.random.random((5, 128))  # 5 tokens, 128 dim
             mock_encode_d.return_value = [

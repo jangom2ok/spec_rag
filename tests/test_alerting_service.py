@@ -185,7 +185,9 @@ class TestAlertingConfig:
     @pytest.mark.unit
     def test_config_validation_invalid_interval(self):
         """無効な評価間隔のバリデーション"""
-        with pytest.raises(ValueError, match="evaluation_interval must be greater than 0"):
+        with pytest.raises(
+            ValueError, match="evaluation_interval must be greater than 0"
+        ):
             AlertingConfig(
                 enable_alerting=True,
                 evaluation_interval=0,
@@ -194,7 +196,9 @@ class TestAlertingConfig:
     @pytest.mark.unit
     def test_config_validation_invalid_retention(self):
         """無効な保持期間のバリデーション"""
-        with pytest.raises(ValueError, match="alert_retention_days must be greater than 0"):
+        with pytest.raises(
+            ValueError, match="alert_retention_days must be greater than 0"
+        ):
             AlertingConfig(
                 enable_alerting=True,
                 evaluation_interval=60,
@@ -355,7 +359,9 @@ class TestMetricEvaluation:
 
         # 閾値を超えるメトリクス
         high_response_time = 6000.0  # 6秒（閾値5秒を超過）
-        triggered_alerts = await service.evaluate_metric("response_time", high_response_time)
+        triggered_alerts = await service.evaluate_metric(
+            "response_time", high_response_time
+        )
 
         assert len(triggered_alerts) == 1
         assert triggered_alerts[0].rule_id == "high_response_time"
@@ -375,8 +381,8 @@ class TestMetricEvaluation:
         # 複数メトリクスを同時評価
         metrics = {
             "response_time": 6000.0,  # 閾値超過
-            "error_rate": 0.08,       # 閾値超過
-            "cpu_usage": 0.60,        # 正常範囲
+            "error_rate": 0.08,  # 閾値超過
+            "cpu_usage": 0.60,  # 正常範囲
         }
 
         all_triggered_alerts = []
@@ -402,7 +408,9 @@ class TestMetricEvaluation:
 
         # 閾値以下のメトリクス
         normal_response_time = 2000.0  # 2秒（閾値5秒以下）
-        triggered_alerts = await service.evaluate_metric("response_time", normal_response_time)
+        triggered_alerts = await service.evaluate_metric(
+            "response_time", normal_response_time
+        )
 
         assert len(triggered_alerts) == 0
 
@@ -412,7 +420,9 @@ class TestNotificationSystem:
 
     @pytest.mark.unit
     async def test_add_notification_channel(
-        self, basic_alerting_config: AlertingConfig, notification_channels: list[NotificationChannel]
+        self,
+        basic_alerting_config: AlertingConfig,
+        notification_channels: list[NotificationChannel],
     ):
         """通知チャネル追加"""
         service = AlertingService(config=basic_alerting_config)
@@ -426,7 +436,9 @@ class TestNotificationSystem:
 
     @pytest.mark.unit
     async def test_send_alert_notification(
-        self, basic_alerting_config: AlertingConfig, notification_channels: list[NotificationChannel]
+        self,
+        basic_alerting_config: AlertingConfig,
+        notification_channels: list[NotificationChannel],
     ):
         """アラート通知送信"""
         service = AlertingService(config=basic_alerting_config)
@@ -457,7 +469,9 @@ class TestNotificationSystem:
 
     @pytest.mark.unit
     async def test_notification_channel_filtering(
-        self, basic_alerting_config: AlertingConfig, notification_channels: list[NotificationChannel]
+        self,
+        basic_alerting_config: AlertingConfig,
+        notification_channels: list[NotificationChannel],
     ):
         """通知チャネルフィルタリング"""
         service = AlertingService(config=basic_alerting_config)
@@ -491,7 +505,9 @@ class TestAlertSuppression:
     """アラート抑制のテスト"""
 
     @pytest.mark.unit
-    async def test_basic_alert_suppression(self, comprehensive_alerting_config: AlertingConfig):
+    async def test_basic_alert_suppression(
+        self, comprehensive_alerting_config: AlertingConfig
+    ):
         """基本的なアラート抑制"""
         service = AlertingService(config=comprehensive_alerting_config)
 
@@ -499,9 +515,7 @@ class TestAlertSuppression:
         suppress_rule = SuppressRule(
             id="suppress_response_time",
             name="Suppress Response Time Alerts",
-            conditions=[
-                {"metric": "response_time", "operator": "gt", "value": 10000}
-            ],
+            conditions=[{"metric": "response_time", "operator": "gt", "value": 10000}],
             duration=1800,  # 30分間抑制
             enabled=True,
         )
@@ -524,13 +538,17 @@ class TestAlertSuppression:
 
         # 抑制条件に該当するメトリクス
         suppressed_value = 12000.0  # 12秒
-        triggered_alerts = await service.evaluate_metric("response_time", suppressed_value)
+        triggered_alerts = await service.evaluate_metric(
+            "response_time", suppressed_value
+        )
 
         # アラートは抑制される
         assert len(triggered_alerts) == 0
 
     @pytest.mark.unit
-    async def test_alert_suppression_expiry(self, comprehensive_alerting_config: AlertingConfig):
+    async def test_alert_suppression_expiry(
+        self, comprehensive_alerting_config: AlertingConfig
+    ):
         """アラート抑制の期限切れ"""
         comprehensive_alerting_config.evaluation_interval = 1  # 1秒間隔でテスト
         service = AlertingService(config=comprehensive_alerting_config)
@@ -539,9 +557,7 @@ class TestAlertSuppression:
         suppress_rule = SuppressRule(
             id="short_suppress",
             name="Short Suppression",
-            conditions=[
-                {"metric": "error_rate", "operator": "gt", "value": 0.1}
-            ],
+            conditions=[{"metric": "error_rate", "operator": "gt", "value": 0.1}],
             duration=2,  # 2秒間抑制
             enabled=True,
         )
@@ -611,7 +627,9 @@ class TestEscalationPolicy:
 
     @pytest.mark.unit
     async def test_escalation_execution(
-        self, comprehensive_alerting_config: AlertingConfig, notification_channels: list[NotificationChannel]
+        self,
+        comprehensive_alerting_config: AlertingConfig,
+        notification_channels: list[NotificationChannel],
     ):
         """エスカレーション実行"""
         service = AlertingService(config=comprehensive_alerting_config)
@@ -668,7 +686,9 @@ class TestAlertGrouping:
     """アラートグルーピングのテスト"""
 
     @pytest.mark.unit
-    async def test_alert_grouping_by_tags(self, comprehensive_alerting_config: AlertingConfig):
+    async def test_alert_grouping_by_tags(
+        self, comprehensive_alerting_config: AlertingConfig
+    ):
         """タグによるアラートグルーピング"""
         service = AlertingService(config=comprehensive_alerting_config)
 
@@ -717,7 +737,9 @@ class TestAlertGrouping:
         assert len(api_groups) >= 1
 
     @pytest.mark.unit
-    async def test_alert_grouping_window(self, comprehensive_alerting_config: AlertingConfig):
+    async def test_alert_grouping_window(
+        self, comprehensive_alerting_config: AlertingConfig
+    ):
         """グルーピング時間窓のテスト"""
         comprehensive_alerting_config.grouping_window = 2  # 2秒のグルーピング窓
         service = AlertingService(config=comprehensive_alerting_config)
@@ -811,7 +833,9 @@ class TestAlertingIntegration:
 
     @pytest.mark.integration
     async def test_real_time_monitoring_system(
-        self, comprehensive_alerting_config: AlertingConfig, sample_alert_rules: list[AlertRule]
+        self,
+        comprehensive_alerting_config: AlertingConfig,
+        sample_alert_rules: list[AlertRule],
     ):
         """リアルタイム監視システム"""
         service = AlertingService(config=comprehensive_alerting_config)
@@ -833,8 +857,8 @@ class TestAlertingIntegration:
             test_metrics = [
                 ("response_time", 7000.0),  # アラート発動
                 ("response_time", 3000.0),  # 正常
-                ("error_rate", 0.10),       # アラート発動
-                ("cpu_usage", 0.85),        # アラート発動
+                ("error_rate", 0.10),  # アラート発動
+                ("cpu_usage", 0.85),  # アラート発動
             ]
 
             for metric_name, value in test_metrics:

@@ -151,10 +151,14 @@ class ExternalSourceDocumentSource(DocumentSource):
     async def fetch_documents(self) -> list[dict[str, Any]]:
         """外部ソースからドキュメントを取得"""
         from app.services.external_source_integration import (
-            ExternalSourceIntegrator,
-            SourceConfig as ExtSourceConfig,
-            SourceType as ExtSourceType,
             AuthType,
+            ExternalSourceIntegrator,
+        )
+        from app.services.external_source_integration import (
+            SourceConfig as ExtSourceConfig,
+        )
+        from app.services.external_source_integration import (
+            SourceType as ExtSourceType,
         )
 
         # CollectionConfigからSourceConfigに変換
@@ -164,12 +168,16 @@ class ExternalSourceDocumentSource(DocumentSource):
         elif self.config.source_type == SourceType.JIRA:
             ext_source_type = ExtSourceType.JIRA
         else:
-            raise ValueError(f"Unsupported external source type: {self.config.source_type}")
+            raise ValueError(
+                f"Unsupported external source type: {self.config.source_type}"
+            )
 
         # 設定を構築（実際の実装では環境変数から取得）
         ext_config = ExtSourceConfig(
             source_type=ext_source_type,
-            base_url=self.config.filters.get("base_url", "https://example.atlassian.net"),
+            base_url=self.config.filters.get(
+                "base_url", "https://example.atlassian.net"
+            ),
             auth_type=AuthType.API_TOKEN,
             api_token=self.config.filters.get("api_token", "dummy_token"),
             username=self.config.filters.get("username", "user@example.com"),

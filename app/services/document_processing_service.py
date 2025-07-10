@@ -257,7 +257,7 @@ class DocumentProcessingService:
         collector = DocumentCollector(config=config)
         result = await collector.collect_documents()
 
-        if not result.success:
+        if result.error_count > 0 and result.success_count == 0:
             raise Exception(f"Document collection failed: {result.errors}")
 
         return result.documents
@@ -406,7 +406,8 @@ class DocumentProcessingService:
             texts = [chunk["content"] for chunk in chunks]
 
             # バッチで埋め込み生成
-            embeddings = await self.embedding_service.generate_embeddings(texts)
+            embedding_results = await self.embedding_service.embed_batch(texts)
+            embeddings = [result.dense_vector for result in embedding_results]
 
             # 埋め込みをチャンクに追加
             for i, chunk in enumerate(chunks):

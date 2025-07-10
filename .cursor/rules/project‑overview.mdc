@@ -9,7 +9,7 @@ alwaysApply: false
 
 **目的**: システム開発における仕様書や用語情報を統合管理するRAG（Retrieval-Augmented Generation）サービスを構築し、外部システムに高精度な検索機能を提供する。
 
-**コアスタック**: FastAPI + Milvus + PostgreSQL + BGE-M3 + Celery + Docker/K8s
+**コアスタック**: FastAPI + ApertureDB + PostgreSQL + BGE-M3 + Celery + Docker/K8s
 
 **主要品質目標**:
 | KPI                     | Target |
@@ -29,7 +29,7 @@ alwaysApply: false
 - **非同期処理**: asyncio, celery for background tasks
 
 ### Database & Storage
-- **Vector Database**: Milvus 2.3+ (HNSW + IVF_FLAT インデックス)
+- **Vector Database**: ApertureDB (Descriptor Sets with HNSW index)
 - **Relational Database**: PostgreSQL 15+ (メタデータ管理)
 - **Object Storage**: MinIO (S3互換, ドキュメントストレージ)
 - **Cache**: Redis 7.0+

@@ -92,7 +92,7 @@ class TestDetailedHealthCheck:
         # データベース関連のヘルスチェック
         services = data.get("services", {})
         assert "postgresql" in services
-        assert "milvus" in services
+        assert "aperturedb" in services
 
     @patch("app.api.health.check_postgresql_connection")
     async def test_postgresql_connection_check(self, mock_pg_check):
@@ -109,10 +109,10 @@ class TestDetailedHealthCheck:
         assert postgresql_status["status"] == "healthy"
         assert "response_time" in postgresql_status
 
-    @patch("app.api.health.check_milvus_connection")
-    async def test_milvus_connection_check(self, mock_milvus_check):
-        """Milvus接続チェックのテスト"""
-        mock_milvus_check.return_value = {"status": "healthy", "collections": 2}
+    @patch("app.api.health.check_aperturedb_connection")
+    async def test_aperturedb_connection_check(self, mock_aperturedb_check):
+        """ApertureDB接続チェックのテスト"""
+        mock_aperturedb_check.return_value = {"status": "healthy", "descriptor_sets": 2}
 
         client = TestClient(app)
         response = client.get("/v1/health/detailed")
@@ -120,9 +120,9 @@ class TestDetailedHealthCheck:
         assert response.status_code == 200
         data = response.json()
 
-        milvus_status = data["services"]["milvus"]
-        assert milvus_status["status"] == "healthy"
-        assert "collections" in milvus_status
+        aperturedb_status = data["services"]["aperturedb"]
+        assert aperturedb_status["status"] == "healthy"
+        assert "descriptor_sets" in aperturedb_status
 
 
 class TestHealthCheckErrorScenarios:
@@ -145,10 +145,10 @@ class TestHealthCheckErrorScenarios:
         postgresql_status = data["services"]["postgresql"]
         assert postgresql_status["status"] == "unhealthy"
 
-    @patch("app.api.health.check_milvus_connection")
-    def test_milvus_connection_failure(self, mock_milvus_check):
-        """Milvus接続失敗時のテスト"""
-        mock_milvus_check.side_effect = Exception("Milvus connection failed")
+    @patch("app.api.health.check_aperturedb_connection")
+    def test_aperturedb_connection_failure(self, mock_aperturedb_check):
+        """ApertureDB接続失敗時のテスト"""
+        mock_aperturedb_check.side_effect = Exception("ApertureDB connection failed")
 
         client = TestClient(app)
         response = client.get("/v1/health/detailed")
@@ -156,9 +156,9 @@ class TestHealthCheckErrorScenarios:
         assert response.status_code == 200
         data = response.json()
 
-        milvus_status = data["services"]["milvus"]
-        assert milvus_status["status"] == "unhealthy"
-        assert "error" in milvus_status
+        aperturedb_status = data["services"]["aperturedb"]
+        assert aperturedb_status["status"] == "unhealthy"
+        assert "error" in aperturedb_status
 
     def test_invalid_health_endpoint(self):
         """無効なヘルスチェックエンドポイントのテスト"""

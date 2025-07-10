@@ -36,7 +36,7 @@ graph TD
 
     subgraph "保存層"
         POSTGRES[(PostgreSQL<br/>メタデータ)]
-        MILVUS[(Milvus<br/>ベクターデータ)]
+        APERTUREDB[(ApertureDB<br/>ベクターデータ)]
         REDIS[(Redis<br/>キャッシュ)]
     end
 
@@ -64,14 +64,14 @@ graph TD
 
     %% 保存フロー
     METADATA --> POSTGRES
-    EMBED --> MILVUS
+    EMBED --> APERTUREDB
     EMBED --> REDIS
 
     %% 検索フロー
     USER --> API
     API --> SEARCH
     SEARCH --> EMBED
-    SEARCH --> MILVUS
+    SEARCH --> APERTUREDB
     SEARCH --> POSTGRES
     SEARCH --> API
     API --> USER
@@ -329,9 +329,9 @@ graph TD
     SPARSE --> FILTER[フィルタリング]
     MULTI --> COMPRESS[圧縮]
 
-    NORMALIZE --> MILVUS_DENSE[(Milvus Dense Collection)]
-    FILTER --> MILVUS_SPARSE[(Milvus Sparse Collection)]
-    COMPRESS --> MILVUS_MULTI[(Milvus Multi Collection)]
+    NORMALIZE --> APERTUREDB_DENSE[(ApertureDB Dense Descriptor Set)]
+    FILTER --> APERTUREDB_SPARSE[(ApertureDB Sparse Descriptor Set)]
+    COMPRESS --> APERTUREDB_MULTI[(ApertureDB Multi Descriptor Set)]
 ```
 
 #### 📊 ベクター生成例
@@ -422,7 +422,7 @@ sequenceDiagram
     participant API as Search API
     participant Engine as Hybrid Search Engine
     participant Embed as Embedding Service
-    participant Milvus as Milvus Vector DB
+    participant ApertureDB as ApertureDB Vector DB
     participant Postgres as PostgreSQL
     participant RRF as RRF融合
 
@@ -433,11 +433,11 @@ sequenceDiagram
     Embed-->>Engine: Dense/Sparse vectors
 
     par Dense検索
-        Engine->>Milvus: Dense vector検索
-        Milvus-->>Engine: Dense結果
+        Engine->>ApertureDB: Dense vector検索
+        ApertureDB-->>Engine: Dense結果
     and Sparse検索
-        Engine->>Milvus: Sparse vector検索
-        Milvus-->>Engine: Sparse結果
+        Engine->>ApertureDB: Sparse vector検索
+        ApertureDB-->>Engine: Sparse結果
     end
 
     Engine->>RRF: 結果統合
@@ -481,14 +481,14 @@ stateDiagram-v2
     note right of Searchable
 
         - PostgreSQL: メタデータ
-        - Milvus: ベクターデータ
+        - ApertureDB: ベクターデータ
         - Redis: キャッシュ
     end note
 ```
 
 ### データ整合性の確保
 
-| 状態 | PostgreSQL | Milvus | Redis | 説明 |
+| 状態 | PostgreSQL | ApertureDB | Redis | 説明 |
 |------|------------|--------|-------|------|
 | **Raw** | ❌ | ❌ | ❌ | 収集直後の生データ |
 | **Validated** | ⚠️ (temp) | ❌ | ❌ | 一時保存での検証中 |
@@ -541,7 +541,7 @@ stateDiagram-v2
 | **収集** | 外部API制限 | レート制限、リトライ機構 |
 | **チャンク分割** | CPU集約的処理 | 並行処理、適切なチャンクサイズ |
 | **ベクター生成** | GPU/CPU使用率 | バッチサイズ調整、GPU活用 |
-| **インデックス登録** | Milvus書き込み | バルク挿入、インデックス最適化 |
+| **インデックス登録** | ApertureDB書き込み | バルク挿入、インデックス最適化 |
 | **検索** | 同時検索リクエスト | 接続プール、キャッシング |
 
 ---
@@ -550,7 +550,7 @@ stateDiagram-v2
 
 ### 1. データ不整合
 
-**問題**: PostgreSQLとMilvusのデータが同期しない
+**問題**: PostgreSQLとApertureDBのデータが同期しない
 
 **対策実装**: `../../app/services/transaction_manager.py`
 
@@ -578,7 +578,7 @@ stateDiagram-v2
 **トランザクションの流れ**:
 
 1. PostgreSQLにメタデータ保存（status: 'processing'）
-2. Milvusにベクトル保存
+2. ApertureDBにベクトル保存
 3. Redisにマッピング情報保存
 4. PostgreSQLのステータス更新（status: 'completed'）
 5. 失敗時は逆順で削除処理
@@ -634,7 +634,7 @@ stateDiagram-v2
    - NaN/Inf値の検出と処理
 
 2. **保存前検証**:
-   - Milvusコレクションスキーマとの整合性確認
+   - ApertureDBデスクリプタセットスキーマとの整合性確認
    - 正規化の確認（L2ノルム = 1）
    - データ型の一致確認
 
@@ -673,7 +673,7 @@ stateDiagram-v2
 
 ### トラブルシューティング
 
-1. PostgreSQLにメタデータはあるがMilvusにベクターがない場合の原因と対処法
+1. PostgreSQLにメタデータはあるがApertureDBにベクターがない場合の原因と対処法
 2. 同じクエリの検索結果が毎回異なる場合の考えられる原因
 3. 埋め込み処理が異常に遅い場合の診断ポイント
 
@@ -686,6 +686,6 @@ stateDiagram-v2
 - **Step02**: API層の設計と実装 - FastAPIエンドポイントの詳細
 - **Step03**: ベクター検索エンジンの仕組み - BGE-M3とハイブリッド検索の内部実装
 - **Step04**: 認証・認可システム - JWT・API Key認証の実装
-- **Step05**: データモデル設計 - PostgreSQL・Milvusのスキーマ詳細
+- **Step05**: データモデル設計 - PostgreSQL・ApertureDBのスキーマ詳細
 
 各ステップでデータがどのように変換・活用されるかを意識しながら学習を進めてください。

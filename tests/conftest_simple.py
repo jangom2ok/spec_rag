@@ -16,8 +16,8 @@ test_secret_key = os.getenv("TEST_SECRET_KEY")
 if not test_secret_key:
     test_secret_key = secrets.token_urlsafe(32)
 os.environ["SECRET_KEY"] = test_secret_key
-os.environ["MILVUS_HOST"] = "localhost"
-os.environ["MILVUS_PORT"] = "19530"
+os.environ["APERTUREDB_HOST"] = "localhost"
+os.environ["APERTUREDB_PORT"] = "55555"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 
@@ -27,9 +27,7 @@ def test_app() -> FastAPI:
     # 認証をバイパスしたテスト用アプリを作成
     with (
         patch("app.core.middleware.CombinedAuthenticationMiddleware") as mock_auth,
-        patch("app.models.milvus.connections"),
-        patch("app.models.milvus.Collection"),
-        patch("app.models.milvus.utility"),
+        patch("app.models.aperturedb.Client"),
     ):
         # 認証ミドルウェアをバイパス
         mock_auth_instance = mock_auth.return_value
@@ -60,29 +58,20 @@ def mock_external_services() -> Generator[dict[str, Any], None, None]:
     patches = []
     mocks = {}
 
-    # Milvusのモック
-    milvus_patches = [
-        patch("app.models.milvus.connections"),
-        patch("app.models.milvus.utility"),
-        patch("app.models.milvus.Collection"),
-        patch("app.models.milvus.FieldSchema"),
-        patch("app.models.milvus.CollectionSchema"),
-        patch("app.models.milvus.DataType"),
-    ]
+    # ApertureDBのモック
+    aperturedb_patch = patch("app.models.aperturedb.Client")
+    patches.append(aperturedb_patch)
+    mock_client = aperturedb_patch.start()
 
-    for milvus_patch in milvus_patches:
-        patches.append(milvus_patch)
-        mock_obj = milvus_patch.start()
+    # ApertureDBクライアントのモック設定
+    mock_client_instance = AsyncMock()
+    mock_client_instance.query.return_value = (
+        [{"FindDescriptorSet": {"count": 0}}],
+        [],
+    )
+    mock_client.return_value = mock_client_instance
 
-        # 基本的なモック設定
-        if hasattr(mock_obj, "connect"):
-            mock_obj.connect.return_value = None
-        if hasattr(mock_obj, "has_collection"):
-            mock_obj.has_collection.return_value = False
-        if hasattr(mock_obj, "create_collection"):
-            mock_obj.create_collection.return_value = None
-
-    mocks["milvus"] = mock_obj
+    mocks["aperturedb"] = mock_client_instance
 
     try:
         yield mocks

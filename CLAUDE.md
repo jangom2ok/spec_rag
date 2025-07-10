@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a RAG (Retrieval-Augmented Generation) system for system development documentation. The system integrates BGE-M3 hybrid search to provide high-precision search functionality to external systems.
 
-**Core Tech Stack**: FastAPI + Milvus + PostgreSQL + BGE-M3 + Celery + Docker
+**Core Tech Stack**: FastAPI + ApertureDB + PostgreSQL + BGE-M3 + Celery + Docker
 
 ## Common Commands
 
@@ -23,7 +23,7 @@ pre-commit install
 
 ### Running the Application
 ```bash
-# Start with Docker Compose (includes Milvus, PostgreSQL, Redis)
+# Start with Docker Compose (includes ApertureDB, PostgreSQL, Redis)
 docker-compose up -d
 
 # Run the FastAPI application locally
@@ -69,6 +69,11 @@ bandit -r app/
 
 # Run all quality checks (via pre-commit)
 pre-commit run --all-files
+
+# 自動コード品質チェック（すべてのチェックが通るまで自動修正を繰り返す）
+./scripts/check_code_quality.sh   # Bash版
+# または
+python scripts/check_code_quality.py  # Python版
 ```
 
 ### Database Operations
@@ -97,7 +102,7 @@ app/
 ├── database/      # Database configuration
 ├── models/        # Data models
 │   ├── database.py # SQLAlchemy models
-│   └── milvus.py   # Milvus vector collections
+│   └── aperturedb.py   # ApertureDB vector collections
 ├── repositories/  # Data access layer
 ├── services/      # Business logic
 │   ├── embedding_service.py # BGE-M3 embedding service
@@ -118,10 +123,10 @@ app/
    - Automatic device detection (CPU/GPU)
    - Graceful fallback when embedding libraries are not available
 
-3. **Milvus Vector Database** (`app/models/milvus.py`):
+3. **ApertureDB Vector Database** (`app/models/aperturedb.py`):
    - Abstract base class for vector collections
-   - Separate collections for dense and sparse vectors
-   - HNSW indexing for dense vectors, Sparse Inverted Index for sparse vectors
+   - Separate descriptor sets for dense and sparse vectors
+   - HNSW indexing for dense vectors with L2 metric
 
 4. **Authentication System** (`app/api/auth.py`, `app/core/auth.py`):
    - JWT token-based authentication
@@ -177,7 +182,7 @@ Key environment variables for configuration:
 
 ### External Dependencies
 The system integrates with several external services:
-- **Milvus**: Vector database (port 19530)
+- **ApertureDB**: Vector database (port 55555)
 - **PostgreSQL**: Metadata storage (port 5432)
 - **Redis**: Caching and task queue (port 6379)
 - **Embedding Models**: BGE-M3 via HuggingFace Transformers

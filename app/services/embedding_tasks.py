@@ -9,9 +9,9 @@ import logging
 from typing import Any
 
 try:
-    import redis  # type: ignore
-    from celery import Celery  # type: ignore
-    from celery.result import AsyncResult  # type: ignore
+    import redis
+    from celery import Celery
+    from celery.result import AsyncResult
 
     HAS_CELERY = True
     HAS_REDIS = True
@@ -81,7 +81,7 @@ except ImportError:
             return False
 
 
-from app.models.milvus import VectorData
+from app.models.aperturedb import VectorData
 from app.services.embedding_service import (
     BatchEmbeddingRequest,
     EmbeddingConfig,
@@ -194,7 +194,7 @@ class EmbeddingTaskService:
             else:
                 embedding_results = []
 
-            # VectorDataオブジェクトの作成とMilvusへの保存
+            # VectorDataオブジェクトの作成とApertureDBへの保存
             vector_data_list = []
             for _i, (chunk, result) in enumerate(
                 zip(chunks, embedding_results, strict=False)
@@ -224,8 +224,8 @@ class EmbeddingTaskService:
                 )
                 vector_data_list.append(sparse_vector_data)
 
-            # Milvusへの一括挿入（実装後に有効化）
-            # await self._insert_vectors_to_milvus(vector_data_list)
+            # ApertureDBへの一括挿入（実装後に有効化）
+            # await self._insert_vectors_to_aperturedb(vector_data_list)
 
             return {
                 "status": "completed",

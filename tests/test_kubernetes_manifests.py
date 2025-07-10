@@ -149,9 +149,7 @@ def sample_deployment_manifest() -> dict[str, Any]:
                             "securityContext": {
                                 "allowPrivilegeEscalation": False,
                                 "readOnlyRootFilesystem": True,
-                                "capabilities": {
-                                    "drop": ["ALL"]
-                                },
+                                "capabilities": {"drop": ["ALL"]},
                             },
                         }
                     ],
@@ -218,8 +216,8 @@ def sample_configmap_manifest() -> dict[str, Any]:
         },
         "data": {
             "redis-url": "redis://spec-rag-redis:6379/0",
-            "milvus-host": "spec-rag-milvus",
-            "milvus-port": "19530",
+            "aperturedb-host": "spec-rag-aperturedb",
+            "aperturedb-port": "55555",
             "log-level": "INFO",
             "workers": "4",
         },
@@ -266,7 +264,9 @@ class TestKubernetesValidationConfig:
                 min_replicas=0,
             )
 
-        with pytest.raises(ValueError, match="max_replicas must be greater than min_replicas"):
+        with pytest.raises(
+            ValueError, match="max_replicas must be greater than min_replicas"
+        ):
             KubernetesValidationConfig(
                 min_replicas=10,
                 max_replicas=5,
@@ -278,7 +278,9 @@ class TestManifestSyntaxValidation:
 
     @pytest.mark.unit
     async def test_valid_deployment_manifest(
-        self, validation_config: KubernetesValidationConfig, sample_deployment_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_deployment_manifest: dict[str, Any],
     ):
         """有効なDeploymentマニフェストの検証"""
         validator = KubernetesManifestValidator(config=validation_config)
@@ -292,7 +294,9 @@ class TestManifestSyntaxValidation:
 
     @pytest.mark.unit
     async def test_valid_service_manifest(
-        self, validation_config: KubernetesValidationConfig, sample_service_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_service_manifest: dict[str, Any],
     ):
         """有効なServiceマニフェストの検証"""
         validator = KubernetesManifestValidator(config=validation_config)
@@ -352,7 +356,9 @@ class TestSecurityValidation:
 
     @pytest.mark.unit
     async def test_security_context_validation_success(
-        self, validation_config: KubernetesValidationConfig, sample_deployment_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_deployment_manifest: dict[str, Any],
     ):
         """セキュリティコンテキストの検証（成功）"""
         validator = KubernetesManifestValidator(config=validation_config)
@@ -428,7 +434,9 @@ class TestSecurityValidation:
 
         assert result.is_valid is False
         assert result.has_privileged_containers is True
-        assert "privileged containers detected" in str(result.security_violations).lower()
+        assert (
+            "privileged containers detected" in str(result.security_violations).lower()
+        )
 
 
 class TestResourceValidation:
@@ -436,7 +444,9 @@ class TestResourceValidation:
 
     @pytest.mark.unit
     async def test_resource_limits_validation_success(
-        self, validation_config: KubernetesValidationConfig, sample_deployment_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_deployment_manifest: dict[str, Any],
     ):
         """リソース制限の検証（成功）"""
         validator = KubernetesManifestValidator(config=validation_config)
@@ -523,7 +533,9 @@ class TestHealthCheckValidation:
 
     @pytest.mark.unit
     async def test_health_check_validation_success(
-        self, validation_config: KubernetesValidationConfig, sample_deployment_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_deployment_manifest: dict[str, Any],
     ):
         """ヘルスチェックの検証（成功）"""
         validator = KubernetesManifestValidator(config=validation_config)
@@ -607,7 +619,9 @@ class TestHealthCheckValidation:
         assert result.is_valid is False
         # 具体的な検証エラーを確認
         violations = result.health_check_violations
-        assert any("initialDelaySeconds too short" in violation for violation in violations)
+        assert any(
+            "initialDelaySeconds too short" in violation for violation in violations
+        )
         assert any("timeoutSeconds too long" in violation for violation in violations)
 
 
@@ -616,12 +630,16 @@ class TestLabelAndAnnotationValidation:
 
     @pytest.mark.unit
     async def test_required_labels_validation_success(
-        self, validation_config: KubernetesValidationConfig, sample_deployment_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_deployment_manifest: dict[str, Any],
     ):
         """必須ラベルの検証（成功）"""
         validator = KubernetesManifestValidator(config=validation_config)
 
-        result = await validator.validate_labels_and_annotations(sample_deployment_manifest)
+        result = await validator.validate_labels_and_annotations(
+            sample_deployment_manifest
+        )
 
         assert result.is_valid is True
         assert result.has_required_labels is True
@@ -646,7 +664,9 @@ class TestLabelAndAnnotationValidation:
             },
         }
 
-        result = await validator.validate_labels_and_annotations(missing_labels_manifest)
+        result = await validator.validate_labels_and_annotations(
+            missing_labels_manifest
+        )
 
         assert result.is_valid is False
         assert result.has_required_labels is False
@@ -672,7 +692,9 @@ class TestLabelAndAnnotationValidation:
             },
         }
 
-        result = await validator.validate_labels_and_annotations(invalid_labels_manifest)
+        result = await validator.validate_labels_and_annotations(
+            invalid_labels_manifest
+        )
 
         assert result.is_valid is False
         assert "invalid label format" in str(result.label_violations).lower()
@@ -683,13 +705,15 @@ class TestManifestFileValidation:
 
     @pytest.mark.unit
     async def test_validate_yaml_file(
-        self, validation_config: KubernetesValidationConfig, sample_deployment_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_deployment_manifest: dict[str, Any],
     ):
         """YAMLファイルの検証"""
         validator = KubernetesManifestValidator(config=validation_config)
 
         # 一時ファイルに書き出し
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump(sample_deployment_manifest, f)
             temp_file = f.name
 
@@ -711,7 +735,7 @@ class TestManifestFileValidation:
         validator = KubernetesManifestValidator(config=validation_config)
 
         # 無効なYAMLファイルを作成
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("invalid: yaml: content: [\n")  # 構文エラー
             temp_file = f.name
 
@@ -724,9 +748,10 @@ class TestManifestFileValidation:
 
     @pytest.mark.unit
     async def test_validate_directory(
-        self, validation_config: KubernetesValidationConfig,
+        self,
+        validation_config: KubernetesValidationConfig,
         sample_deployment_manifest: dict[str, Any],
-        sample_service_manifest: dict[str, Any]
+        sample_service_manifest: dict[str, Any],
     ):
         """ディレクトリの検証"""
         validator = KubernetesManifestValidator(config=validation_config)
@@ -735,12 +760,12 @@ class TestManifestFileValidation:
         with tempfile.TemporaryDirectory() as temp_dir:
             # Deploymentファイル
             deployment_file = Path(temp_dir) / "deployment.yaml"
-            with open(deployment_file, 'w') as f:
+            with open(deployment_file, "w") as f:
                 yaml.dump(sample_deployment_manifest, f)
 
             # Serviceファイル
             service_file = Path(temp_dir) / "service.yaml"
-            with open(service_file, 'w') as f:
+            with open(service_file, "w") as f:
                 yaml.dump(sample_service_manifest, f)
 
             results = await validator.validate_directory(temp_dir)
@@ -754,7 +779,9 @@ class TestKubernetesValidatorIntegration:
 
     @pytest.mark.integration
     async def test_comprehensive_manifest_validation(
-        self, validation_config: KubernetesValidationConfig, sample_deployment_manifest: dict[str, Any]
+        self,
+        validation_config: KubernetesValidationConfig,
+        sample_deployment_manifest: dict[str, Any],
     ):
         """包括的なマニフェスト検証"""
         validator = KubernetesManifestValidator(config=validation_config)
@@ -774,7 +801,8 @@ class TestKubernetesValidatorIntegration:
 
     @pytest.mark.integration
     async def test_multi_manifest_validation_performance(
-        self, validation_config: KubernetesValidationConfig,
+        self,
+        validation_config: KubernetesValidationConfig,
         sample_deployment_manifest: dict[str, Any],
         sample_service_manifest: dict[str, Any],
         sample_configmap_manifest: dict[str, Any],
@@ -789,6 +817,7 @@ class TestKubernetesValidatorIntegration:
         ] * 10  # 30個のマニフェスト
 
         import time
+
         start_time = time.time()
 
         # 並列検証実行
@@ -866,4 +895,7 @@ class TestKubernetesValidatorIntegration:
 
             # 本番環境レベルの品質を要求
             assert all(result.is_valid for result in results)
-            assert all(result.severity in [ValidationSeverity.INFO, ValidationSeverity.WARNING] for result in results)
+            assert all(
+                result.severity in [ValidationSeverity.INFO, ValidationSeverity.WARNING]
+                for result in results
+            )

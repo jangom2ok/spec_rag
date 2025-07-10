@@ -26,7 +26,7 @@ RAGシステムの本番運用では、コンテナ化、オーケストレー�
 │   └── Ingress Controller # 外部アクセス制御
 ├── データストレージ
 │   ├── PostgreSQL HA     # 高可用性DB設定
-│   ├── Milvus Cluster    # ベクターDB分散構成
+│   ├── ApertureDB Cluster # ベクターDB分散構成
 │   ├── Redis Cluster     # キャッシュ・セッション管理
 │   └── MinIO/S3          # オブジェクトストレージ
 ├── CI/CD パイプライン
@@ -111,10 +111,9 @@ Dockerイメージ設計の原則：
 
 - **rag-api**: FastAPIアプリケーション本体
 - **postgres**: メタデータ管理用のPostgreSQLデータベース
-- **milvus**: ベクター検索用のMilvusデータベース
+- **aperturedb**: ベクター検索用のApertureDBデータベース
 - **redis**: キャッシュとCeleryのメッセージブローカー
-- **etcd**: Milvusの設定管理
-- **minio**: オブジェクトストレージ（Milvusのデータ保存用）
+- **minio**: オブジェクトストレージ
 
 #### Docker Compose設計の特徴
 
@@ -126,10 +125,10 @@ services:
   # 主要サービスの定義
   # - rag-api: FastAPIアプリケーション
   # - postgres: メタデータ管理DB
-  # - milvus: ベクター検索DB
+  # - aperturedb: ベクター検索DB
   # - redis: キャッシュ・メッセージブローカー
   # - minio: オブジェクトストレージ
-  # - etcd: Milvus設定管理
+  # - etcd: 設定管理（不要の場合削除可）
 
 ```
 
@@ -250,7 +249,7 @@ metadata:
   namespace: rag-system
 data:
   # アプリケーション設定
-  
+
 ---
 apiVersion: v1
 kind: Secret
@@ -617,17 +616,17 @@ echo "Blue-Green deployment completed successfully!"
 **監視対象**:
 - RAG APIアプリケーションメトリクス
 - PostgreSQLデータベースメトリクス
-- Redisキャッシュメトリクス  
-- Milvusベクトルデータベースメトリクス
+- Redisキャッシュメトリクス
+- ApertureDBベクトルデータベースメトリクス
 - Kubernetesノードメトリクス
 
 **アラートルール例**: `../../deployment/kubernetes/monitoring/rag_alerts.yml` (未作成)
 
 **主要なアラートルール**:
 - **APIエラー率**: 5%超過が5分間継続で警告
-- **レスポンス時間**: 95パーセンタイルが2秒超過で警告  
+- **レスポンス時間**: 95パーセンタイルが2秒超過で警告
 - **検索性能**: 95パーセンタイルが5秒超過で警告
-- **データベース接続**: PostgreSQL/Milvus接続失敗でクリティカル
+- **データベース接続**: PostgreSQL/ApertureDB接続失敗でクリティカル
 - **リソース使用率**: メモリ90%/ディスク85%超過で警告
 
 ### 2. Grafana ダッシュボード
@@ -818,7 +817,7 @@ env:
 - **Step02**: FastAPI による REST API 設計
 - **Step03**: BGE-M3 ハイブリッド検索エンジン実装
 - **Step04**: 埋め込みサービスと BGE-M3 統合
-- **Step05**: PostgreSQL・Milvus データモデル設計
+- **Step05**: PostgreSQL・ApertureDB データモデル設計
 - **Step06**: JWT・API Key 認証・認可システム
 - **Step07**: エラーハンドリング・ログ・監視システム
 - **Step08**: Docker・Kubernetes デプロイメント・運用

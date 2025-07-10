@@ -233,7 +233,9 @@ class TestAdminDashboard:
 
     @pytest.mark.unit
     async def test_add_widget(
-        self, basic_dashboard_config: DashboardConfig, sample_widgets: list[DashboardWidget]
+        self,
+        basic_dashboard_config: DashboardConfig,
+        sample_widgets: list[DashboardWidget],
     ):
         """ウィジェット追加"""
         dashboard = AdminDashboard(config=basic_dashboard_config)
@@ -247,7 +249,9 @@ class TestAdminDashboard:
 
     @pytest.mark.unit
     async def test_remove_widget(
-        self, basic_dashboard_config: DashboardConfig, sample_widgets: list[DashboardWidget]
+        self,
+        basic_dashboard_config: DashboardConfig,
+        sample_widgets: list[DashboardWidget],
     ):
         """ウィジェット削除"""
         dashboard = AdminDashboard(config=basic_dashboard_config)
@@ -265,7 +269,9 @@ class TestAdminDashboard:
 
     @pytest.mark.unit
     async def test_update_widget_config(
-        self, basic_dashboard_config: DashboardConfig, sample_widgets: list[DashboardWidget]
+        self,
+        basic_dashboard_config: DashboardConfig,
+        sample_widgets: list[DashboardWidget],
     ):
         """ウィジェット設定更新"""
         dashboard = AdminDashboard(config=basic_dashboard_config)
@@ -286,7 +292,9 @@ class TestSystemMetrics:
     """システムメトリクスのテスト"""
 
     @pytest.mark.unit
-    async def test_collect_system_metrics(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_collect_system_metrics(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """システムメトリクス収集"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -299,19 +307,23 @@ class TestSystemMetrics:
         assert metrics.disk_usage >= 0.0
 
     @pytest.mark.unit
-    async def test_search_analytics(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_search_analytics(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """検索分析メトリクス"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
         # サンプル検索データを設定
-        await dashboard.record_search_event({
-            "query": "machine learning",
-            "user_id": "user_001",
-            "timestamp": datetime.now(),
-            "response_time": 150,
-            "results_count": 42,
-            "success": True,
-        })
+        await dashboard.record_search_event(
+            {
+                "query": "machine learning",
+                "user_id": "user_001",
+                "timestamp": datetime.now(),
+                "response_time": 150,
+                "results_count": 42,
+                "success": True,
+            }
+        )
 
         analytics = await dashboard.get_search_analytics(
             start_time=datetime.now() - timedelta(hours=1),
@@ -323,17 +335,21 @@ class TestSystemMetrics:
         assert analytics.success_rate >= 0.0
 
     @pytest.mark.unit
-    async def test_user_analytics(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_user_analytics(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """ユーザー分析メトリクス"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
         # サンプルユーザーデータを設定
-        await dashboard.record_user_activity({
-            "user_id": "user_001",
-            "action": "search",
-            "timestamp": datetime.now(),
-            "session_id": "session_123",
-        })
+        await dashboard.record_user_activity(
+            {
+                "user_id": "user_001",
+                "action": "search",
+                "timestamp": datetime.now(),
+                "session_id": "session_123",
+            }
+        )
 
         user_analytics = await dashboard.get_user_analytics(
             start_time=datetime.now() - timedelta(hours=24),
@@ -349,7 +365,9 @@ class TestReportGeneration:
     """レポート生成のテスト"""
 
     @pytest.mark.unit
-    async def test_generate_system_report(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_generate_system_report(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """システムレポート生成"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -369,7 +387,9 @@ class TestReportGeneration:
         assert len(report.content) > 0
 
     @pytest.mark.unit
-    async def test_generate_search_analytics_report(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_generate_search_analytics_report(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """検索分析レポート生成"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -388,7 +408,9 @@ class TestReportGeneration:
         assert report.size_bytes > 0
 
     @pytest.mark.unit
-    async def test_scheduled_report_generation(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_scheduled_report_generation(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """定期レポート生成"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -411,7 +433,9 @@ class TestRealTimeMonitoring:
     """リアルタイム監視のテスト"""
 
     @pytest.mark.unit
-    async def test_start_real_time_monitoring(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_start_real_time_monitoring(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """リアルタイム監視開始"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -421,7 +445,9 @@ class TestRealTimeMonitoring:
         assert dashboard._monitoring_thread is not None
 
     @pytest.mark.unit
-    async def test_stop_real_time_monitoring(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_stop_real_time_monitoring(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """リアルタイム監視停止"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -431,7 +457,9 @@ class TestRealTimeMonitoring:
         assert dashboard._is_real_time_enabled is False
 
     @pytest.mark.unit
-    async def test_real_time_data_stream(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_real_time_data_stream(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """リアルタイムデータストリーム"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -456,17 +484,22 @@ class TestUserManagement:
     """ユーザー管理のテスト"""
 
     @pytest.mark.unit
-    async def test_user_permissions(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_user_permissions(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """ユーザー権限管理"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
         # ユーザー権限設定
-        await dashboard.set_user_permissions("user_001", {
-            "view_dashboard": True,
-            "edit_widgets": False,
-            "generate_reports": True,
-            "manage_users": False,
-        })
+        await dashboard.set_user_permissions(
+            "user_001",
+            {
+                "view_dashboard": True,
+                "edit_widgets": False,
+                "generate_reports": True,
+                "manage_users": False,
+            },
+        )
 
         permissions = await dashboard.get_user_permissions("user_001")
         assert permissions["view_dashboard"] is True
@@ -479,13 +512,15 @@ class TestUserManagement:
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
         # 操作ログの記録
-        await dashboard.log_user_action({
-            "user_id": "admin_001",
-            "action": "create_widget",
-            "resource": "search_volume_widget",
-            "timestamp": datetime.now(),
-            "ip_address": "192.168.1.100",
-        })
+        await dashboard.log_user_action(
+            {
+                "user_id": "admin_001",
+                "action": "create_widget",
+                "resource": "search_volume_widget",
+                "timestamp": datetime.now(),
+                "ip_address": "192.168.1.100",
+            }
+        )
 
         audit_logs = await dashboard.get_audit_logs(
             start_time=datetime.now() - timedelta(hours=1),
@@ -496,7 +531,9 @@ class TestUserManagement:
         assert audit_logs[0]["action"] == "create_widget"
 
     @pytest.mark.unit
-    async def test_session_management(self, comprehensive_dashboard_config: DashboardConfig):
+    async def test_session_management(
+        self, comprehensive_dashboard_config: DashboardConfig
+    ):
         """セッション管理"""
         dashboard = AdminDashboard(config=comprehensive_dashboard_config)
 
@@ -535,14 +572,16 @@ class TestDashboardIntegration:
             await dashboard.start_real_time_monitoring()
 
             # 3. サンプルデータ生成
-            await dashboard.record_search_event({
-                "query": "AI integration",
-                "user_id": "user_001",
-                "timestamp": datetime.now(),
-                "response_time": 120,
-                "results_count": 25,
-                "success": True,
-            })
+            await dashboard.record_search_event(
+                {
+                    "query": "AI integration",
+                    "user_id": "user_001",
+                    "timestamp": datetime.now(),
+                    "response_time": 120,
+                    "results_count": 25,
+                    "success": True,
+                }
+            )
 
             # 4. メトリクス収集
             metrics = await dashboard.collect_system_metrics()

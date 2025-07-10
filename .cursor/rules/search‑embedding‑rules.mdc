@@ -57,7 +57,7 @@ def calculate_hybrid_score(
 - **rerank_top_k**: 再ランキング後の結果数 (推奨: 10-50)
 - **similarity_threshold**: 最低類似度 (推奨: 0.6以上)
 
-## Milvus Vector Database ルール
+## ApertureDB Vector Database ルール
 
 ### コレクション設計
 ```python

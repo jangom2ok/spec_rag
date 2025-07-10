@@ -378,7 +378,6 @@ class TestSearchSuggestionsService:
                 suggestions_service, "_get_trending_suggestions", new_callable=AsyncMock
             ) as mock_trending,
         ):
-
             mock_auto.return_value = [
                 SuggestionCandidate(
                     text="machine learning",
@@ -556,7 +555,6 @@ class TestSearchSuggestionsService:
                 new_callable=AsyncMock,
             ) as mock_auto,
         ):
-
             cache_key = "suggestions_cache_key_123"
             mock_cache_key.return_value = cache_key
             mock_get_cache.return_value = None  # キャッシュなし
@@ -687,7 +685,6 @@ class TestSearchSuggestionsService:
                 suggestions_service, "_get_trending_suggestions", new_callable=AsyncMock
             ) as mock_trending,
         ):
-
             # Setup comprehensive mocks
             mock_auto.return_value = [
                 SuggestionCandidate(

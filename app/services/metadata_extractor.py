@@ -151,7 +151,7 @@ class StructureExtractor:
 
         # リスト抽出
         in_list = False
-        current_list: list[str] = []
+        current_list: list[dict[str, Any]] = []
 
         for i, line in enumerate(lines):
             line = line.strip()

@@ -164,9 +164,7 @@ class AutocompleteSuggester(BaseSuggester):
         self.min_frequency = config.prefix_min_frequency
         self.prefix_index: dict[str, list[str]] = {}  # 簡易プレフィックスインデックス
 
-    async def suggest(
-        self, query: str, **kwargs: Any
-    ) -> list[SuggestionCandidate]:
+    async def suggest(self, query: str, **kwargs: Any) -> list[SuggestionCandidate]:
         """自動補完候補生成"""
         max_results = kwargs.get("max_results") or self.max_suggestions
 
@@ -290,9 +288,7 @@ class ContextualSuggester(BaseSuggester):
         super().__init__(config)
         self.context_weight = config.context_weight
 
-    async def suggest(
-        self, query: str, **kwargs: Any
-    ) -> list[SuggestionCandidate]:
+    async def suggest(self, query: str, **kwargs: Any) -> list[SuggestionCandidate]:
         """コンテキスト候補生成"""
         context = kwargs.get("context")
         if not context:
@@ -392,7 +388,6 @@ class ContextualSuggester(BaseSuggester):
                 unique_candidates.items(), key=lambda x: x[1]["score"], reverse=True
             )[:max_results]
         ):
-
             suggestion = SuggestionCandidate(
                 text=text,
                 type=SuggestionType.CONTEXTUAL,
@@ -525,9 +520,7 @@ class PersonalizedSuggester(BaseSuggester):
         super().__init__(config)
         self.personalization_weight = config.personalization_weight
 
-    async def suggest(
-        self, query: str, **kwargs: Any
-    ) -> list[SuggestionCandidate]:
+    async def suggest(self, query: str, **kwargs: Any) -> list[SuggestionCandidate]:
         """パーソナライズ候補生成"""
         user_id = kwargs.get("user_id")
         if not user_id:
@@ -622,7 +615,6 @@ class PersonalizedSuggester(BaseSuggester):
                 unique_candidates.items(), key=lambda x: x[1]["score"], reverse=True
             )[:max_results]
         ):
-
             suggestion = SuggestionCandidate(
                 text=text,
                 type=SuggestionType.PERSONALIZED,
@@ -698,9 +690,7 @@ class TrendingSuggester(BaseSuggester):
         self.trending_window_hours = config.trending_window_hours
         self.trend_threshold = config.trend_threshold
 
-    async def suggest(
-        self, query: str, **kwargs: Any
-    ) -> list[SuggestionCandidate]:
+    async def suggest(self, query: str, **kwargs: Any) -> list[SuggestionCandidate]:
         """トレンド候補生成"""
         max_results = kwargs.get("max_results") or self.config.max_suggestions
 
@@ -765,7 +755,11 @@ class TrendingSuggester(BaseSuggester):
                 trends.extend(trend_list)
 
         # トレンドスコア順でソート
-        trends.sort(key=lambda x: float(x.get("trend_score", 0.0) if x.get("trend_score") is not None else 0.0), reverse=True)
+        def get_trend_score(x: dict[str, Any]) -> float:
+            score = x.get("trend_score", 0.0)
+            return float(score) if score is not None else 0.0
+
+        trends.sort(key=get_trend_score, reverse=True)
         return trends
 
 
@@ -1019,7 +1013,9 @@ class SearchSuggestionsService:
         """コンテキスト候補取得"""
         suggester = self.suggesters.get(SuggestionType.CONTEXTUAL)
         if suggester:
-            return await suggester.suggest(query, context=context, max_results=max_results)
+            return await suggester.suggest(
+                query, context=context, max_results=max_results
+            )
         return []
 
     async def _get_personalized_suggestions(
@@ -1028,7 +1024,9 @@ class SearchSuggestionsService:
         """パーソナライズ候補取得"""
         suggester = self.suggesters.get(SuggestionType.PERSONALIZED)
         if suggester:
-            return await suggester.suggest(query, user_id=user_id, max_results=max_results)
+            return await suggester.suggest(
+                query, user_id=user_id, max_results=max_results
+            )
         return []
 
     async def _get_trending_suggestions(

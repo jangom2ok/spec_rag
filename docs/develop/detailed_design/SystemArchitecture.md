@@ -26,7 +26,7 @@ graph TB
         end
 
         subgraph "Data Layer"
-            VECTOR_DB[(Vector Database<br/>Milvus)]
+            VECTOR_DB[(Vector Database<br/>ApertureDB)]
             METADATA_DB[(Metadata DB<br/>PostgreSQL)]
             DOC_STORAGE[(Document Storage<br/>MinIO)]
         end
@@ -99,7 +99,7 @@ graph TB
 
 ### 5. Vector Database
 
-- **技術**: Milvus 2.3+
+- **技術**: ApertureDB 0.5+
 - **インデックス**: HNSW + IVF_FLAT
 - **パーティション**: ドキュメントタイプ別
 
