@@ -183,7 +183,7 @@ async def get_current_user_or_api_key(
 
 @router.get("/", response_model=DocumentList)
 async def list_documents(
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
 ) -> DocumentList:
     """ドキュメント一覧を取得"""
     # テスト用のモックデータ
@@ -207,7 +207,7 @@ async def list_documents(
 @router.post("/", response_model=DocumentResponse, status_code=201)
 async def create_document(
     document: DocumentCreate,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
 ) -> DocumentResponse:
     """ドキュメントを作成"""
     # 書き込み権限をチェック
@@ -226,7 +226,7 @@ async def create_document(
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: str,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
 ) -> dict[str, str]:
     """ドキュメントを削除"""
     # 削除権限をチェック（管理者権限必要）
@@ -242,7 +242,7 @@ async def delete_document(
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: str,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
 ) -> DocumentResponse:
     """ドキュメントを取得"""
     # テスト用の簡単な実装
@@ -261,7 +261,7 @@ async def get_document(
 async def update_document(
     document_id: str,
     document_update: DocumentUpdate,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
 ) -> DocumentResponse:
     """ドキュメントを更新"""
     # 書き込み権限をチェック
@@ -311,7 +311,7 @@ async def get_document_processing_service(
 async def process_documents(
     config: ProcessingConfigRequest,
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
     processing_service: DocumentProcessingService = Depends(
         get_document_processing_service
     ),
@@ -353,7 +353,7 @@ async def process_documents(
 @router.post("/process/sync", response_model=ProcessingResultResponse)
 async def process_documents_sync(
     config: ProcessingConfigRequest,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
     processing_service: DocumentProcessingService = Depends(
         get_document_processing_service
     ),
@@ -392,7 +392,7 @@ async def process_documents_sync(
 @router.get("/process/status/{document_id}", response_model=ProcessingStatusResponse)
 async def get_processing_status(
     document_id: str,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
     processing_service: DocumentProcessingService = Depends(
         get_document_processing_service
     ),
@@ -424,7 +424,7 @@ async def get_processing_status(
 
 @router.get("/process/status", response_model=dict[str, ProcessingStatusResponse])
 async def get_all_processing_status(
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
     processing_service: DocumentProcessingService = Depends(
         get_document_processing_service
     ),
@@ -459,7 +459,7 @@ async def get_all_processing_status(
 async def reprocess_document(
     document_id: str,
     config: ProcessingConfigRequest,
-    current_user: dict = Depends(get_current_user_or_api_key),
+    current_user: dict[str, Any] = Depends(get_current_user_or_api_key),
     processing_service: DocumentProcessingService = Depends(
         get_document_processing_service
     ),

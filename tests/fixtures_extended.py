@@ -8,10 +8,9 @@ This file provides comprehensive fixtures for mocking:
 - NLP models
 """
 
-import asyncio
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any, AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import pytest_asyncio
@@ -19,7 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.models.database import Base
-
 
 # ==================== Celery/Redis Fixtures ====================
 
@@ -50,7 +48,7 @@ def mock_celery_app():
 @pytest.fixture
 def mock_redis_client():
     """Mock Redis client."""
-    with patch("redis.asyncio.from_url") as mock_redis:
+    with patch("app.services.embedding_tasks.redis") as mock_redis_module:
         client = AsyncMock()
         client.get = AsyncMock(return_value=None)
         client.set = AsyncMock(return_value=True)
@@ -59,7 +57,8 @@ def mock_redis_client():
         client.expire = AsyncMock(return_value=True)
         client.ping = AsyncMock(return_value=True)
         client.close = AsyncMock()
-        mock_redis.return_value = client
+        mock_redis_module.Redis = Mock()
+        mock_redis_module.Redis.from_url = Mock(return_value=client)
         yield client
 
 
@@ -148,7 +147,7 @@ def mock_httpx_client():
 @pytest.fixture
 def mock_aperturedb_client():
     """Mock ApertureDB client."""
-    with patch("aperturedb.Client") as mock_client_class:
+    with patch("app.models.aperturedb.Client") as mock_client_class:
         mock_client = Mock()
 
         # Mock query responses
@@ -176,23 +175,26 @@ def mock_aperturedb_client():
 @pytest.fixture
 def mock_asyncpg_pool():
     """Mock asyncpg connection pool."""
-    with patch("asyncpg.create_pool") as mock_create_pool:
-        pool = AsyncMock()
-        pool.acquire = AsyncMock()
-        pool.close = AsyncMock()
+    pool = AsyncMock()
+    pool.acquire = AsyncMock()
+    pool.close = AsyncMock()
 
-        # Mock connection
-        conn = AsyncMock()
-        conn.fetchval = AsyncMock(return_value=1)  # For SELECT 1
-        conn.fetch = AsyncMock(return_value=[])
-        conn.execute = AsyncMock()
-        conn.close = AsyncMock()
+    # Mock connection
+    conn = AsyncMock()
+    conn.fetchval = AsyncMock(return_value=1)  # For SELECT 1
+    conn.fetch = AsyncMock(return_value=[])
+    conn.execute = AsyncMock()
+    conn.close = AsyncMock()
 
-        # Setup context manager
-        pool.acquire.return_value.__aenter__ = AsyncMock(return_value=conn)
-        pool.acquire.return_value.__aexit__ = AsyncMock()
+    # Setup context manager
+    pool.acquire.return_value.__aenter__ = AsyncMock(return_value=conn)
+    pool.acquire.return_value.__aexit__ = AsyncMock()
 
-        mock_create_pool.return_value = pool
+    # Make create_pool an async function that returns the pool
+    async def async_create_pool(*args, **kwargs):
+        return pool
+
+    with patch("asyncpg.create_pool", side_effect=async_create_pool):
         yield pool
 
 
@@ -204,7 +206,9 @@ def mock_cuda_available():
     """Mock CUDA availability."""
     with patch("torch.cuda.is_available", return_value=False):
         with patch("torch.cuda.device_count", return_value=0):
-            with patch("torch.cuda.get_device_name", side_effect=RuntimeError("No CUDA")):
+            with patch(
+                "torch.cuda.get_device_name", side_effect=RuntimeError("No CUDA")
+            ):
                 yield
 
 
@@ -224,7 +228,11 @@ def mock_gpu_memory():
 @pytest.fixture
 def mock_spacy_model():
     """Mock spaCy NLP model."""
-    with patch("spacy.load") as mock_load:
+    # Create a mock that doesn't require the actual module
+    mock_load = Mock()
+
+    with patch("app.services.metadata_extractor.spacy", create=True) as mock_spacy:
+        mock_spacy.load = mock_load
         # Create mock NLP model
         mock_nlp = Mock()
 

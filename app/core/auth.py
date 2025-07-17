@@ -3,10 +3,11 @@
 import logging
 import os
 import secrets
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 import jwt
 from fastapi import HTTPException, status
@@ -102,7 +103,9 @@ class TokenData(BaseModel):
 
 
 # JWT関連関数
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    data: dict[str, Any], expires_delta: timedelta | None = None
+) -> str:
     """アクセストークンを生成"""
     to_encode = data.copy()
     if expires_delta:
@@ -125,7 +128,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token(data: dict[str, Any]) -> str:
     """リフレッシュトークンを生成"""
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -134,7 +137,7 @@ def create_refresh_token(data: dict) -> str:
     return encoded_jwt
 
 
-def verify_token(token: str) -> dict:
+def verify_token(token: str) -> dict[str, Any]:
     """トークンを検証"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -150,7 +153,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(email: str, password: str) -> dict | None:
+def authenticate_user(email: str, password: str) -> dict[str, Any] | None:
     """ユーザー認証"""
     user = users_storage.get(email)
     if not user:
@@ -350,7 +353,9 @@ def check_user_resource_permission(
 
 
 # デコレーター関数
-def require_permission(required_permission: Permission):
+def require_permission(
+    required_permission: Permission,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """権限要求デコレーター"""
 
     def decorator(func):
@@ -370,7 +375,9 @@ def require_permission(required_permission: Permission):
     return decorator
 
 
-def require_role(required_role: str):
+def require_role(
+    required_role: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """ロール要求デコレーター"""
 
     def decorator(func):
@@ -389,7 +396,9 @@ def require_role(required_role: str):
     return decorator
 
 
-def require_resource_permission(resource_type: str, required_permission: str):
+def require_resource_permission(
+    resource_type: str, required_permission: str
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """リソース権限要求デコレーター"""
 
     def decorator(func):

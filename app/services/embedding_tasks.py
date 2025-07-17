@@ -6,7 +6,7 @@ Celeryを使用した非同期埋め込み処理。
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Union
 
 try:
     import redis
@@ -19,7 +19,7 @@ except ImportError:
     # テスト環境での代替
     HAS_CELERY = False
     HAS_REDIS = False
-    redis = None
+    redis = None  # type: ignore
 
     class MockConf:
         def update(self, **kwargs):
@@ -55,7 +55,13 @@ except ImportError:
 
         def task(self, *args, **kwargs):
             def decorator(func):
-                func.delay = lambda *a, **k: type("MockResult", (), {})()
+                import uuid
+
+                func.delay = lambda *a, **k: type(
+                    "MockResult",
+                    (),
+                    {"id": f"mock-task-{uuid.uuid4().hex[:8]}", "state": "PENDING"},
+                )()
                 return func
 
             return decorator
@@ -95,7 +101,7 @@ try:
 except ImportError:
     # テスト用ダミークラス
     class MockChunkRepository:
-        def __init__(self):
+        def __init__(self, session=None) -> None:
             pass
 
         async def get_by_document_id(self, document_id):
@@ -139,19 +145,19 @@ celery_app.conf.update(
 class EmbeddingTaskService:
     """埋め込みタスクサービス"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.embedding_service: EmbeddingService | None = None
         self.chunk_repository: ChunkRepository | None = None
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """サービスの初期化"""
         # 埋め込みサービスの初期化
         config = EmbeddingConfig()
         self.embedding_service = EmbeddingService(config)
         await self.embedding_service.initialize()
 
-        # リポジトリの初期化
-        self.chunk_repository = ChunkRepository()
+        # リポジトリの初期化（セッションなしでモック）
+        self.chunk_repository = ChunkRepository(None)  # type: ignore
 
         logger.info("EmbeddingTaskService initialized")
 
@@ -376,15 +382,6 @@ def embedding_health_check_task() -> dict[str, Any]:
         return {"status": "unhealthy", "reason": f"Health check task failed: {str(e)}"}
 
 
-try:
-    import redis
-
-    HAS_REDIS = True
-except ImportError:
-    HAS_REDIS = False
-    redis = None
-
-
 def get_redis_health() -> dict[str, Any]:
     """Redisの接続状態をチェック"""
     if not HAS_REDIS or redis is None:
@@ -394,30 +391,24 @@ def get_redis_health() -> dict[str, Any]:
         # 同期版のRedisクライアントを使用
         client = redis.Redis.from_url("redis://localhost:6379/0", decode_responses=True)
         client.ping()
-        # info()は辞書を返す
+        # info()は辞書を返す - 明示的なキャスト
         info_result = client.info()
+        if not isinstance(info_result, dict):
+            return {"status": "unhealthy", "reason": "Unexpected Redis info response type"}
 
         # 型安全な辞書アクセス
         try:
             redis_version = (
-                info_result["redis_version"]
-                if "redis_version" in info_result
-                else "unknown"
+                info_result.get("redis_version", "unknown")
             )
             connected_clients = (
-                info_result["connected_clients"]
-                if "connected_clients" in info_result
-                else 0
+                info_result.get("connected_clients", 0)
             )
             used_memory = (
-                info_result["used_memory_human"]
-                if "used_memory_human" in info_result
-                else "unknown"
+                info_result.get("used_memory_human", "unknown")
             )
             uptime = (
-                info_result["uptime_in_seconds"]
-                if "uptime_in_seconds" in info_result
-                else 0
+                info_result.get("uptime_in_seconds", 0)
             )
         except (TypeError, KeyError):
             # 何らかの理由で辞書アクセスが失敗した場合のフォールバック
@@ -478,7 +469,7 @@ class EmbeddingTaskManager:
     """埋め込みタスク管理クラス"""
 
     @staticmethod
-    def submit_document_processing(document_id: str):
+    def submit_document_processing(document_id: str) -> Any:
         """ドキュメント処理タスクの投入
 
         Args:
@@ -505,7 +496,7 @@ class EmbeddingTaskManager:
         return process_batch_texts_task.delay(texts, metadata)
 
     @staticmethod
-    def get_task_status(task_id: str):
+    def get_task_status(task_id: str) -> dict[str, Any]:
         """タスクステータスの取得
 
         Args:
@@ -530,7 +521,7 @@ class EmbeddingTaskManager:
         }
 
     @staticmethod
-    def cancel_task(task_id: str):
+    def cancel_task(task_id: str) -> dict[str, Any]:
         """タスクのキャンセル
 
         Args:
@@ -548,7 +539,7 @@ class EmbeddingTaskManager:
         }
 
     @staticmethod
-    def get_queue_status():
+    def get_queue_status() -> dict[str, Any]:
         """キューのステータス取得
 
         Returns:
@@ -558,7 +549,31 @@ class EmbeddingTaskManager:
         return {"active_tasks": 1, "scheduled_tasks": 1, "workers": ["worker1"]}
 
     @staticmethod
-    def get_system_health():
+    def get_worker_status() -> dict[str, Any]:
+        """ワーカーステータスの取得
+
+        Returns:
+            Dict[str, Any]: ワーカーステータス
+        """
+        if HAS_CELERY:
+            inspect = celery_app.control.inspect()
+            return {
+                "active_tasks": inspect.active() or {},
+                "scheduled_tasks": inspect.scheduled() or {},
+                "reserved_tasks": inspect.reserved() or {},
+                "stats": inspect.stats() or {},
+            }
+        else:
+            # モック実装
+            return {
+                "active_tasks": {},
+                "scheduled_tasks": {},
+                "reserved_tasks": {},
+                "stats": {},
+            }
+
+    @staticmethod
+    def get_system_health() -> dict[str, Any]:
         """システムのヘルスチェック
 
         Returns:
