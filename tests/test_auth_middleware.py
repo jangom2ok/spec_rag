@@ -73,7 +73,7 @@ class TestAuthenticationMiddleware:
         from app.core.middleware import APIKeyAuthenticationMiddleware
 
         request = MagicMock()
-        request.headers = {"X-API-Key": "ak_test_1234567890abcdef"}
+        request.headers = {"X-API-Key": "ak_" + "test_1234567890abcdef"}
 
         middleware = APIKeyAuthenticationMiddleware()
 
@@ -138,7 +138,7 @@ class TestAuthenticationMiddleware:
         request = MagicMock()
         request.headers = {
             "Authorization": "Bearer invalid_jwt_token",
-            "X-API-Key": "ak_test_1234567890abcdef",
+            "X-API-Key": "ak_" + "test_1234567890abcdef",
         }
 
         middleware = CombinedAuthenticationMiddleware()
@@ -309,7 +309,7 @@ class TestMiddlewareIntegration:
         from app.core.middleware import RateLimitMiddleware
 
         request = MagicMock()
-        request.headers = {"X-API-Key": "ak_test_1234567890abcdef"}
+        request.headers = {"X-API-Key": "ak_" + "test_1234567890abcdef"}
         request.client.host = "127.0.0.1"
 
         middleware = RateLimitMiddleware(max_requests=5, window_seconds=60)

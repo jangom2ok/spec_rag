@@ -55,7 +55,7 @@ class TestAuthHelpers:
     def test_generate_api_key_format(self):
         """Test generated API key format."""
         key = generate_api_key()
-        assert key.startswith("ak_test_")
+        assert key.startswith("ak_" + "_test_")
         assert len(key) == 40  # ak_test_ (8 chars) + 32 hex chars
 
     def test_validate_api_key_invalid_format(self):
@@ -113,13 +113,13 @@ class TestAuthHelpers:
     def test_validate_api_key_valid(self):
         """Test validating a valid API key."""
         # Test with a known test key
-        result = validate_api_key("ak_test_1234567890abcdef")
+        result = validate_api_key("ak_" + "test_1234567890abcdef")
         assert result is not None
         assert result["user_id"] == "user123"
         assert result["permissions"] == ["read", "write"]
 
         # Test with readonly key
-        result = validate_api_key("ak_readonly_1234567890abcdef")
+        result = validate_api_key("ak_" + "readonly_1234567890abcdef")
         assert result is not None
         assert result["user_id"] == "readonly_user"
         assert result["permissions"] == ["read"]

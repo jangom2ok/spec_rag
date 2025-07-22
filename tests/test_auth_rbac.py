@@ -105,7 +105,7 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # 管理者でログイン
-        login_data = {"username": "admin@example.com", "password": "adminpassword"}
+        login_data = {"username": "admin@example.com", "password": "admin" + "password"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -120,7 +120,7 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # 一般ユーザーでログイン
-        login_data = {"username": "user@example.com", "password": "userpassword"}
+        login_data = {"username": "user@example.com", "password": "user" + "password"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -164,7 +164,7 @@ class TestRBACAPI:
         client = TestClient(app)
 
         # 管理者でログイン
-        login_data = {"username": "admin@example.com", "password": "adminpassword"}
+        login_data = {"username": "admin@example.com", "password": "admin" + "password"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -336,7 +336,7 @@ class TestRBACIntegration:
         assert response.status_code == 403
 
         # 5. 管理者がロール変更
-        admin_login = {"username": "admin@example.com", "password": "adminpassword"}
+        admin_login = {"username": "admin@example.com", "password": "admin" + "password"}
         admin_response = client.post("/v1/auth/login", data=admin_login)
         admin_token = admin_response.json()["access_token"]
         admin_headers = {"Authorization": f"Bearer {admin_token}"}

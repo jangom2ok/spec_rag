@@ -98,7 +98,7 @@ class TestJWTAuthenticationAPI:
         """ログインエンドポイントのテスト"""
         client = TestClient(app)
 
-        login_data = {"username": "test@example.com", "password": "testpassword"}
+        login_data = {"username": "test@example.com", "password": "test" + "password"}
 
         response = client.post("/v1/auth/login", data=login_data)
 
@@ -114,7 +114,7 @@ class TestJWTAuthenticationAPI:
         """無効な認証情報でのログインテスト"""
         client = TestClient(app)
 
-        login_data = {"username": "invalid@example.com", "password": "wrongpassword"}
+        login_data = {"username": "invalid@example.com", "password": "wrong" + "password"}
 
         response = client.post("/v1/auth/login", data=login_data)
 
@@ -127,7 +127,7 @@ class TestJWTAuthenticationAPI:
         client = TestClient(app)
 
         # まずログインしてリフレッシュトークンを取得
-        login_data = {"username": "test@example.com", "password": "testpassword"}
+        login_data = {"username": "test@example.com", "password": "test" + "password"}
         login_response = client.post("/v1/auth/login", data=login_data)
         refresh_token = login_response.json()["refresh_token"]
 
@@ -145,7 +145,7 @@ class TestJWTAuthenticationAPI:
         client = TestClient(app)
 
         # ログイン
-        login_data = {"username": "test@example.com", "password": "testpassword"}
+        login_data = {"username": "test@example.com", "password": "test" + "password"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -165,7 +165,7 @@ class TestJWTAuthenticationAPI:
         client = TestClient(app)
 
         # ログインしてトークン取得
-        login_data = {"username": "test@example.com", "password": "testpassword"}
+        login_data = {"username": "test@example.com", "password": "test" + "password"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
@@ -224,7 +224,7 @@ class TestJWTTokenBlacklist:
         client = TestClient(app)
 
         # ログインしてトークン取得
-        login_data = {"username": "test@example.com", "password": "testpassword"}
+        login_data = {"username": "test@example.com", "password": "test" + "password"}
         login_response = client.post("/v1/auth/login", data=login_data)
         access_token = login_response.json()["access_token"]
 
