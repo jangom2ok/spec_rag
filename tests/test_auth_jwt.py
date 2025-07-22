@@ -114,7 +114,10 @@ class TestJWTAuthenticationAPI:
         """無効な認証情報でのログインテスト"""
         client = TestClient(app)
 
-        login_data = {"username": "invalid@example.com", "password": "wrong" + "password"}
+        login_data = {
+            "username": "invalid@example.com",
+            "password": "wrong" + "password",
+        }
 
         response = client.post("/v1/auth/login", data=login_data)
 

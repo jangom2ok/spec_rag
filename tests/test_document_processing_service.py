@@ -913,9 +913,7 @@ class TestDocumentProcessingService:
                 )
             )
 
-            with patch(
-                "app.services.document_processing_service.MetadataExtractor"
-            ):
+            with patch("app.services.document_processing_service.MetadataExtractor"):
                 with patch(
                     "app.services.document_processing_service.DocumentChunker"
                 ) as mock_chunker_class:

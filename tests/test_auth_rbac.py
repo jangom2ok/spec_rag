@@ -336,7 +336,10 @@ class TestRBACIntegration:
         assert response.status_code == 403
 
         # 5. 管理者がロール変更
-        admin_login = {"username": "admin@example.com", "password": "admin" + "password"}
+        admin_login = {
+            "username": "admin@example.com",
+            "password": "admin" + "password",
+        }
         admin_response = client.post("/v1/auth/login", data=admin_login)
         admin_token = admin_response.json()["access_token"]
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
