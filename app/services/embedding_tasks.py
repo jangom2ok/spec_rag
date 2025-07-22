@@ -6,7 +6,7 @@ Celeryを使用した非同期埋め込み処理。
 
 import asyncio
 import logging
-from typing import Any, Union
+from typing import Any, cast
 
 try:
     import redis
@@ -19,7 +19,7 @@ except ImportError:
     # テスト環境での代替
     HAS_CELERY = False
     HAS_REDIS = False
-    redis = None  # type: ignore
+    redis = None
 
     class MockConf:
         def update(self, **kwargs):
@@ -292,7 +292,7 @@ def process_document_embedding_task(self, document_id: str) -> dict[str, Any]:
 
         try:
             result = loop.run_until_complete(run_processing())
-            return result
+            return cast(dict[str, Any], result)
         finally:
             loop.close()
 
@@ -326,6 +326,8 @@ def process_batch_texts_task(
 
         async def run_batch_processing():
             service = await get_task_service()
+            if service.embedding_service is None:
+                raise RuntimeError("Embedding service not initialized")
             results = await service.embedding_service.embed_batch(texts)
 
             return {
@@ -347,7 +349,7 @@ def process_batch_texts_task(
 
         try:
             result = loop.run_until_complete(run_batch_processing())
-            return result
+            return cast(dict[str, Any], result)
         finally:
             loop.close()
 
@@ -367,6 +369,8 @@ def embedding_health_check_task() -> dict[str, Any]:
 
         async def run_health_check():
             service = await get_task_service()
+            if service.embedding_service is None:
+                raise RuntimeError("Embedding service not initialized")
             return await service.embedding_service.health_check()
 
         loop = asyncio.new_event_loop()
@@ -374,7 +378,7 @@ def embedding_health_check_task() -> dict[str, Any]:
 
         try:
             result = loop.run_until_complete(run_health_check())
-            return result
+            return cast(dict[str, Any], result)
         finally:
             loop.close()
 
@@ -394,22 +398,17 @@ def get_redis_health() -> dict[str, Any]:
         # info()は辞書を返す - 明示的なキャスト
         info_result = client.info()
         if not isinstance(info_result, dict):
-            return {"status": "unhealthy", "reason": "Unexpected Redis info response type"}
+            return {
+                "status": "unhealthy",
+                "reason": "Unexpected Redis info response type",
+            }
 
         # 型安全な辞書アクセス
         try:
-            redis_version = (
-                info_result.get("redis_version", "unknown")
-            )
-            connected_clients = (
-                info_result.get("connected_clients", 0)
-            )
-            used_memory = (
-                info_result.get("used_memory_human", "unknown")
-            )
-            uptime = (
-                info_result.get("uptime_in_seconds", 0)
-            )
+            redis_version = info_result.get("redis_version", "unknown")
+            connected_clients = info_result.get("connected_clients", 0)
+            used_memory = info_result.get("used_memory_human", "unknown")
+            uptime = info_result.get("uptime_in_seconds", 0)
         except (TypeError, KeyError):
             # 何らかの理由で辞書アクセスが失敗した場合のフォールバック
             redis_version = "unknown"

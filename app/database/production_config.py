@@ -792,7 +792,7 @@ class DatabaseHealthChecker:
         self._is_monitoring = False
 
     def get_health_history(
-        self, service: str = None, limit: int = 100
+        self, service: str | None = None, limit: int = 100
     ) -> list[HealthCheckResult]:
         """ヘルスチェック履歴取得"""
         if service:

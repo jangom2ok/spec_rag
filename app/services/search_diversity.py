@@ -13,7 +13,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -215,7 +215,7 @@ class MMRDiversifier(BaseDiversifier):
         selected: list[DiversityCandidate],
         diversity_factor: float,
         similarity_matrix: np.ndarray[Any, np.dtype[np.float64]] | None = None,
-        all_candidates: list[DiversityCandidate] = None,
+        all_candidates: list[DiversityCandidate] | None = None,
     ) -> float:
         """MMRスコア計算"""
         relevance_score = candidate.score
@@ -253,7 +253,7 @@ class MMRDiversifier(BaseDiversifier):
                 np.linalg.norm(candidate1.embedding)
                 * np.linalg.norm(candidate2.embedding)
             )
-            return max(0.0, min(1.0, similarity))
+            return cast(float, max(0.0, min(1.0, similarity)))
 
         # フォールバック: テキスト類似度（簡易実装）
         words1 = set(candidate1.content.lower().split())
@@ -549,8 +549,8 @@ class TemporalDiversifier(BaseDiversifier):
     async def select_temporally_diverse(
         self,
         candidates: list[DiversityCandidate],
-        max_results: int = None,
-        window_days: int = None,
+        max_results: int | None = None,
+        window_days: int | None = None,
     ) -> list[DiversityCandidate]:
         """時系列多様化選択"""
         max_results = max_results or self.config.max_results

@@ -208,7 +208,7 @@ class StructureExtractor:
     @staticmethod
     def extract_html_structure(content: str) -> dict[str, Any]:
         """HTML構造を抽出"""
-        structure = {
+        structure: dict[str, Any] = {
             "elements": [],
             "headings": [],
             "lists": [],
@@ -287,7 +287,7 @@ class EntityExtractor:
         content: str, confidence_threshold: float = 0.5
     ) -> dict[str, Any]:
         """エンティティを抽出"""
-        entities = {
+        entities: dict[str, list[str]] = {
             "technical_terms": [],
             "http_codes": [],
             "email_addresses": [],
@@ -657,12 +657,12 @@ class MetadataExtractor:
                 )
 
             document_id = document.get("id", "unknown")
-            metadata = {}
-            field_types = {}
+            metadata: dict[str, Any] = {}
+            field_types: dict[str, FieldType] = {}
 
             # ドキュメントタイプ検出
             doc_type = self._detect_document_type(document)
-            metadata["document_type"] = doc_type
+            metadata["document_type"] = doc_type.value
             field_types["document_type"] = FieldType.STRING
 
             # 言語検出
@@ -677,7 +677,7 @@ class MetadataExtractor:
                 language = "en"  # デフォルト
 
             # 構造抽出
-            structure = None
+            structure: dict[str, Any] | None = None
             if self.config.extract_structure:
                 if doc_type == DocumentType.MARKDOWN:
                     structure = self.structure_extractor.extract_markdown_structure(

@@ -264,8 +264,6 @@ class DocumentCollector:
 
     async def _process_batch(self, batch: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """バッチを処理"""
-        results = []
-
         # セマフォを使用して同時実行数を制限
         semaphore = asyncio.Semaphore(self.config.max_concurrent)
 
@@ -275,12 +273,12 @@ class DocumentCollector:
 
         # 並行処理でドキュメントを処理
         tasks = [process_document(doc) for doc in batch]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        gathered_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 例外を処理
-        processed_results = []
-        for result in results:
-            if isinstance(result, Exception):
+        processed_results: list[dict[str, Any]] = []
+        for result in gathered_results:
+            if isinstance(result, BaseException):
                 processed_results.append({"error": str(result)})
             else:
                 processed_results.append(result)

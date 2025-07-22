@@ -258,6 +258,8 @@ class EmbeddingService:
 
         # CPUバウンドなタスクを別スレッドで実行
         def encode_sync():
+            if self.model is None:
+                raise RuntimeError("Model not initialized")
             results = self.model.encode(
                 text,
                 return_dense=True,
@@ -285,6 +287,8 @@ class EmbeddingService:
         all_multi_vectors = []
 
         def encode_batch_sync(batch_texts):
+            if self.model is None:
+                raise RuntimeError("Model not initialized")
             results = self.model.encode(
                 batch_texts,
                 return_dense=True,

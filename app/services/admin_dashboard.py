@@ -18,7 +18,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from statistics import mean
-from typing import Any
+from typing import Any, cast
 
 import psutil
 
@@ -128,9 +128,9 @@ class DashboardWidget:
     def get_required_data_fields(self) -> list[str]:
         """必要データフィールドの取得"""
         if "metrics" in self.config:
-            return self.config["metrics"]
+            return cast(list[str], self.config["metrics"])
         elif "columns" in self.config:
-            return self.config["columns"]
+            return cast(list[str], self.config["columns"])
         return []
 
     def to_dict(self) -> dict[str, Any]:

@@ -404,6 +404,12 @@ async def change_user_role(
     user_email = role_change.get("user_email")
     new_role = role_change.get("role")
 
+    if not user_email or not new_role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Both user_email and role are required",
+        )
+
     if user_email not in users_storage:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
