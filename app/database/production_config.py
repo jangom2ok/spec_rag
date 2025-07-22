@@ -904,7 +904,7 @@ class ProductionDatabaseManager:
 
         try:
             # メインRedis接続
-            pool = redis.ConnectionPool.from_url(
+            pool = redis.ConnectionPool.from_url(  # type: ignore[var-annotated]
                 self.config.redis_url,
                 max_connections=self.config.max_connections,
             )

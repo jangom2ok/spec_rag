@@ -33,7 +33,7 @@ api_keys_storage = {}
 # パスワードハッシュ化関数
 def get_password_hash(password: str) -> str:
     """パスワードをハッシュ化"""
-    return pwd_context.hash(password)
+    return pwd_context.hash(password)  # type: ignore[no-any-return]
 
 
 # ユーザー保存（本番環境ではデータベースを使用）
@@ -150,7 +150,7 @@ def verify_token(token: str) -> dict[str, Any]:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """パスワードを検証"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)  # type: ignore[no-any-return]
 
 
 def authenticate_user(email: str, password: str) -> dict[str, Any] | None:

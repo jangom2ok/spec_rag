@@ -19,7 +19,7 @@ except ImportError:
     # テスト環境での代替
     HAS_CELERY = False
     HAS_REDIS = False
-    redis = None
+    redis = None  # type: ignore[assignment]
 
     class MockConf:
         def update(self, **kwargs):
