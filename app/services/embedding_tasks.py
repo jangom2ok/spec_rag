@@ -157,7 +157,7 @@ class EmbeddingTaskService:
         await self.embedding_service.initialize()
 
         # リポジトリの初期化（セッションなしでモック）
-        self.chunk_repository = ChunkRepository(None)  # type: ignore
+        self.chunk_repository = ChunkRepository(None)  # type: ignore[arg-type]
 
         logger.info("EmbeddingTaskService initialized")
 
