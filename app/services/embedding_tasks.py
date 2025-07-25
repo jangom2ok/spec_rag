@@ -9,6 +9,13 @@ import logging
 import os
 from typing import Any, cast
 
+from app.models.aperturedb import VectorData
+from app.services.embedding_service import (
+    BatchEmbeddingRequest,
+    EmbeddingConfig,
+    EmbeddingService,
+)
+
 
 # Mock classes for testing and when Celery is not available
 class MockConf:
@@ -96,13 +103,6 @@ except ImportError:
     Celery = MockCelery  # type: ignore[misc]
     AsyncResult = MockAsyncResult  # type: ignore[misc]
 
-
-from app.models.aperturedb import VectorData
-from app.services.embedding_service import (
-    BatchEmbeddingRequest,
-    EmbeddingConfig,
-    EmbeddingService,
-)
 
 try:
     from app.repositories.chunk_repository import (
