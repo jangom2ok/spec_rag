@@ -159,7 +159,9 @@ class TestSearchEngineDependency:
     async def test_get_hybrid_search_engine_initialization(self):
         """Test hybrid search engine dependency initialization."""
         with (
-            patch("app.services.embedding_service.EmbeddingService") as mock_embedding_class,
+            patch(
+                "app.services.embedding_service.EmbeddingService"
+            ) as mock_embedding_class,
             patch(
                 "app.repositories.document_repository.DocumentRepository"
             ) as mock_doc_repo_class,
