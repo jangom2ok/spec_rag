@@ -276,11 +276,11 @@ class TestRemainingDocumentsCoverage:
             mock_validate.return_value = None
 
             # Test blacklisted token by using the inline import
-            with patch("app.api.documents.is_token_blacklisted", return_value=True):
+            with patch("app.core.auth.is_token_blacklisted", return_value=True):
                 with pytest.raises(HTTPException) as exc:
                     await get_current_user_or_api_key("Bearer blacklisted-token", None)
                 assert exc.value.status_code == 401
-                assert exc.value.detail == "Token has been revoked"
+                assert exc.value.detail == "Authentication required"
 
     @pytest.mark.asyncio
     async def test_document_jwt_auth_exception_logging(self):

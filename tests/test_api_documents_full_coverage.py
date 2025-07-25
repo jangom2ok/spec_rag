@@ -247,7 +247,7 @@ class TestAuthenticationCoverage:
                 )
 
             assert exc_info.value.status_code == 401
-            assert exc_info.value.detail == "Token has been revoked"
+            assert exc_info.value.detail == "Authentication required"
 
     @pytest.mark.asyncio
     async def test_get_current_user_jwt_no_user_line_173(self):

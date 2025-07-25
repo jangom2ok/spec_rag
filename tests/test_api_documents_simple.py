@@ -37,7 +37,7 @@ class TestDocumentsAPICoverage:
     @pytest.mark.asyncio
     async def test_get_current_user_jwt_blacklisted(self):
         """Test JWT auth with blacklisted token (line 165)."""
-        with patch("app.api.documents.is_token_blacklisted") as mock_blacklist:
+        with patch("app.core.auth.is_token_blacklisted") as mock_blacklist:
             mock_blacklist.return_value = True
 
             with pytest.raises(HTTPException) as exc:
@@ -46,12 +46,12 @@ class TestDocumentsAPICoverage:
                 )
 
             assert exc.value.status_code == 401
-            assert exc.value.detail == "Token has been revoked"
+            assert exc.value.detail == "Authentication required"
 
     @pytest.mark.asyncio
     async def test_get_current_user_jwt_exception(self):
         """Test JWT auth exception handling (lines 176-179)."""
-        with patch("app.api.documents.verify_token") as mock_verify:
+        with patch("app.core.auth.verify_token") as mock_verify:
             mock_verify.side_effect = Exception("Token error")
 
             # Should raise HTTPException, not the original exception

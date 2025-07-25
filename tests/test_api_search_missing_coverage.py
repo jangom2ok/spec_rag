@@ -77,8 +77,8 @@ class TestAuthenticationDependency:
     async def test_jwt_authentication_blacklisted_token(self):
         """Test JWT authentication with blacklisted token."""
         with (
-            patch("app.api.search.is_token_blacklisted") as mock_blacklist,
-            patch("app.api.search.verify_token") as mock_verify,
+            patch("app.core.auth.is_token_blacklisted") as mock_blacklist,
+            patch("app.core.auth.verify_token") as mock_verify,
         ):
             mock_blacklist.return_value = True
             mock_verify.return_value = {"sub": "test@example.com"}
@@ -89,7 +89,7 @@ class TestAuthenticationDependency:
                 )
 
             assert exc_info.value.status_code == 401
-            assert "Token has been revoked" in str(exc_info.value.detail)
+            assert "Authentication required" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
     async def test_jwt_authentication_user_not_found(self):

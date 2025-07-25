@@ -82,7 +82,7 @@ class TestSearchAPICoverage:
                 )
 
             assert exc_info.value.status_code == 401
-            assert "Token has been revoked" in str(exc_info.value.detail)
+            assert "Authentication required" in str(exc_info.value.detail)
 
     def test_get_current_user_or_api_key_jwt_no_email(self):
         """Test JWT authentication with no email in payload."""
