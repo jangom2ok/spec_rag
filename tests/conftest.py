@@ -94,6 +94,43 @@ def mock_external_services() -> Generator[dict[str, Any], None, None]:
 
     mocks["aperturedb"] = mock_client_instance
 
+    # FlagModelのモック
+    import numpy as np
+
+    class MockFlagModel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def encode(self, sentences, **kwargs):
+            if isinstance(sentences, str):
+                sentences = [sentences]
+            
+            # 返り値の形式を指定
+            return_dense = kwargs.get("return_dense", True)
+            return_sparse = kwargs.get("return_sparse", False)
+            return_colbert_vecs = kwargs.get("return_colbert_vecs", False)
+            
+            results = {}
+            
+            if return_dense:
+                results["dense_vecs"] = np.random.rand(len(sentences), 1024).astype(np.float32)
+            
+            if return_sparse:
+                results["lexical_weights"] = [
+                    {i: np.random.rand() for i in range(0, 1000, 100)} for _ in sentences
+                ]
+            
+            if return_colbert_vecs:
+                results["colbert_vecs"] = [
+                    np.random.rand(10, 1024).astype(np.float32) for _ in sentences
+                ]
+            
+            return results
+
+    flag_model_patch = patch("app.services.embedding_service.FlagModel", MockFlagModel)
+    patches.append(flag_model_patch)
+    flag_model_patch.start()
+
     try:
         yield mocks
     finally:

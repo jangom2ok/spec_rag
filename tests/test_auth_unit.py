@@ -55,7 +55,7 @@ class TestAuthHelpers:
     def test_generate_api_key_format(self):
         """Test generated API key format."""
         key = generate_api_key()
-        assert key.startswith("ak_" + "_test_")
+        assert key.startswith("ak_test_")
         assert len(key) == 40  # ak_test_ (8 chars) + 32 hex chars
 
     def test_validate_api_key_invalid_format(self):
