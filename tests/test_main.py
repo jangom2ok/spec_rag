@@ -176,9 +176,6 @@ def test_rag_system_exception_handler():
     assert "request_id" in data
 
 
-@pytest.mark.skip(
-    reason="Exception handler not working properly with dynamically added routes in tests"
-)
 def test_general_exception_handler():
     """Test general exception handler for unexpected errors."""
     from app.main import create_app
@@ -191,8 +188,8 @@ def test_general_exception_handler():
         # 内部でExceptionを発生させる
         raise Exception("Unexpected error occurred")
 
-    # After adding the route, recreate the client to ensure proper initialization
-    client = TestClient(app, raise_server_exceptions=False)
+    # Create the client normally - the exception handler should work
+    client = TestClient(app)
 
     # エラーが正しくキャッチされることを確認
     response = client.get("/test-general-error")
