@@ -4,7 +4,6 @@
 カバレッジの向上を目的として、すべてのエンドポイントとエラーケースをテスト。
 """
 
-import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest

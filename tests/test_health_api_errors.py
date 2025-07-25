@@ -1,10 +1,9 @@
 """Tests for health API error handling."""
 
 import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import SQLAlchemyError
 
 try:
     pass  # aperturedb is optional
@@ -59,10 +58,10 @@ class TestHealthAPIErrors:
     def test_database_check_with_sqlalchemy_error(self):
         """Test database check function directly with SQLAlchemyError."""
         # Test the check_postgresql_connection function behavior
-        from app.api.health import check_postgresql_connection
-
         # Since it's currently a mock implementation, just verify it returns expected structure
         import asyncio
+
+        from app.api.health import check_postgresql_connection
 
         result = asyncio.run(check_postgresql_connection())
 

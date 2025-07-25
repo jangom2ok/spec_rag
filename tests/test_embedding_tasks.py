@@ -216,7 +216,7 @@ class TestCeleryTasks:
 
                 # Direct function call instead of __wrapped__
                 with patch("asyncio.new_event_loop") as mock_new_loop:
-                    with patch("asyncio.set_event_loop") as mock_set_loop:
+                    with patch("asyncio.set_event_loop"):
                         mock_loop = Mock()
                         mock_new_loop.return_value = mock_loop
                         mock_loop.run_until_complete.return_value = (
@@ -235,7 +235,7 @@ class TestCeleryTasks:
         """ドキュメント埋め込みタスクのエラーテスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
             with patch("asyncio.new_event_loop") as mock_new_loop:
-                with patch("asyncio.set_event_loop") as mock_set_loop:
+                with patch("asyncio.set_event_loop"):
                     # エラーを発生させる設定
                     mock_loop = Mock()
                     mock_new_loop.return_value = mock_loop
@@ -263,7 +263,7 @@ class TestCeleryTasks:
                 "app.services.embedding_tasks.get_task_service"
             ) as mock_get_service:
                 with patch("asyncio.new_event_loop") as mock_new_loop:
-                    with patch("asyncio.set_event_loop") as mock_set_loop:
+                    with patch("asyncio.set_event_loop"):
                         mock_loop = Mock()
                         mock_new_loop.return_value = mock_loop
                         mock_loop.close = Mock()
@@ -326,7 +326,7 @@ class TestCeleryTasks:
                 "app.services.embedding_tasks.get_task_service"
             ) as mock_get_service:
                 with patch("asyncio.new_event_loop") as mock_new_loop:
-                    with patch("asyncio.set_event_loop") as mock_set_loop:
+                    with patch("asyncio.set_event_loop"):
                         mock_loop = Mock()
                         mock_new_loop.return_value = mock_loop
                         mock_loop.close = Mock()
