@@ -80,6 +80,7 @@ class MockAsyncResult:
     def failed(self):
         return False
 
+
 try:
     import redis
     from celery import Celery
