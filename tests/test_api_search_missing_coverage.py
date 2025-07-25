@@ -159,23 +159,23 @@ class TestSearchEngineDependency:
     async def test_get_hybrid_search_engine_initialization(self):
         """Test hybrid search engine dependency initialization."""
         with (
-            patch("app.services.embedding_service.EmbeddingService") as MockEmbedding,
+            patch("app.services.embedding_service.EmbeddingService") as mock_embedding_class,
             patch(
                 "app.repositories.document_repository.DocumentRepository"
-            ) as MockDocRepo,
+            ) as mock_doc_repo_class,
             patch(
                 "app.repositories.chunk_repository.DocumentChunkRepository"
-            ) as MockChunkRepo,
+            ) as mock_chunk_repo_class,
         ):
 
             # Mock embedding service
             mock_embedding_instance = AsyncMock()
             mock_embedding_instance.initialize = AsyncMock()
-            MockEmbedding.return_value = mock_embedding_instance
+            mock_embedding_class.return_value = mock_embedding_instance
 
             # Mock repositories
-            MockDocRepo.return_value = MagicMock()
-            MockChunkRepo.return_value = MagicMock()
+            mock_doc_repo_class.return_value = MagicMock()
+            mock_chunk_repo_class.return_value = MagicMock()
 
             # Get search engine
             engine = await get_hybrid_search_engine()

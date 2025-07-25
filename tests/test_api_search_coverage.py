@@ -176,19 +176,19 @@ class TestSearchAPICoverage:
         from app.api.search import get_hybrid_search_engine
 
         with (
-            patch("app.api.search.EmbeddingService") as MockEmbedding,
-            patch("app.api.search.DocumentRepository") as MockDocRepo,
-            patch("app.api.search.DocumentChunkRepository") as MockChunkRepo,
+            patch("app.api.search.EmbeddingService") as mock_embedding_class,
+            patch("app.api.search.DocumentRepository") as mock_doc_repo_class,
+            patch("app.api.search.DocumentChunkRepository") as mock_chunk_repo_class,
         ):
 
             # Mock embedding service
             mock_embedding = AsyncMock()
             mock_embedding.initialize = AsyncMock()
-            MockEmbedding.return_value = mock_embedding
+            mock_embedding_class.return_value = mock_embedding
 
             # Mock repositories
-            MockDocRepo.return_value = Mock()
-            MockChunkRepo.return_value = Mock()
+            mock_doc_repo_class.return_value = Mock()
+            mock_chunk_repo_class.return_value = Mock()
 
             engine = await get_hybrid_search_engine()
 

@@ -396,7 +396,7 @@ class TestCoreAuthCoverage:
         assert token is not None
 
         # Test invalid refresh token
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             verify_refresh_token("invalid-token")
 
     def test_api_key_validation_not_found(self):

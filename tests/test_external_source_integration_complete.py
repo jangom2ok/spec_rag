@@ -757,12 +757,12 @@ class TestExternalSourceIntegrator:
 
         with patch(
             "app.services.external_source_integration.ConfluenceConnector"
-        ) as MockConnector:
+        ) as mock_connector:
             mock_instance = AsyncMock()
             mock_instance.__aenter__.return_value = mock_instance
             mock_instance.__aexit__.return_value = None
             mock_instance.fetch_documents.return_value = mock_docs
-            MockConnector.return_value = mock_instance
+            mock_connector.return_value = mock_instance
 
             docs = await integrator._fetch_confluence_pages()
 
@@ -784,12 +784,12 @@ class TestExternalSourceIntegrator:
 
         with patch(
             "app.services.external_source_integration.JiraConnector"
-        ) as MockConnector:
+        ) as mock_connector:
             mock_instance = AsyncMock()
             mock_instance.__aenter__.return_value = mock_instance
             mock_instance.__aexit__.return_value = None
             mock_instance.fetch_documents.return_value = mock_docs
-            MockConnector.return_value = mock_instance
+            mock_connector.return_value = mock_instance
 
             docs = await integrator._fetch_jira_issues()
 
