@@ -11,6 +11,7 @@ All fixtures are defined in `tests/conftest_extended.py`.
 ### 1. Celery/Redis Mocks
 
 #### `mock_celery_app`
+
 Mocks the Celery application and task decorators.
 
 ```python
@@ -21,6 +22,7 @@ def test_with_celery(mock_celery_app):
 ```
 
 #### `mock_redis_client`
+
 Mocks Redis async client operations.
 
 ```python
@@ -31,6 +33,7 @@ async def test_with_redis(mock_redis_client):
 ```
 
 #### `mock_celery_task_result`
+
 Provides a mock Celery task result object.
 
 ```python
@@ -42,6 +45,7 @@ def test_task_result(mock_celery_task_result):
 ### 2. External API Mocks
 
 #### `mock_httpx_client`
+
 Mocks HTTP client for external API calls (Confluence, JIRA).
 
 ```python
@@ -54,6 +58,7 @@ async def test_api_call(mock_httpx_client):
 ### 3. Database Mocks
 
 #### `mock_aperturedb_client`
+
 Mocks ApertureDB client operations.
 
 ```python
@@ -64,6 +69,7 @@ def test_vector_db(mock_aperturedb_client):
 ```
 
 #### `mock_asyncpg_pool`
+
 Mocks PostgreSQL connection pool.
 
 ```python
@@ -77,6 +83,7 @@ async def test_postgres(mock_asyncpg_pool):
 ### 4. GPU/Hardware Mocks
 
 #### `mock_cuda_available`
+
 Mocks CUDA availability checks.
 
 ```python
@@ -87,6 +94,7 @@ def test_gpu_code(mock_cuda_available):
 ```
 
 #### `mock_gpu_memory`
+
 Mocks GPU memory properties.
 
 ```python
@@ -100,6 +108,7 @@ def test_memory_optimization(mock_gpu_memory):
 ### 5. NLP Model Mocks
 
 #### `mock_spacy_model`
+
 Mocks spaCy NLP models.
 
 ```python
@@ -112,6 +121,7 @@ def test_nlp_processing(mock_spacy_model):
 ```
 
 #### `mock_transformers_model`
+
 Mocks Transformers models for embeddings.
 
 ```python
@@ -125,6 +135,7 @@ def test_embeddings(mock_transformers_model):
 ### 6. Service Mocks
 
 #### `mock_embedding_service`
+
 Mocks the complete embedding service.
 
 ```python
@@ -137,6 +148,7 @@ async def test_embedding_generation(mock_embedding_service):
 ### 7. Environment Mocks
 
 #### `mock_environment_variables`
+
 Automatically sets test environment variables (applied to all tests).
 
 ```python
@@ -157,7 +169,7 @@ async def test_external_api_integration(mock_httpx_client):
         status_code=200,
         json=AsyncMock(return_value={"data": "test"})
     )
-    
+
     # Your test code
     result = await fetch_external_data()
     assert result["data"] == "test"
@@ -170,9 +182,9 @@ async def test_database_operation(mock_asyncpg_pool):
     # Mock specific query results
     conn = AsyncMock()
     conn.fetch.return_value = [{"id": 1, "name": "Test"}]
-    
+
     mock_asyncpg_pool.acquire.return_value.__aenter__.return_value = conn
-    
+
     # Your test code
     results = await get_users()
     assert len(results) == 1
@@ -186,7 +198,7 @@ def test_async_task_submission(mock_celery_app):
         # Mock task submission
         mock_task = Mock()
         mock_task.delay.return_value = Mock(id="task-123")
-        
+
         with patch("app.services.embedding_tasks.process_document_embedding", mock_task):
             result = submit_document_task("doc-1")
             assert result.id == "task-123"
@@ -198,7 +210,7 @@ def test_async_task_submission(mock_celery_app):
 def test_gpu_optimization(mock_cuda_available, mock_gpu_memory):
     # Test code that checks GPU availability
     optimizer = GPUOptimizer()
-    
+
     # Should fallback to CPU
     assert optimizer.device == "cpu"
     assert optimizer.memory_limit == 8 * 1024 * 1024 * 1024  # 8GB
@@ -211,7 +223,7 @@ def test_entity_extraction(mock_spacy_model):
     # Extract entities from text
     extractor = EntityExtractor()
     entities = extractor.extract("John Doe works at Test Company")
-    
+
     assert len(entities) == 2
     assert entities[0]["text"] == "Test Entity"
     assert entities[0]["label"] == "ORG"
@@ -258,7 +270,7 @@ Test error scenarios by making mocks raise exceptions:
 async def test_connection_error_handling(mock_redis_client):
     # Make Redis operations fail
     mock_redis_client.ping.side_effect = Exception("Connection refused")
-    
+
     # Test error handling
     health = await check_redis_health()
     assert health["status"] == "unhealthy"
@@ -274,9 +286,9 @@ async def test_timeout_handling(mock_httpx_client):
     async def slow_response(*args, **kwargs):
         await asyncio.sleep(5)  # 5 second delay
         return AsyncMock(status_code=200)
-    
+
     mock_httpx_client.get.side_effect = slow_response
-    
+
     # Test should timeout
     with pytest.raises(TimeoutError):
         await fetch_with_timeout(timeout=1)
@@ -292,7 +304,7 @@ Always use the provided fixtures instead of creating ad-hoc mocks:
 # Good
 def test_redis_operation(mock_redis_client):
     # Use the fixture
-    
+
 # Bad
 def test_redis_operation():
     with patch("redis.asyncio.from_url"):  # Don't do this
@@ -319,7 +331,7 @@ Always verify that mocks were called correctly:
 ```python
 def test_api_call(mock_httpx_client):
     await make_api_request(data)
-    
+
     # Verify the call
     mock_httpx_client.post.assert_called_once_with(
         "https://api.example.com/endpoint",

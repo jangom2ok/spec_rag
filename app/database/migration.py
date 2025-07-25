@@ -50,11 +50,18 @@ class MigrationManager:
         # マイグレーションファイルを作成
         revision = command.revision(config, message=message, autogenerate=autogenerate)
 
-        return {
-            "revision": revision.revision,
-            "message": message,
-            "path": revision.path,
-        }
+        if revision is None:
+            raise RuntimeError("Failed to create migration")
+
+        # revisionがScript型であることを保証
+        if hasattr(revision, "revision") and hasattr(revision, "path"):
+            return {
+                "revision": revision.revision,
+                "message": message,
+                "path": revision.path,
+            }
+        else:
+            raise RuntimeError("Unexpected revision type returned")
 
     async def run_migrations(
         self, revision: str = "head", direction: str = "up"
@@ -159,7 +166,18 @@ def create_migration(
     """マイグレーションファイルを作成（ユーティリティ関数）"""
     revision = command.revision(config, message=message, autogenerate=autogenerate)
 
-    return {"revision": revision.revision, "message": message, "path": revision.path}
+    if revision is None:
+        raise RuntimeError("Failed to create migration")
+
+    # revisionがScript型であることを保証
+    if hasattr(revision, "revision") and hasattr(revision, "path"):
+        return {
+            "revision": revision.revision,
+            "message": message,
+            "path": revision.path,
+        }
+    else:
+        raise RuntimeError("Unexpected revision type returned")
 
 
 def run_migrations(config: Config, revision: str = "head") -> None:

@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -154,7 +154,7 @@ class SynonymExpander(BaseExpander):
     def __init__(self, config: QueryExpansionConfig):
         super().__init__(config)
         self.max_expansions = config.max_expansions
-        self.wordnet_cache = {}
+        self.wordnet_cache: dict[str, list[str]] = {}
 
     async def expand_term(self, term: str, language: str = "en") -> list[str]:
         """単一用語の同義語拡張"""
@@ -197,7 +197,7 @@ class SemanticExpander(BaseExpander):
         super().__init__(config)
         self.embedding_model = config.embedding_model
         self.similarity_threshold = config.similarity_threshold
-        self.model = None
+        self.model: MockSemanticModel | None = None
 
     async def load_model(self) -> None:
         """埋め込みモデル読み込み"""
@@ -272,10 +272,10 @@ class ConceptualExpander(BaseExpander):
         super().__init__(config)
         self.enable_concept_expansion = config.enable_concept_expansion
         self.concept_depth = config.concept_depth
-        self.concept_hierarchy = {}
+        self.concept_hierarchy: dict[str, dict[str, list[str]]] = {}
 
     async def expand_concept(
-        self, concept: str, domain: str = None
+        self, concept: str, domain: str | None = None
     ) -> dict[str, list[str]]:
         """概念拡張"""
         if not self.enable_concept_expansion:
@@ -292,7 +292,7 @@ class ConceptualExpander(BaseExpander):
         return expanded_concepts
 
     def _get_concept_hierarchy(
-        self, concept: str, domain: str = None
+        self, concept: str, domain: str | None = None
     ) -> dict[str, list[str]]:
         """概念階層取得（モック実装）"""
         # 実際の実装では ConceptNet, WordNet, ドメイン知識ベースを使用
@@ -359,7 +359,7 @@ class StatisticalExpander(BaseExpander):
         self.corpus_size = config.statistical_corpus_size
 
     async def get_co_occurrence_terms(
-        self, term: str, min_frequency: int = None
+        self, term: str, min_frequency: int | None = None
     ) -> list[tuple[str, float, int]]:
         """共起語取得"""
         # enable_statistical_expansionを初期化で無効でも、明示的に呼び出された場合は実行
@@ -406,11 +406,13 @@ class QueryExpansionService:
     def __init__(self, config: QueryExpansionConfig):
         self.config = config
         self.expanders = self._create_expanders()
-        self.cache = {}  # 簡易キャッシュ実装
+        self.cache: dict[str, tuple[ExpansionResult, datetime]] = (
+            {}
+        )  # 簡易キャッシュ実装
 
     def _create_expanders(self) -> dict[ExpansionMethod, BaseExpander]:
         """拡張器インスタンス作成"""
-        expanders = {}
+        expanders: dict[ExpansionMethod, BaseExpander] = {}
 
         for method in self.config.expansion_methods:
             if method == ExpansionMethod.SYNONYM:
@@ -469,11 +471,12 @@ class QueryExpansionService:
                 all_expansions.update(semantic_expansions)
 
             if ExpansionMethod.CONCEPTUAL in self.config.expansion_methods:
-                conceptual_expansions = await self._expand_with_concepts(
-                    [term.term.replace(" ", "_") for term in query_terms],
-                    request.domain,
-                )
-                all_expansions.update(conceptual_expansions)
+                if request.domain:
+                    conceptual_expansions = await self._expand_with_concepts(
+                        [term.term.replace(" ", "_") for term in query_terms],
+                        request.domain,
+                    )
+                    all_expansions.update(conceptual_expansions)
 
             if ExpansionMethod.STATISTICAL in self.config.expansion_methods:
                 statistical_expansions = await self._expand_with_statistics(
@@ -551,10 +554,10 @@ class QueryExpansionService:
 
     async def _expand_with_synonyms(
         self, terms: list[str], language: str
-    ) -> dict[str, list[str]]:
+    ) -> dict[str, Any]:
         """同義語拡張"""
         synonym_expander = self.expanders.get(ExpansionMethod.SYNONYM)
-        if not synonym_expander:
+        if not synonym_expander or not isinstance(synonym_expander, SynonymExpander):
             return {}
 
         synonyms = {}
@@ -567,10 +570,10 @@ class QueryExpansionService:
 
     async def _expand_with_semantics(
         self, query: str, threshold: float
-    ) -> dict[str, list[tuple[str, float]]]:
+    ) -> dict[str, Any]:
         """セマンティック拡張"""
         semantic_expander = self.expanders.get(ExpansionMethod.SEMANTIC)
-        if not semantic_expander:
+        if not semantic_expander or not isinstance(semantic_expander, SemanticExpander):
             return {}
 
         semantics = {}
@@ -598,11 +601,13 @@ class QueryExpansionService:
         return semantics
 
     async def _expand_with_concepts(
-        self, terms: list[str], domain: str = None
-    ) -> dict[str, dict[str, list[str]]]:
+        self, terms: list[str], domain: str | None = None
+    ) -> dict[str, Any]:
         """概念拡張"""
         conceptual_expander = self.expanders.get(ExpansionMethod.CONCEPTUAL)
-        if not conceptual_expander:
+        if not conceptual_expander or not isinstance(
+            conceptual_expander, ConceptualExpander
+        ):
             return {}
 
         concepts = {}
@@ -615,10 +620,12 @@ class QueryExpansionService:
 
     async def _expand_with_statistics(
         self, query: str, min_frequency: int
-    ) -> dict[str, list[tuple[str, float, int]]]:
+    ) -> dict[str, Any]:
         """統計的拡張"""
         statistical_expander = self.expanders.get(ExpansionMethod.STATISTICAL)
-        if not statistical_expander:
+        if not statistical_expander or not isinstance(
+            statistical_expander, StatisticalExpander
+        ):
             return {}
 
         statistics = {}
@@ -648,20 +655,23 @@ class QueryExpansionService:
         self, all_expansions: dict[str, Any], max_expansions: int, threshold: float
     ) -> dict[str, list[str | tuple[str, float]]]:
         """拡張用語のフィルタリングとランキング"""
-        filtered = {}
+        filtered: dict[str, list[str | tuple[str, float]]] = {}
 
         for term, expansions in all_expansions.items():
             if isinstance(expansions, list):
                 if expansions and isinstance(expansions[0], tuple):
                     # (term, score) の形式
-                    filtered_list = [
+                    filtered_list: list[tuple[str, float]] = [
                         (exp_term, score)
                         for exp_term, score in expansions
                         if score >= threshold
                     ]
                     # スコア降順でソート
                     filtered_list.sort(key=lambda x: x[1], reverse=True)
-                    filtered[term] = filtered_list[:max_expansions]
+                    filtered[term] = cast(
+                        list[str | tuple[str, float]],
+                        filtered_list[:max_expansions],
+                    )
                 else:
                     # 単純な文字列リスト
                     filtered[term] = expansions[:max_expansions]

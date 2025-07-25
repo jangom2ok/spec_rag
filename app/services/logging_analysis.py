@@ -18,7 +18,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from enum import Enum
 from statistics import mean, stdev
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -178,21 +178,21 @@ class LogEntry:
             return False
 
         if log_filter.operator == "eq":
-            return value == log_filter.value
+            return cast(bool, value == log_filter.value)
         elif log_filter.operator == "ne":
-            return value != log_filter.value
+            return cast(bool, value != log_filter.value)
         elif log_filter.operator == "gt":
-            return value > log_filter.value
+            return cast(bool, value > log_filter.value)
         elif log_filter.operator == "lt":
-            return value < log_filter.value
+            return cast(bool, value < log_filter.value)
         elif log_filter.operator == "gte":
             if log_filter.field == "level":
                 return LogLevel(value).value_int >= LogLevel(log_filter.value).value_int
-            return value >= log_filter.value
+            return cast(bool, value >= log_filter.value)
         elif log_filter.operator == "lte":
             if log_filter.field == "level":
                 return LogLevel(value).value_int <= LogLevel(log_filter.value).value_int
-            return value <= log_filter.value
+            return cast(bool, value <= log_filter.value)
         elif log_filter.operator == "in":
             return value in log_filter.value
         elif log_filter.operator == "not_in":

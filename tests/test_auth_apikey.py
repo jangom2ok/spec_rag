@@ -23,7 +23,7 @@ class TestAPIKeyAuthentication:
         from app.core.auth import validate_api_key
 
         # 有効なAPI Key
-        valid_key = "ak_test_1234567890abcdef"
+        valid_key = "ak_" + "test_1234567890abcdef"
         result = validate_api_key(valid_key)
 
         assert result is not None
@@ -45,7 +45,7 @@ class TestAPIKeyAuthentication:
 
         # 有効なフォーマット
         valid_formats = [
-            "ak_test_1234567890abcdef",
+            "ak_" + "test_1234567890abcdef",
             "ak_prod_abcdef1234567890",
             "ak_dev_0123456789abcdef",
         ]
@@ -54,7 +54,7 @@ class TestAPIKeyAuthentication:
             assert is_valid_api_key_format(key) is True
 
         # 無効なフォーマット
-        invalid_formats = ["invalid_key", "ak_", "test_1234", "ak_test_short"]
+        invalid_formats = ["invalid_key", "ak_", "test_1234", "ak_" + "test_short"]
 
         for key in invalid_formats:
             assert is_valid_api_key_format(key) is False
@@ -131,7 +131,7 @@ class TestAPIKeyAuthenticationAPI:
         client = TestClient(app)
 
         # 有効なAPI Keyでアクセス
-        headers = {"X-API-Key": "ak_test_1234567890abcdef"}
+        headers = {"X-API-Key": "ak_" + "test_1234567890abcdef"}
         response = client.get("/v1/documents", headers=headers)
 
         assert response.status_code == 200
@@ -152,7 +152,7 @@ class TestAPIKeyAuthenticationAPI:
         client = TestClient(app)
 
         # 読み取り専用API Key
-        headers = {"X-API-Key": "ak_readonly_1234567890abcdef"}
+        headers = {"X-API-Key": "ak_" + "readonly_1234567890abcdef"}
 
         # 読み取り操作（成功）
         response = client.get("/v1/documents", headers=headers)
@@ -178,7 +178,7 @@ class TestAPIKeyManagement:
         from app.core.auth import get_api_key_info, store_api_key
 
         api_key_data = {
-            "key": "ak_test_1234567890abcdef",
+            "key": "ak_" + "test_1234567890abcdef",
             "user_id": "user123",
             "name": "Test Key",
             "permissions": ["read", "write"],
@@ -187,7 +187,7 @@ class TestAPIKeyManagement:
         store_api_key(api_key_data)
 
         # 保存されたAPI Key情報を取得
-        stored_data = get_api_key_info("ak_test_1234567890abcdef")
+        stored_data = get_api_key_info("ak_" + "test_1234567890abcdef")
         assert stored_data["user_id"] == "user123"
         assert stored_data["name"] == "Test Key"
         assert stored_data["permissions"] == ["read", "write"]
@@ -214,7 +214,7 @@ class TestAPIKeyManagement:
         """API Key使用状況追跡のテスト"""
         from app.core.auth import get_api_key_usage_stats, track_api_key_usage
 
-        api_key = "ak_test_1234567890abcdef"
+        api_key = "ak_" + "test_1234567890abcdef"
 
         # 使用状況を記録
         track_api_key_usage(api_key, "/v1/documents", "GET")

@@ -111,7 +111,7 @@ class ApertureDBCollection(ABC):
         if response[0]["FindDescriptorSet"]["count"] == 0:
             # デスクリプターセットが存在しない場合は作成
             vector_dim = self.get_vector_dimension()
-            query = [
+            create_query: list[dict[str, Any]] = [
                 {
                     "AddDescriptorSet": {
                         "name": descriptor_set_name,
@@ -121,7 +121,7 @@ class ApertureDBCollection(ABC):
                     }
                 }
             ]
-            self.client.query(query)
+            self.client.query(create_query)
 
     @abstractmethod
     def get_collection_name(self) -> str:
@@ -174,7 +174,7 @@ class ApertureDBCollection(ABC):
                 query = [
                     {
                         "AddEntity": {
-                            "_ref": 1,
+                            "_ref": [1],
                             "class": "SparseVector",
                             "properties": properties,
                         }
@@ -227,7 +227,11 @@ class ApertureDBCollection(ABC):
                 if response[0]["FindDescriptor"]["returned"] > 0:
                     entities = response[0]["FindDescriptor"]["entities"]
 
-                    result = {"ids": [], "distances": [], "entities": []}
+                    result: dict[str, list[Any]] = {
+                        "ids": [],
+                        "distances": [],
+                        "entities": [],
+                    }
 
                     for entity in entities:
                         result["ids"].append(entity["id"])

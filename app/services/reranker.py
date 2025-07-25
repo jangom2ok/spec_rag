@@ -98,8 +98,8 @@ class BaseReranker:
 
     def __init__(self, config: RerankerConfig):
         self.config = config
-        self.model = None
-        self.tokenizer = None
+        self.model: MockCrossEncoderModel | MockColBERTModel | None = None
+        self.tokenizer: Any | None = None
 
     async def load_model(self) -> None:
         """モデル読み込み（オーバーライド必須）"""
@@ -116,6 +116,7 @@ class CrossEncoderReranker(BaseReranker):
     def __init__(self, config: RerankerConfig):
         super().__init__(config)
         self.model_name = config.model_name or "cross-encoder/ms-marco-MiniLM-L-6-v2"
+        self.model: MockCrossEncoderModel | None = None
 
     async def load_model(self) -> None:
         """CrossEncoderモデル読み込み"""
@@ -138,10 +139,13 @@ class CrossEncoderReranker(BaseReranker):
         pairs = [[query, text] for text in texts]
 
         # バッチ処理でスコア計算
-        scores = []
+        scores: list[float] = []
         for i in range(0, len(pairs), self.config.batch_size):
             batch = pairs[i : i + self.config.batch_size]
-            batch_scores = self.model.predict(batch)
+            if isinstance(self.model, MockCrossEncoderModel):
+                batch_scores = self.model.predict(batch)
+            else:
+                raise ValueError("Model is not a CrossEncoder model")
             scores.extend(batch_scores)
 
         return scores
@@ -153,6 +157,7 @@ class ColBERTReranker(BaseReranker):
     def __init__(self, config: RerankerConfig):
         super().__init__(config)
         self.model_name = config.model_name or "colbert-ir/colbertv2.0"
+        self.model: MockColBERTModel | None = None
 
     async def load_model(self) -> None:
         """ColBERTモデル読み込み"""
@@ -212,7 +217,7 @@ class EnsembleReranker(BaseReranker):
     def __init__(self, config: RerankerConfig):
         super().__init__(config)
         self.ensemble_weights = config.ensemble_weights or [0.5, 0.5]
-        self.rerankers = []
+        self.rerankers: list[BaseReranker] = []
 
     async def load_model(self) -> None:
         """アンサンブルモデル読み込み"""
@@ -268,7 +273,7 @@ class RerankerService:
     def __init__(self, config: RerankerConfig):
         self.config = config
         self.reranker = self._create_reranker()
-        self.cache = {}  # 簡易キャッシュ実装
+        self.cache: dict[str, tuple[RerankResult, datetime]] = {}  # 簡易キャッシュ実装
 
     def _create_reranker(self) -> BaseReranker:
         """Rerankerインスタンス作成"""

@@ -6,7 +6,7 @@ TDD実装：CrossEncoder/ColBERTベースの高精度再ランキング機能
 import asyncio
 from datetime import datetime
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
@@ -524,17 +524,21 @@ class TestCrossEncoderReranker:
         config = RerankerConfig(reranker_type=RerankerType.CROSS_ENCODER)
         reranker = CrossEncoderReranker(config)
 
-        with patch.object(reranker, "model") as mock_model:
-            mock_model.predict.return_value = np.array([0.85, 0.92, 0.78])
+        # MockCrossEncoderModelのインスタンスをモック
+        from app.services.reranker import MockCrossEncoderModel
 
-            query = "machine learning"
-            texts = ["ML tutorial", "Deep learning guide", "Data science overview"]
+        mock_model = MockCrossEncoderModel("test-model")
+        mock_model.predict = MagicMock(return_value=np.array([0.85, 0.92, 0.78]))
+        reranker.model = mock_model
 
-            scores = await reranker.score(query, texts)
+        query = "machine learning"
+        texts = ["ML tutorial", "Deep learning guide", "Data science overview"]
 
-            assert len(scores) == 3
-            assert scores[1] > scores[0] > scores[2]  # 順序確認
-            assert all(0 <= score <= 1 for score in scores)
+        scores = await reranker.score(query, texts)
+
+        assert len(scores) == 3
+        assert scores[1] > scores[0] > scores[2]  # 順序確認
+        assert all(0 <= score <= 1 for score in scores)
 
 
 class TestColBERTReranker:

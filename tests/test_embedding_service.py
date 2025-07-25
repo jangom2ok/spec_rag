@@ -1,7 +1,7 @@
 """BGE-M3 Embedding Serviceのテスト"""
 
 import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -99,53 +99,11 @@ class TestBatchEmbeddingRequest:
 
 
 @pytest.fixture
-def mock_bge_model():
-    """BGE-M3モデルのモック"""
-    mock_model = Mock()
-
-    # encode メソッドのモック実装
-    def mock_encode(sentences, **kwargs):
-        if isinstance(sentences, str):
-            sentences = [sentences]
-
-        # 返り値の形式を指定
-        return_dense = kwargs.get("return_dense", True)
-        return_sparse = kwargs.get("return_sparse", False)
-        return_colbert_vecs = kwargs.get("return_colbert_vecs", False)
-
-        results = {}
-
-        if return_dense:
-            # 1024次元のダミーDense Vector
-            results["dense_vecs"] = np.random.rand(len(sentences), 1024).astype(
-                np.float32
-            )
-
-        if return_sparse:
-            # ダミーSparse Vector
-            results["lexical_weights"] = [
-                {i: np.random.rand() for i in range(0, 1000, 100)} for _ in sentences
-            ]
-
-        if return_colbert_vecs:
-            # ダミーMulti-Vector (ColBERT style)
-            results["colbert_vecs"] = [
-                np.random.rand(10, 1024).astype(np.float32) for _ in sentences
-            ]
-
-        return results
-
-    mock_model.encode.side_effect = mock_encode
-    return mock_model
-
-
-@pytest.fixture
-def embedding_service(mock_bge_model):
+def embedding_service():
     """EmbeddingServiceのフィクスチャ"""
-    with patch("app.services.embedding_service.FlagModel", return_value=mock_bge_model):
-        config = EmbeddingConfig(device="cpu")  # テスト用にCPUを使用
-        service = EmbeddingService(config)
-        return service
+    config = EmbeddingConfig(device="cpu")  # テスト用にCPUを使用
+    service = EmbeddingService(config)
+    return service
 
 
 class TestEmbeddingService:
@@ -250,17 +208,21 @@ class TestEmbeddingService:
             )
 
     @pytest.mark.asyncio
-    async def test_error_handling_during_embedding(self, mock_bge_model):
+    async def test_error_handling_during_embedding(self):
         """埋め込み処理中のエラーハンドリングテスト"""
-        with patch(
-            "app.services.embedding_service.FlagModel", return_value=mock_bge_model
-        ):
+
+        # Create a mock that raises an exception
+        class ErrorFlagModel:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def encode(self, *args, **kwargs):
+                raise Exception("Model error")
+
+        with patch("app.services.embedding_service.FlagModel", ErrorFlagModel):
             config = EmbeddingConfig(device="cpu")
             service = EmbeddingService(config)
             await service.initialize()
-
-            # モデルのencodeメソッドが例外を発生させるように設定
-            mock_bge_model.encode.side_effect = Exception("Model error")
 
             with pytest.raises(RuntimeError, match="Embedding failed"):
                 await service.embed_text("test text")

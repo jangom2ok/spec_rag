@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urljoin
 
 import aiohttp
@@ -264,7 +264,7 @@ class ConfluenceConnector(BaseConnector):
 
     async def _fetch_all_pages(self, incremental: bool = False) -> list[dict[str, Any]]:
         """すべてのページを取得（ページネーション対応）"""
-        all_pages = []
+        all_pages: list[dict[str, Any]] = []
         start = 0
         limit = min(self.config.batch_size, 25)  # Confluence APIの制限
 
@@ -308,7 +308,8 @@ class ConfluenceConnector(BaseConnector):
         try:
             response = await self._make_request("GET", url, params=params)
             data = await response.json()
-            return data.get("results", [])
+            results = data.get("results", [])
+            return cast(list[dict[str, Any]], results)
         except Exception as e:
             logger.error(f"Failed to fetch pages batch: {e}")
             return []
@@ -402,7 +403,7 @@ class JiraConnector(BaseConnector):
         self, incremental: bool = False
     ) -> list[dict[str, Any]]:
         """すべての課題を取得（ページネーション対応）"""
-        all_issues = []
+        all_issues: list[dict[str, Any]] = []
         start_at = 0
         max_results = min(self.config.batch_size, 50)  # JIRA APIの制限
 
@@ -478,7 +479,8 @@ class JiraConnector(BaseConnector):
         try:
             response = await self._make_request("POST", url, json=payload)
             data = await response.json()
-            return data.get("issues", [])
+            issues = data.get("issues", [])
+            return cast(list[dict[str, Any]], issues)
         except Exception as e:
             logger.error(f"Failed to fetch issues batch: {e}")
             return []
@@ -567,7 +569,8 @@ class ExternalSourceIntegrator:
     async def test_connection(self) -> dict[str, Any]:
         """接続テスト"""
         async with self._create_connector() as connector:
-            return await connector.test_connection()
+            result = await connector.test_connection()
+            return cast(dict[str, Any], result)
 
     async def fetch_documents(self, incremental: bool = False) -> IntegrationResult:
         """ドキュメントを取得"""
@@ -671,9 +674,11 @@ class ExternalSourceIntegrator:
     async def _fetch_confluence_pages(self) -> list[dict[str, Any]]:
         """Confluenceページを取得（テスト用のメソッド）"""
         async with ConfluenceConnector(self.config) as connector:
-            return await connector.fetch_documents()
+            docs = await connector.fetch_documents()
+            return cast(list[dict[str, Any]], docs)
 
     async def _fetch_jira_issues(self) -> list[dict[str, Any]]:
         """JIRA課題を取得（テスト用のメソッド）"""
         async with JiraConnector(self.config) as connector:
-            return await connector.fetch_documents()
+            docs = await connector.fetch_documents()
+            return cast(list[dict[str, Any]], docs)

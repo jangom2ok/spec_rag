@@ -3,10 +3,11 @@
 import logging
 import os
 import secrets
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional, cast
 
 import jwt
 from fastapi import HTTPException, status
@@ -32,7 +33,7 @@ api_keys_storage = {}
 # パスワードハッシュ化関数
 def get_password_hash(password: str) -> str:
     """パスワードをハッシュ化"""
-    return pwd_context.hash(password)
+    return pwd_context.hash(password)  # type: ignore[no-any-return]
 
 
 # ユーザー保存（本番環境ではデータベースを使用）
@@ -102,7 +103,9 @@ class TokenData(BaseModel):
 
 
 # JWT関連関数
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    data: dict[str, Any], expires_delta: timedelta | None = None
+) -> str:
     """アクセストークンを生成"""
     to_encode = data.copy()
     if expires_delta:
@@ -125,7 +128,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token(data: dict[str, Any]) -> str:
     """リフレッシュトークンを生成"""
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -134,11 +137,11 @@ def create_refresh_token(data: dict) -> str:
     return encoded_jwt
 
 
-def verify_token(token: str) -> dict:
+def verify_token(token: str) -> dict[str, Any]:
     """トークンを検証"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        return cast(dict[str, Any], payload)
     except jwt.ExpiredSignatureError as err:
         raise jwt.ExpiredSignatureError("Token has expired") from err
     except jwt.InvalidTokenError as err:
@@ -147,10 +150,10 @@ def verify_token(token: str) -> dict:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """パスワードを検証"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)  # type: ignore[no-any-return]
 
 
-def authenticate_user(email: str, password: str) -> dict | None:
+def authenticate_user(email: str, password: str) -> dict[str, Any] | None:
     """ユーザー認証"""
     user = users_storage.get(email)
     if not user:
@@ -248,7 +251,7 @@ def is_api_key_expired(api_key: str) -> bool:
     if not expiration:
         return False
 
-    return datetime.utcnow() > expiration
+    return cast(bool, datetime.utcnow() > expiration)
 
 
 def track_api_key_usage(api_key: str, endpoint: str, method: str) -> None:
@@ -350,7 +353,9 @@ def check_user_resource_permission(
 
 
 # デコレーター関数
-def require_permission(required_permission: Permission):
+def require_permission(
+    required_permission: Permission,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """権限要求デコレーター"""
 
     def decorator(func):
@@ -370,7 +375,9 @@ def require_permission(required_permission: Permission):
     return decorator
 
 
-def require_role(required_role: str):
+def require_role(
+    required_role: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """ロール要求デコレーター"""
 
     def decorator(func):
@@ -389,17 +396,23 @@ def require_role(required_role: str):
     return decorator
 
 
-def require_resource_permission(resource_type: str, required_permission: str):
+def require_resource_permission(
+    resource_type: str, required_permission: str
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """リソース権限要求デコレーター"""
 
     def decorator(func):
         def wrapper(*args, **kwargs):
             # 実際の実装では現在のユーザーのリソース権限をチェック
-            # リソースIDはkwargsから取得
+            # リソースIDはkwargsから取得、もしくは最初の位置引数
             resource_id = kwargs.get("doc_id") or kwargs.get("resource_id")
+            if resource_id is None and args:
+                # 最初の位置引数をリソースIDとして使用
+                resource_id = args[0]
+
             user_id = get_current_user_id()
 
-            if check_user_resource_permission(
+            if resource_id is not None and check_user_resource_permission(
                 user_id, resource_type, resource_id, required_permission
             ):
                 return func(*args, **kwargs)

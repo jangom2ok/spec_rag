@@ -3,7 +3,7 @@
 EmbeddingTasksとRedisの統合テスト - 外部依存をモックで解決
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -127,7 +127,7 @@ class TestEmbeddingTaskManager:
 
         with patch("app.services.embedding_tasks.HAS_CELERY", True):
             with patch(
-                "app.services.embedding_tasks.process_document_embedding"
+                "app.services.embedding_tasks.process_document_embedding_task"
             ) as mock_task:
                 mock_task.delay.return_value = mock_task_result
 
@@ -145,39 +145,44 @@ class TestEmbeddingTaskManager:
 
         with patch("app.services.embedding_tasks.HAS_CELERY", True):
             with patch(
-                "app.services.embedding_tasks.process_batch_embedding"
+                "app.services.embedding_tasks.process_batch_texts_task"
             ) as mock_task:
                 mock_task.delay.return_value = mock_task_result
 
-                batch_request = {
-                    "texts": ["text1", "text2", "text3"],
+                texts = ["text1", "text2", "text3"]
+                metadata = {
                     "chunk_ids": ["chunk1", "chunk2", "chunk3"],
                     "document_ids": ["doc1", "doc1", "doc2"],
                 }
 
-                result = EmbeddingTaskManager.submit_batch_processing(batch_request)
+                result = EmbeddingTaskManager.submit_batch_processing(texts, metadata)
 
                 assert result.id == "batch_task_67890"
-                mock_task.delay.assert_called_once_with(batch_request)
+                mock_task.delay.assert_called_once_with(texts, metadata)
 
     @pytest.mark.asyncio
     async def test_get_task_status(self, mock_celery_app):
         """タスク状態取得テスト"""
-        with patch("app.services.embedding_tasks.HAS_CELERY", True):
-            with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
-                mock_result = Mock()
-                mock_result.status = "SUCCESS"
-                mock_result.result = {"processed_count": 5}
-                mock_result.ready.return_value = True
-                mock_result.successful.return_value = True
-                mock_async_result.return_value = mock_result
+        import os
 
-                status = EmbeddingTaskManager.get_task_status("task_12345")
+        with patch.dict(os.environ, {"TESTING": "false"}):
+            with patch("app.services.embedding_tasks.HAS_CELERY", True):
+                with patch(
+                    "app.services.embedding_tasks.AsyncResult"
+                ) as mock_async_result:
+                    mock_result = Mock()
+                    mock_result.status = "SUCCESS"
+                    mock_result.result = {"processed_count": 5}
+                    mock_result.ready.return_value = True
+                    mock_result.successful.return_value = True
+                    mock_async_result.return_value = mock_result
 
-                assert status["status"] == "SUCCESS"
-                assert status["result"]["processed_count"] == 5
-                assert status["ready"] is True
-                assert status["successful"] is True
+                    status = EmbeddingTaskManager.get_task_status("task_12345")
+
+                    assert status["status"] == "SUCCESS"
+                    assert status["result"] == {"processed_count": 5}
+                    assert status["ready"] is True
+                    assert status["successful"] is True
 
     @pytest.mark.asyncio
     async def test_cancel_task(self, mock_celery_app):
@@ -242,33 +247,45 @@ class TestQueueProcessing:
                 queue_status = EmbeddingTaskManager.get_queue_status()
 
                 assert queue_status is not None
-                assert "active" in queue_status
-                assert "scheduled" in queue_status
-                assert len(queue_status["active"]["worker1"]) == 1
-                assert len(queue_status["scheduled"]["worker1"]) == 1
+                assert "active_tasks" in queue_status
+                assert "scheduled_tasks" in queue_status
+                assert "workers" in queue_status
+                assert queue_status["active_tasks"] == 1
+                assert queue_status["scheduled_tasks"] == 1
+                assert "worker1" in queue_status["workers"]
 
     @pytest.mark.asyncio
     async def test_get_worker_status(self, mock_celery_app):
         """ワーカーステータス取得テスト"""
-        with patch("app.services.embedding_tasks.HAS_CELERY", True):
-            with patch(
-                "app.services.embedding_tasks.celery_app"
-            ) as mock_celery_app_inner:
-                mock_inspect = Mock()
-                mock_inspect.stats.return_value = {
-                    "worker1": {
-                        "pool": {"max-concurrency": 4, "processes": [1234, 5678]},
-                        "total": 100,
+        import os
+
+        with patch.dict(os.environ, {"TESTING": "false"}):
+            with patch("app.services.embedding_tasks.HAS_CELERY", True):
+                with patch(
+                    "app.services.embedding_tasks.celery_app"
+                ) as mock_celery_app_inner:
+                    mock_inspect = Mock()
+                    mock_inspect.active.return_value = {}
+                    mock_inspect.scheduled.return_value = {}
+                    mock_inspect.reserved.return_value = {}
+                    mock_inspect.stats.return_value = {
+                        "worker1": {
+                            "pool": {"max-concurrency": 4, "processes": [1234, 5678]},
+                            "total": 100,
+                        }
                     }
-                }
-                mock_celery_app_inner.control.inspect.return_value = mock_inspect
+                    mock_celery_app_inner.control.inspect.return_value = mock_inspect
 
-                worker_status = EmbeddingTaskManager.get_worker_status()
+                    worker_status = EmbeddingTaskManager.get_worker_status()
 
-                assert worker_status is not None
-                assert "worker1" in worker_status
-                assert worker_status["worker1"]["pool"]["max-concurrency"] == 4
-                assert worker_status["worker1"]["total"] == 100
+                    assert worker_status is not None
+                    assert "stats" in worker_status
+                    assert "worker1" in worker_status["stats"]
+                    assert (
+                        worker_status["stats"]["worker1"]["pool"]["max-concurrency"]
+                        == 4
+                    )
+                    assert worker_status["stats"]["worker1"]["total"] == 100
 
 
 # Ensure fixtures from conftest_extended.py are available
