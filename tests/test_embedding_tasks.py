@@ -224,9 +224,7 @@ class TestCeleryTasks:
                         )
                         mock_loop.close = Mock()
 
-                        result = process_document_embedding_task(
-                            mock_task, "test-doc"
-                        )
+                        result = process_document_embedding_task(mock_task, "test-doc")
 
                     # 検証
                     assert result["status"] == "completed"
@@ -241,16 +239,16 @@ class TestCeleryTasks:
                     # エラーを発生させる設定
                     mock_loop = Mock()
                     mock_new_loop.return_value = mock_loop
-                    mock_loop.run_until_complete.side_effect = Exception("Processing error")
+                    mock_loop.run_until_complete.side_effect = Exception(
+                        "Processing error"
+                    )
                     mock_loop.close = Mock()
 
                     mock_task = Mock()
                     mock_task.update_state = Mock()
 
                     # テスト実行
-                    result = process_document_embedding_task(
-                        mock_task, "error-doc"
-                    )
+                    result = process_document_embedding_task(mock_task, "error-doc")
 
                 # 検証
                 assert result["status"] == "failed"
@@ -341,7 +339,9 @@ class TestCeleryTasks:
                         mock_service.embedding_service = mock_embedding_service
                         mock_get_service.return_value = mock_service
 
-                        mock_loop.run_until_complete.return_value = {"status": "healthy"}
+                        mock_loop.run_until_complete.return_value = {
+                            "status": "healthy"
+                        }
 
                         # テスト実行
                         result = embedding_health_check_task()

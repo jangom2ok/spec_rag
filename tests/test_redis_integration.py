@@ -158,6 +158,7 @@ class TestEmbeddingTaskManager:
     async def test_get_task_status(self):
         """タスク状態取得テスト"""
         import os
+
         with patch.dict(os.environ, {"TESTING": "false"}):
             with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
                 mock_result = Mock()

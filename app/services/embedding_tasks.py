@@ -118,6 +118,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
+
 # Celeryアプリケーションの設定
 def _create_celery_app():
     """Create Celery app with proper configuration"""
@@ -130,7 +131,7 @@ def _create_celery_app():
             broker="redis://localhost:6379/0",
             backend="redis://localhost:6379/0",
         )
-    
+
     # Celery設定
     app.conf.update(
         task_serializer="json",
@@ -145,6 +146,7 @@ def _create_celery_app():
         worker_max_tasks_per_child=1000,
     )
     return app
+
 
 celery_app = _create_celery_app()
 

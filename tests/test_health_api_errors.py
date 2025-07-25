@@ -60,11 +60,12 @@ class TestHealthAPIErrors:
         """Test database check function directly with SQLAlchemyError."""
         # Test the check_postgresql_connection function behavior
         from app.api.health import check_postgresql_connection
-        
+
         # Since it's currently a mock implementation, just verify it returns expected structure
         import asyncio
+
         result = asyncio.run(check_postgresql_connection())
-        
+
         assert "status" in result
         assert result["status"] == "healthy"
 

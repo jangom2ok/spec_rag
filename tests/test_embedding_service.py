@@ -98,8 +98,6 @@ class TestBatchEmbeddingRequest:
             )
 
 
-
-
 @pytest.fixture
 def embedding_service():
     """EmbeddingServiceのフィクスチャ"""
@@ -212,14 +210,15 @@ class TestEmbeddingService:
     @pytest.mark.asyncio
     async def test_error_handling_during_embedding(self):
         """埋め込み処理中のエラーハンドリングテスト"""
+
         # Create a mock that raises an exception
         class ErrorFlagModel:
             def __init__(self, *args, **kwargs):
                 pass
-            
+
             def encode(self, *args, **kwargs):
                 raise Exception("Model error")
-        
+
         with patch("app.services.embedding_service.FlagModel", ErrorFlagModel):
             config = EmbeddingConfig(device="cpu")
             service = EmbeddingService(config)

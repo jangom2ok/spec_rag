@@ -223,14 +223,17 @@ class TestSystemMetricsEndpoint:
     """システムメトリクスエンドポイントのテスト"""
 
     @pytest.mark.asyncio
-    async def test_get_system_metrics_success(self, mock_metrics_service, override_admin_auth):
+    async def test_get_system_metrics_success(
+        self, mock_metrics_service, override_admin_auth
+    ):
         """システムメトリクス取得成功のテスト"""
+
         # 依存性をオーバーライド
         async def success_metrics_service():
             return mock_metrics_service
-        
+
         app.dependency_overrides[get_metrics_service] = success_metrics_service
-        
+
         try:
             response = client.get(
                 "/v1/metrics", headers={"Authorization": "Bearer admin_token"}
@@ -265,17 +268,19 @@ class TestSystemMetricsEndpoint:
             app.dependency_overrides.pop(get_metrics_service, None)
 
     @pytest.mark.asyncio
-    async def test_get_system_metrics_service_error(self, mock_metrics_service, override_admin_auth):
+    async def test_get_system_metrics_service_error(
+        self, mock_metrics_service, override_admin_auth
+    ):
         """メトリクスサービスエラーのテスト"""
         # メトリクスサービスのモックを設定
         mock_metrics_service.query_metrics.side_effect = Exception("Metrics error")
-        
+
         # 依存性をオーバーライド
         async def failing_metrics_service():
             return mock_metrics_service
-        
+
         app.dependency_overrides[get_metrics_service] = failing_metrics_service
-        
+
         try:
             response = client.get(
                 "/v1/metrics", headers={"Authorization": "Bearer admin_token"}
@@ -289,7 +294,10 @@ class TestSystemMetricsEndpoint:
             else:
                 # The error might be in a different format due to error handlers
                 assert "error" in response_data
-                assert "System metrics collection failed" in response_data["error"]["message"]
+                assert (
+                    "System metrics collection failed"
+                    in response_data["error"]["message"]
+                )
         finally:
             # クリーンアップ
             app.dependency_overrides.pop(get_metrics_service, None)
@@ -437,7 +445,10 @@ class TestReindexStatusEndpoint:
         else:
             # The error might be in a different format due to error handlers
             assert "error" in response_data
-            assert "Task not found" in response_data["error"]["message"] or "not found" in response_data["error"]["message"].lower()
+            assert (
+                "Task not found" in response_data["error"]["message"]
+                or "not found" in response_data["error"]["message"].lower()
+            )
 
     @pytest.mark.asyncio
     async def test_get_reindex_status_error(self, override_admin_auth):

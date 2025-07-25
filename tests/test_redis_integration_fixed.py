@@ -164,9 +164,12 @@ class TestEmbeddingTaskManager:
     async def test_get_task_status(self, mock_celery_app):
         """タスク状態取得テスト"""
         import os
+
         with patch.dict(os.environ, {"TESTING": "false"}):
             with patch("app.services.embedding_tasks.HAS_CELERY", True):
-                with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
+                with patch(
+                    "app.services.embedding_tasks.AsyncResult"
+                ) as mock_async_result:
                     mock_result = Mock()
                     mock_result.status = "SUCCESS"
                     mock_result.result = {"processed_count": 5}
@@ -255,6 +258,7 @@ class TestQueueProcessing:
     async def test_get_worker_status(self, mock_celery_app):
         """ワーカーステータス取得テスト"""
         import os
+
         with patch.dict(os.environ, {"TESTING": "false"}):
             with patch("app.services.embedding_tasks.HAS_CELERY", True):
                 with patch(
@@ -277,7 +281,10 @@ class TestQueueProcessing:
                     assert worker_status is not None
                     assert "stats" in worker_status
                     assert "worker1" in worker_status["stats"]
-                    assert worker_status["stats"]["worker1"]["pool"]["max-concurrency"] == 4
+                    assert (
+                        worker_status["stats"]["worker1"]["pool"]["max-concurrency"]
+                        == 4
+                    )
                     assert worker_status["stats"]["worker1"]["total"] == 100
 
 
