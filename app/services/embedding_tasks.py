@@ -6,6 +6,7 @@ Celeryを使用した非同期埋め込み処理。
 
 import asyncio
 import logging
+import os
 from typing import Any, cast
 
 try:
@@ -118,28 +119,34 @@ else:
 logger = logging.getLogger(__name__)
 
 # Celeryアプリケーションの設定
-if HAS_CELERY:
-    celery_app = Celery(
-        "embedding_tasks",
-        broker="redis://localhost:6379/0",
-        backend="redis://localhost:6379/0",
+def _create_celery_app():
+    """Create Celery app with proper configuration"""
+    # Force mock in test environment
+    if os.getenv("TESTING") == "true" or not HAS_CELERY:
+        app = MockCelery()
+    else:
+        app = Celery(
+            "embedding_tasks",
+            broker="redis://localhost:6379/0",
+            backend="redis://localhost:6379/0",
+        )
+    
+    # Celery設定
+    app.conf.update(
+        task_serializer="json",
+        accept_content=["json"],
+        result_serializer="json",
+        timezone="Asia/Tokyo",
+        enable_utc=True,
+        task_track_started=True,
+        task_time_limit=30 * 60,  # 30分でタイムアウト
+        task_soft_time_limit=25 * 60,  # 25分でソフトタイムアウト
+        worker_prefetch_multiplier=1,
+        worker_max_tasks_per_child=1000,
     )
-else:
-    celery_app = MockCelery()
+    return app
 
-# Celery設定
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="Asia/Tokyo",
-    enable_utc=True,
-    task_track_started=True,
-    task_time_limit=30 * 60,  # 30分でタイムアウト
-    task_soft_time_limit=25 * 60,  # 25分でソフトタイムアウト
-    worker_prefetch_multiplier=1,
-    worker_max_tasks_per_child=1000,
-)
+celery_app = _create_celery_app()
 
 
 class EmbeddingTaskService:
@@ -504,10 +511,10 @@ class EmbeddingTaskManager:
         Returns:
             Dict[str, Any]: タスクステータス
         """
-        if HAS_CELERY:
-            result = AsyncResult(task_id, app=celery_app)
-        else:
+        if os.getenv("TESTING") == "true" or not HAS_CELERY:
             result = MockAsyncResult(task_id)
+        else:
+            result = AsyncResult(task_id, app=celery_app)
 
         return {
             "task_id": task_id,
@@ -554,7 +561,7 @@ class EmbeddingTaskManager:
         Returns:
             Dict[str, Any]: ワーカーステータス
         """
-        if HAS_CELERY:
+        if os.getenv("TESTING") != "true" and HAS_CELERY:
             inspect = celery_app.control.inspect()
             return {
                 "active_tasks": inspect.active() or {},

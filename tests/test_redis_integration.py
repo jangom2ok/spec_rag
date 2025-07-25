@@ -157,23 +157,25 @@ class TestEmbeddingTaskManager:
     @pytest.mark.asyncio
     async def test_get_task_status(self):
         """タスク状態取得テスト"""
-        with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
-            mock_result = Mock()
-            mock_result.status = "SUCCESS"
-            mock_result.result = {"processed_count": 5}
-            mock_result.info = None
-            mock_result.ready.return_value = True
-            mock_result.successful.return_value = True
-            mock_result.failed.return_value = False
-            mock_async_result.return_value = mock_result
+        import os
+        with patch.dict(os.environ, {"TESTING": "false"}):
+            with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
+                mock_result = Mock()
+                mock_result.status = "SUCCESS"
+                mock_result.result = {"processed_count": 5}
+                mock_result.info = None
+                mock_result.ready.return_value = True
+                mock_result.successful.return_value = True
+                mock_result.failed.return_value = False
+                mock_async_result.return_value = mock_result
 
-            with patch("app.services.embedding_tasks.HAS_CELERY", True):
-                status = EmbeddingTaskManager.get_task_status("task_12345")
+                with patch("app.services.embedding_tasks.HAS_CELERY", True):
+                    status = EmbeddingTaskManager.get_task_status("task_12345")
 
-            assert status["status"] == "SUCCESS"
-            assert status["result"]["processed_count"] == 5
-            assert status["ready"] is True
-            assert status["successful"] is True
+                assert status["status"] == "SUCCESS"
+                assert status["result"] == {"processed_count": 5}
+                assert status["ready"] is True
+                assert status["successful"] is True
 
     @pytest.mark.asyncio
     async def test_cancel_task(self):
