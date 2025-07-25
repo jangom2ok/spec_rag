@@ -9,6 +9,77 @@ import logging
 import os
 from typing import Any, cast
 
+
+# Mock classes for testing and when Celery is not available
+class MockConf:
+    def update(self, **kwargs):
+        return None
+
+
+class MockInspect:
+    def active(self):
+        return {}
+
+    def scheduled(self):
+        return {}
+
+    def reserved(self):
+        return {}
+
+    def stats(self):
+        return {}
+
+
+class MockControl:
+    def revoke(self, *args, **kwargs):
+        return None
+
+    def inspect(self):
+        return MockInspect()
+
+
+class MockCelery:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @property
+    def conf(self):
+        return MockConf()
+
+    def task(self, *args, **kwargs):
+        def decorator(func):
+            import uuid
+
+            func.delay = lambda *a, **k: type(
+                "MockResult",
+                (),
+                {"id": f"mock-task-{uuid.uuid4().hex[:8]}", "state": "PENDING"},
+            )()
+            return func
+
+        return decorator
+
+    @property
+    def control(self):
+        return MockControl()
+
+
+class MockAsyncResult:
+    def __init__(self, *args, **kwargs):
+        self.status = "SUCCESS"
+        self.result = {}
+        self.info = None
+        self.id = "mock_task_id"
+
+    def ready(self):
+        return True
+
+    def successful(self):
+        return True
+
+    def failed(self):
+        return False
+
 try:
     import redis
     from celery import Celery
@@ -21,71 +92,8 @@ except ImportError:
     HAS_CELERY = False
     HAS_REDIS = False
     redis = None  # type: ignore[assignment]
-
-    class MockConf:
-        def update(self, **kwargs):
-            return None
-
-    class MockInspect:
-        def active(self):
-            return {}
-
-        def scheduled(self):
-            return {}
-
-        def reserved(self):
-            return {}
-
-        def stats(self):
-            return {}
-
-    class MockControl:
-        def revoke(self, *args, **kwargs):
-            return None
-
-        def inspect(self):
-            return MockInspect()
-
-    class MockCelery:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        @property
-        def conf(self):
-            return MockConf()
-
-        def task(self, *args, **kwargs):
-            def decorator(func):
-                import uuid
-
-                func.delay = lambda *a, **k: type(
-                    "MockResult",
-                    (),
-                    {"id": f"mock-task-{uuid.uuid4().hex[:8]}", "state": "PENDING"},
-                )()
-                return func
-
-            return decorator
-
-        @property
-        def control(self):
-            return MockControl()
-
-    class MockAsyncResult:
-        def __init__(self, *args, **kwargs):
-            self.status = "SUCCESS"
-            self.result = {}
-            self.info = None
-            self.id = "mock_task_id"
-
-        def ready(self):
-            return True
-
-        def successful(self):
-            return True
-
-        def failed(self):
-            return False
+    Celery = MockCelery  # type: ignore[misc]
+    AsyncResult = MockAsyncResult  # type: ignore[misc]
 
 
 from app.models.aperturedb import VectorData
@@ -110,11 +118,6 @@ except ImportError:
 
     ChunkRepository = MockChunkRepository  # type: ignore
 
-# Create AsyncResult alias for type annotations
-if HAS_CELERY:
-    from celery.result import AsyncResult
-else:
-    AsyncResult = MockAsyncResult
 
 logger = logging.getLogger(__name__)
 
