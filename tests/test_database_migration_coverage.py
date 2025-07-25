@@ -3,19 +3,19 @@ Comprehensive test coverage for app/database/migration.py to achieve 100% covera
 This file focuses on covering all missing lines identified in the coverage report.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock, PropertyMock
 from pathlib import Path
-from sqlalchemy.engine import Engine
+from unittest.mock import Mock, patch
+
+import pytest
 from alembic.config import Config
-from alembic.script import Script
+from sqlalchemy.engine import Engine
 
 from app.database.migration import (
+    AsyncMigrationManager,
     MigrationManager,
     create_alembic_config,
     create_migration,
     run_migrations,
-    AsyncMigrationManager,
 )
 
 
@@ -70,7 +70,9 @@ class TestMigrationManager:
             mock_create.assert_called_once()  # Still only called once
 
     @pytest.mark.asyncio
-    async def test_initialize_migrations_new(self, migration_manager, mock_migrations_dir):
+    async def test_initialize_migrations_new(
+        self, migration_manager, mock_migrations_dir
+    ):
         """Test initializing new migrations."""
         # Ensure directory doesn't exist
         assert not mock_migrations_dir.exists()
@@ -88,7 +90,9 @@ class TestMigrationManager:
                 mock_init.assert_called_once_with(mock_config, str(mock_migrations_dir))
 
     @pytest.mark.asyncio
-    async def test_initialize_migrations_existing(self, migration_manager, mock_migrations_dir):
+    async def test_initialize_migrations_existing(
+        self, migration_manager, mock_migrations_dir
+    ):
         """Test initializing when migrations already exist."""
         # Create the directory first
         mock_migrations_dir.mkdir(parents=True)
@@ -217,14 +221,18 @@ class TestMigrationManager:
         with patch("app.database.migration.create_engine") as mock_create_engine:
             mock_create_engine.return_value = mock_engine
             mock_engine.connect.return_value.__enter__.return_value = mock_connection
-            
-            with patch("app.database.migration.MigrationContext.configure") as mock_configure:
+
+            with patch(
+                "app.database.migration.MigrationContext.configure"
+            ) as mock_configure:
                 mock_configure.return_value = mock_context
 
                 revision = await migration_manager.get_current_revision()
 
                 assert revision == "abc123"
-                mock_create_engine.assert_called_once_with(migration_manager.database_url)
+                mock_create_engine.assert_called_once_with(
+                    migration_manager.database_url
+                )
                 mock_engine.dispose.assert_called_once()
 
     @pytest.mark.asyncio
@@ -249,8 +257,10 @@ class TestMigrationManager:
         with patch.object(migration_manager, "_get_config") as mock_get_config:
             mock_config = Mock()
             mock_get_config.return_value = mock_config
-            
-            with patch("app.database.migration.ScriptDirectory.from_config") as mock_from_config:
+
+            with patch(
+                "app.database.migration.ScriptDirectory.from_config"
+            ) as mock_from_config:
                 mock_from_config.return_value = mock_script
 
                 history = await migration_manager.get_migration_history()
@@ -264,17 +274,21 @@ class TestMigrationManager:
     @pytest.mark.asyncio
     async def test_is_up_to_date_true(self, migration_manager):
         """Test when migrations are up to date."""
-        with patch.object(migration_manager, "get_current_revision") as mock_get_current:
+        with patch.object(
+            migration_manager, "get_current_revision"
+        ) as mock_get_current:
             mock_get_current.return_value = "head123"
-            
+
             with patch.object(migration_manager, "_get_config") as mock_get_config:
                 mock_config = Mock()
                 mock_get_config.return_value = mock_config
-                
+
                 mock_script = Mock()
                 mock_script.get_current_head.return_value = "head123"
-                
-                with patch("app.database.migration.ScriptDirectory.from_config") as mock_from_config:
+
+                with patch(
+                    "app.database.migration.ScriptDirectory.from_config"
+                ) as mock_from_config:
                     mock_from_config.return_value = mock_script
 
                     is_current = await migration_manager.is_up_to_date()
@@ -284,17 +298,21 @@ class TestMigrationManager:
     @pytest.mark.asyncio
     async def test_is_up_to_date_false(self, migration_manager):
         """Test when migrations are not up to date."""
-        with patch.object(migration_manager, "get_current_revision") as mock_get_current:
+        with patch.object(
+            migration_manager, "get_current_revision"
+        ) as mock_get_current:
             mock_get_current.return_value = "old123"
-            
+
             with patch.object(migration_manager, "_get_config") as mock_get_config:
                 mock_config = Mock()
                 mock_get_config.return_value = mock_config
-                
+
                 mock_script = Mock()
                 mock_script.get_current_head.return_value = "head123"
-                
-                with patch("app.database.migration.ScriptDirectory.from_config") as mock_from_config:
+
+                with patch(
+                    "app.database.migration.ScriptDirectory.from_config"
+                ) as mock_from_config:
                     mock_from_config.return_value = mock_script
 
                     is_current = await migration_manager.is_up_to_date()
@@ -307,11 +325,13 @@ class TestMigrationManager:
         with patch.object(migration_manager, "_get_config") as mock_get_config:
             mock_config = Mock()
             mock_get_config.return_value = mock_config
-            
+
             mock_script = Mock()
             mock_script.get_revisions.return_value = ["rev1", "rev2"]
-            
-            with patch("app.database.migration.ScriptDirectory.from_config") as mock_from_config:
+
+            with patch(
+                "app.database.migration.ScriptDirectory.from_config"
+            ) as mock_from_config:
                 mock_from_config.return_value = mock_script
 
                 result = await migration_manager.validate_migrations()
@@ -325,8 +345,10 @@ class TestMigrationManager:
         with patch.object(migration_manager, "_get_config") as mock_get_config:
             mock_config = Mock()
             mock_get_config.return_value = mock_config
-            
-            with patch("app.database.migration.ScriptDirectory.from_config") as mock_from_config:
+
+            with patch(
+                "app.database.migration.ScriptDirectory.from_config"
+            ) as mock_from_config:
                 mock_from_config.side_effect = Exception("Invalid migration structure")
 
                 result = await migration_manager.validate_migrations()
@@ -358,7 +380,9 @@ class TestUtilityFunctions:
         with patch("app.database.migration.command.revision") as mock_command:
             mock_command.return_value = mock_revision
 
-            result = create_migration(mock_config, "Utility migration", autogenerate=False)
+            result = create_migration(
+                mock_config, "Utility migration", autogenerate=False
+            )
 
             assert result["revision"] == "xyz789"
             assert result["message"] == "Utility migration"
@@ -404,7 +428,9 @@ class TestAsyncMigrationManager:
     @pytest.mark.asyncio
     async def test_async_context_manager(self, mock_database_url, mock_migrations_dir):
         """Test async context manager functionality."""
-        async with AsyncMigrationManager(mock_database_url, mock_migrations_dir) as manager:
+        async with AsyncMigrationManager(
+            mock_database_url, mock_migrations_dir
+        ) as manager:
             assert isinstance(manager, MigrationManager)
             assert manager.database_url == mock_database_url
             assert manager.migrations_dir == mock_migrations_dir
@@ -413,13 +439,13 @@ class TestAsyncMigrationManager:
     async def test_async_context_manager_exit(self, mock_database_url):
         """Test async context manager exit."""
         manager = AsyncMigrationManager(mock_database_url)
-        
+
         # Test __aenter__ and __aexit__ directly
         entered_manager = await manager.__aenter__()
         assert isinstance(entered_manager, MigrationManager)
-        
+
         # Should not raise any exceptions
         await manager.__aexit__(None, None, None)
-        
+
         # Test with exception info
         await manager.__aexit__(Exception, Exception("test"), None)

@@ -3,21 +3,20 @@
 This test file ensures 100% code coverage for the external source integration module.
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import aiohttp
-from datetime import datetime
-from unittest.mock import AsyncMock, patch, MagicMock
 import pytest
 
 from app.services.external_source_integration import (
-    AuthType,
     AuthenticationError,
+    AuthType,
     BaseConnector,
     ConfluenceConnector,
     ConnectionError,
     ExternalSourceIntegrator,
     IntegrationResult,
     JiraConnector,
-    RateLimitError,
     SourceConfig,
     SourceType,
 )
@@ -65,7 +64,9 @@ class TestSourceConfigValidation:
     def test_oauth_validation(self):
         """Test OAuth validation (lines 105-106)"""
         # Missing client_id
-        with pytest.raises(ValueError, match="client_id and client_secret are required"):
+        with pytest.raises(
+            ValueError, match="client_id and client_secret are required"
+        ):
             SourceConfig(
                 source_type=SourceType.CONFLUENCE,
                 base_url="https://example.com",
@@ -75,7 +76,9 @@ class TestSourceConfigValidation:
             )
 
         # Missing client_secret
-        with pytest.raises(ValueError, match="client_id and client_secret are required"):
+        with pytest.raises(
+            ValueError, match="client_id and client_secret are required"
+        ):
             SourceConfig(
                 source_type=SourceType.CONFLUENCE,
                 base_url="https://example.com",
@@ -132,11 +135,11 @@ class TestIntegrationResult:
             processing_time=1.5,
             source_type=SourceType.CONFLUENCE,
             batch_count=1,
-            last_sync_time="2024-01-01T00:00:00Z"
+            last_sync_time="2024-01-01T00:00:00Z",
         )
-        
+
         summary = result.get_summary()
-        
+
         assert summary["success"] is True
         assert summary["source_type"] == SourceType.CONFLUENCE
         assert summary["total_count"] == 2
@@ -198,7 +201,7 @@ class TestBaseConnectorAuth:
         """Test basic auth headers (lines 170-173)"""
         connector = BaseConnector(basic_auth_config)
         headers = connector._get_auth_headers()
-        
+
         assert "Authorization" in headers
         assert headers["Authorization"].startswith("Basic ")
         assert headers["Content-Type"] == "application/json"
@@ -208,7 +211,7 @@ class TestBaseConnectorAuth:
         """Test bearer token headers (lines 175-176)"""
         connector = BaseConnector(bearer_token_config)
         headers = connector._get_auth_headers()
-        
+
         assert headers["Authorization"] == "Bearer my-bearer-token"
 
     @pytest.mark.unit
@@ -216,7 +219,7 @@ class TestBaseConnectorAuth:
         """Test OAuth headers with token (lines 178-180)"""
         connector = BaseConnector(oauth_config_with_token)
         headers = connector._get_auth_headers()
-        
+
         assert headers["Authorization"] == "Bearer access-token-123"
 
     @pytest.mark.unit
@@ -224,7 +227,7 @@ class TestBaseConnectorAuth:
         """Test OAuth headers without token"""
         connector = BaseConnector(oauth_config_without_token)
         headers = connector._get_auth_headers()
-        
+
         assert "Authorization" not in headers
 
 
@@ -255,13 +258,15 @@ class TestBaseConnectorErrorHandling:
         async with connector:
             mock_response = AsyncMock()
             mock_response.status = 200
-            
+
             mock_request = AsyncMock(return_value=mock_response)
             connector._session.request = mock_request
-            
+
             custom_headers = {"X-Custom": "value"}
-            await connector._make_request("GET", "https://example.com", headers=custom_headers)
-            
+            await connector._make_request(
+                "GET", "https://example.com", headers=custom_headers
+            )
+
             # Check that custom headers were merged
             call_args = mock_request.call_args
             assert call_args[1]["headers"]["X-Custom"] == "value"
@@ -274,9 +279,9 @@ class TestBaseConnectorErrorHandling:
             mock_response = AsyncMock()
             mock_response.status = 404
             mock_response.text.return_value = "Not Found"
-            
+
             connector._session.request = AsyncMock(return_value=mock_response)
-            
+
             with pytest.raises(ConnectionError, match="HTTP 404: Not Found"):
                 await connector._make_request("GET", "https://example.com")
 
@@ -286,11 +291,10 @@ class TestBaseConnectorErrorHandling:
         async with connector:
             connector._session.request = AsyncMock(
                 side_effect=aiohttp.ClientConnectorError(
-                    connection_key=MagicMock(),
-                    os_error=OSError("Network error")
+                    connection_key=MagicMock(), os_error=OSError("Network error")
                 )
             )
-            
+
             with pytest.raises(ConnectionError, match="Connection failed"):
                 await connector._make_request("GET", "https://example.com")
 
@@ -299,7 +303,7 @@ class TestBaseConnectorErrorHandling:
         """Test timeout error handling (lines 217-218)"""
         async with connector:
             connector._session.request = AsyncMock(side_effect=TimeoutError())
-            
+
             with pytest.raises(ConnectionError, match="Request timeout"):
                 await connector._make_request("GET", "https://example.com")
 
@@ -324,17 +328,23 @@ class TestConfluenceConnectorErrors:
     async def test_transform_page_error(self, confluence_config):
         """Test page transformation error (lines 257-261)"""
         connector = ConfluenceConnector(confluence_config)
-        
+
         # Mock pages that will fail transformation
         mock_pages = [
-            {"id": "123", "title": "Good Page", "body": {"storage": {"value": "<p>content</p>"}}},
+            {
+                "id": "123",
+                "title": "Good Page",
+                "body": {"storage": {"value": "<p>content</p>"}},
+            },
             {"id": "456"},  # Missing required fields
         ]
-        
-        with patch.object(connector, '_fetch_all_pages', return_value=mock_pages):
-            with patch('app.services.external_source_integration.logger') as mock_logger:
+
+        with patch.object(connector, "_fetch_all_pages", return_value=mock_pages):
+            with patch(
+                "app.services.external_source_integration.logger"
+            ) as mock_logger:
                 documents = await connector.fetch_documents()
-                
+
                 assert len(documents) == 1  # Only the good page
                 assert documents[0]["id"] == "confluence-123"
                 mock_logger.warning.assert_called_once()
@@ -343,8 +353,8 @@ class TestConfluenceConnectorErrors:
     async def test_fetch_pages_empty_batch(self, confluence_config):
         """Test fetching pages with empty batch (line 275)"""
         connector = ConfluenceConnector(confluence_config)
-        
-        with patch.object(connector, '_fetch_pages_batch', return_value=[]):
+
+        with patch.object(connector, "_fetch_pages_batch", return_value=[]):
             pages = await connector._fetch_all_pages()
             assert pages == []
 
@@ -352,17 +362,17 @@ class TestConfluenceConnectorErrors:
     async def test_fetch_pages_with_last_sync(self, confluence_config):
         """Test incremental sync with last_sync_time (line 298)"""
         connector = ConfluenceConnector(confluence_config)
-        
+
         async with connector:
             mock_response = AsyncMock()
             mock_response.status = 200
             mock_response.json.return_value = {"results": []}
-            
+
             mock_request = AsyncMock(return_value=mock_response)
             connector._session.request = mock_request
-            
+
             await connector._fetch_pages_batch(0, 10, incremental=True)
-            
+
             # Check that lastModified was included in params
             call_args = mock_request.call_args
             assert call_args[1]["params"]["lastModified"] == "2024-01-01T00:00:00Z"
@@ -371,17 +381,17 @@ class TestConfluenceConnectorErrors:
     async def test_fetch_pages_with_search_query(self, confluence_config):
         """Test fetching pages with search query (lines 302-303)"""
         connector = ConfluenceConnector(confluence_config)
-        
+
         async with connector:
             mock_response = AsyncMock()
             mock_response.status = 200
             mock_response.json.return_value = {"results": []}
-            
+
             mock_request = AsyncMock(return_value=mock_response)
             connector._session.request = mock_request
-            
+
             await connector._fetch_pages_batch(0, 10)
-            
+
             # Check URL and CQL parameter
             call_args = mock_request.call_args
             assert "/rest/api/content/search" in call_args[0][1]
@@ -391,13 +401,15 @@ class TestConfluenceConnectorErrors:
     async def test_fetch_pages_batch_error(self, confluence_config):
         """Test error in fetch_pages_batch (lines 313-315)"""
         connector = ConfluenceConnector(confluence_config)
-        
+
         async with connector:
             connector._session.request = AsyncMock(side_effect=Exception("API Error"))
-            
-            with patch('app.services.external_source_integration.logger') as mock_logger:
+
+            with patch(
+                "app.services.external_source_integration.logger"
+            ) as mock_logger:
                 result = await connector._fetch_pages_batch(0, 10)
-                
+
                 assert result == []
                 mock_logger.error.assert_called_once()
 
@@ -424,19 +436,19 @@ class TestJiraConnector:
     async def test_jira_test_connection_success(self, jira_config):
         """Test JIRA connection success (lines 371-381)"""
         connector = JiraConnector(jira_config)
-        
+
         async with connector:
             mock_response = AsyncMock()
             mock_response.status = 200
             mock_response.json.return_value = {
                 "name": "testuser",
-                "emailAddress": "test@example.com"
+                "emailAddress": "test@example.com",
             }
-            
+
             connector._session.request = AsyncMock(return_value=mock_response)
-            
+
             result = await connector.test_connection()
-            
+
             assert result["success"] is True
             assert result["user"] == "testuser"
             assert "Authentication successful" in result["message"]
@@ -445,14 +457,14 @@ class TestJiraConnector:
     async def test_jira_test_connection_failure(self, jira_config):
         """Test JIRA connection failure (lines 382-383)"""
         connector = JiraConnector(jira_config)
-        
+
         async with connector:
             connector._session.request = AsyncMock(
                 side_effect=AuthenticationError("Invalid credentials")
             )
-            
+
             result = await connector.test_connection()
-            
+
             assert result["success"] is False
             assert "Authentication failed" in result["message"]
 
@@ -460,7 +472,7 @@ class TestJiraConnector:
     async def test_jira_fetch_documents(self, jira_config):
         """Test JIRA fetch documents (lines 387-400)"""
         connector = JiraConnector(jira_config)
-        
+
         mock_issues = [
             {
                 "key": "TEST-1",
@@ -469,15 +481,17 @@ class TestJiraConnector:
                     "description": "Description",
                     "issuetype": {"name": "Bug"},
                     "status": {"name": "Open"},
-                }
+                },
             },
             {"key": "TEST-2"},  # Missing fields - will fail transformation
         ]
-        
-        with patch.object(connector, '_fetch_all_issues', return_value=mock_issues):
-            with patch('app.services.external_source_integration.logger') as mock_logger:
+
+        with patch.object(connector, "_fetch_all_issues", return_value=mock_issues):
+            with patch(
+                "app.services.external_source_integration.logger"
+            ) as mock_logger:
                 documents = await connector.fetch_documents()
-                
+
                 assert len(documents) == 1
                 assert documents[0]["id"] == "jira-TEST-1"
                 mock_logger.warning.assert_called_once()
@@ -488,13 +502,14 @@ class TestJiraConnector:
         jira_config.max_issues = 100
         jira_config.batch_size = 50  # Ensure batch_size is set
         connector = JiraConnector(jira_config)
-        
+
         # First batch returns full results (50 items)
         batch1 = [{"key": f"TEST-{i}"} for i in range(50)]
         # Second batch returns partial results (25 items < 50 max_results)
         batch2 = [{"key": f"TEST-{i}"} for i in range(50, 75)]
-        
+
         call_count = 0
+
         async def mock_fetch_batch(start_at, max_results, incremental):
             nonlocal call_count
             call_count += 1
@@ -504,19 +519,23 @@ class TestJiraConnector:
                 return batch2  # This returns 25 items < max_results, so loop stops
             else:
                 return []
-        
-        with patch.object(connector, '_fetch_issues_batch', side_effect=mock_fetch_batch):
+
+        with patch.object(
+            connector, "_fetch_issues_batch", side_effect=mock_fetch_batch
+        ):
             issues = await connector._fetch_all_issues()
-            
+
             assert len(issues) == 75  # All issues from both batches
-            assert call_count == 2  # Should stop after 2 batches because batch2 < max_results
+            assert (
+                call_count == 2
+            )  # Should stop after 2 batches because batch2 < max_results
 
     @pytest.mark.unit
     async def test_jira_fetch_all_issues_empty(self, jira_config):
         """Test JIRA fetch with empty results (line 415)"""
         connector = JiraConnector(jira_config)
-        
-        with patch.object(connector, '_fetch_issues_batch', return_value=[]):
+
+        with patch.object(connector, "_fetch_issues_batch", return_value=[]):
             issues = await connector._fetch_all_issues()
             assert issues == []
 
@@ -524,24 +543,24 @@ class TestJiraConnector:
     async def test_jira_fetch_issues_batch(self, jira_config):
         """Test JIRA fetch issues batch with all filters (lines 431-483)"""
         connector = JiraConnector(jira_config)
-        
+
         async with connector:
             mock_response = AsyncMock()
             mock_response.status = 200
             mock_response.json.return_value = {
                 "issues": [{"key": "TEST-1", "fields": {}}]
             }
-            
+
             mock_request = AsyncMock(return_value=mock_response)
             connector._session.request = mock_request
-            
+
             issues = await connector._fetch_issues_batch(0, 50, incremental=True)
-            
+
             # Verify JQL construction
             call_args = mock_request.call_args
             payload = call_args[1]["json"]
             jql = payload["jql"]
-            
+
             assert "project = TEST" in jql
             assert "updated >= '2024-01-01T00:00:00Z'" in jql
             assert "text ~ 'bug'" in jql
@@ -554,13 +573,17 @@ class TestJiraConnector:
     async def test_jira_fetch_issues_batch_error(self, jira_config):
         """Test error in fetch_issues_batch (lines 484-486)"""
         connector = JiraConnector(jira_config)
-        
+
         async with connector:
-            connector._session.request = AsyncMock(side_effect=Exception("JIRA API Error"))
-            
-            with patch('app.services.external_source_integration.logger') as mock_logger:
+            connector._session.request = AsyncMock(
+                side_effect=Exception("JIRA API Error")
+            )
+
+            with patch(
+                "app.services.external_source_integration.logger"
+            ) as mock_logger:
                 result = await connector._fetch_issues_batch(0, 50)
-                
+
                 assert result == []
                 mock_logger.error.assert_called_once()
 
@@ -582,8 +605,10 @@ class TestExternalSourceIntegrator:
     def test_unsupported_source_type(self, sharepoint_config):
         """Test unsupported source type (line 567)"""
         integrator = ExternalSourceIntegrator(sharepoint_config)
-        
-        with pytest.raises(ValueError, match="Unsupported source type: SourceType.SHAREPOINT"):
+
+        with pytest.raises(
+            ValueError, match="Unsupported source type: SourceType.SHAREPOINT"
+        ):
             integrator._create_connector()
 
     @pytest.mark.unit
@@ -597,15 +622,17 @@ class TestExternalSourceIntegrator:
             username="user",
         )
         integrator = ExternalSourceIntegrator(config)
-        
-        with patch.object(integrator, '_create_connector') as mock_create:
+
+        with patch.object(integrator, "_create_connector") as mock_create:
             mock_connector = AsyncMock()
             mock_connector.__aenter__.side_effect = Exception("Connection failed")
             mock_create.return_value = mock_connector
-            
-            with patch('app.services.external_source_integration.logger') as mock_logger:
+
+            with patch(
+                "app.services.external_source_integration.logger"
+            ) as mock_logger:
                 result = await integrator.fetch_documents()
-                
+
                 assert result.success is False
                 assert result.total_count == 0
                 assert result.error_message == "Connection failed"
@@ -623,15 +650,15 @@ class TestExternalSourceIntegrator:
             username="user",
         )
         integrator = ExternalSourceIntegrator(config)
-        
+
         documents = [
             {"id": "doc1", "title": "Title 1", "content": "Content 1"},
             {"id": "doc2"},  # Missing required fields
         ]
-        
-        with patch('app.services.external_source_integration.logger') as mock_logger:
+
+        with patch("app.services.external_source_integration.logger") as mock_logger:
             processed = await integrator._process_document_batch(documents)
-            
+
             assert len(processed) == 1
             assert processed[0]["id"] == "doc1"
             mock_logger.warning.assert_called_once()
@@ -647,11 +674,11 @@ class TestExternalSourceIntegrator:
             username="user",
         )
         integrator = ExternalSourceIntegrator(config)
-        
+
         # Document without title
         with pytest.raises(ValueError, match="Document must have title and content"):
             await integrator._process_single_document({"content": "test"})
-        
+
         # Document without content
         with pytest.raises(ValueError, match="Document must have title and content"):
             await integrator._process_single_document({"title": "test"})
@@ -667,16 +694,16 @@ class TestExternalSourceIntegrator:
             username="user",
         )
         integrator = ExternalSourceIntegrator(config)
-        
+
         document = {
             "title": "Test",
             "content": "Content",
             "created_at": "2024-01-01T00:00:00",
             "updated_at": "2024-01-01T00:00:00",
         }
-        
+
         processed = await integrator._process_single_document(document)
-        
+
         assert "metadata" in processed
         assert processed["metadata"]["integration_timestamp"]
         assert processed["metadata"]["source_system"] == SourceType.CONFLUENCE
@@ -692,17 +719,23 @@ class TestExternalSourceIntegrator:
             username="user",
         )
         integrator = ExternalSourceIntegrator(config)
-        
+
         # Already normalized timestamp
-        assert integrator._normalize_timestamp("2024-01-01T00:00:00Z") == "2024-01-01T00:00:00Z"
-        
+        assert (
+            integrator._normalize_timestamp("2024-01-01T00:00:00Z")
+            == "2024-01-01T00:00:00Z"
+        )
+
         # Timestamp without Z
-        assert integrator._normalize_timestamp("2024-01-01T00:00:00") == "2024-01-01T00:00:00Z"
-        
+        assert (
+            integrator._normalize_timestamp("2024-01-01T00:00:00")
+            == "2024-01-01T00:00:00Z"
+        )
+
         # Other format (no T)
         result = integrator._normalize_timestamp("2024-01-01 00:00:00")
         assert result == "2024-01-01 00:00:00"
-        
+
         # Exception case - test with object that can't be processed as string
         result = integrator._normalize_timestamp(object())
         # Should return current ISO timestamp on any exception
@@ -719,18 +752,20 @@ class TestExternalSourceIntegrator:
             username="user",
         )
         integrator = ExternalSourceIntegrator(config)
-        
+
         mock_docs = [{"id": "doc1", "title": "Test"}]
-        
-        with patch('app.services.external_source_integration.ConfluenceConnector') as MockConnector:
+
+        with patch(
+            "app.services.external_source_integration.ConfluenceConnector"
+        ) as MockConnector:
             mock_instance = AsyncMock()
             mock_instance.__aenter__.return_value = mock_instance
             mock_instance.__aexit__.return_value = None
             mock_instance.fetch_documents.return_value = mock_docs
             MockConnector.return_value = mock_instance
-            
+
             docs = await integrator._fetch_confluence_pages()
-            
+
             assert docs == mock_docs
 
     @pytest.mark.unit
@@ -744,18 +779,20 @@ class TestExternalSourceIntegrator:
             username="user",
         )
         integrator = ExternalSourceIntegrator(config)
-        
+
         mock_docs = [{"id": "issue1", "title": "Test Issue"}]
-        
-        with patch('app.services.external_source_integration.JiraConnector') as MockConnector:
+
+        with patch(
+            "app.services.external_source_integration.JiraConnector"
+        ) as MockConnector:
             mock_instance = AsyncMock()
             mock_instance.__aenter__.return_value = mock_instance
             mock_instance.__aexit__.return_value = None
             mock_instance.fetch_documents.return_value = mock_docs
             MockConnector.return_value = mock_instance
-            
+
             docs = await integrator._fetch_jira_issues()
-            
+
             assert docs == mock_docs
 
 

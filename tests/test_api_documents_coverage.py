@@ -3,41 +3,29 @@ Comprehensive test coverage for app/api/documents.py to achieve 100% coverage.
 This file focuses on covering all missing lines identified in the coverage report.
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from fastapi import HTTPException, BackgroundTasks
+from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-import os
 
 from app.api.documents import (
-    router,
-    get_db,
-    get_current_user_or_api_key,
-    list_documents,
-    create_document,
-    delete_document,
-    update_document,
-    get_document,
-    process_documents,
-    process_documents_sync,
-    get_processing_status,
+    DocumentUpdate,
+    ProcessingConfigRequest,
+    SourceType,
+    _background_document_processing,
+    _convert_to_processing_config,
     get_all_processing_status,
-    reprocess_document,
+    get_current_user_or_api_key,
     get_document_processing_service,
     get_document_repository,
-    _convert_to_processing_config,
-    _background_document_processing,
-    DocumentCreate,
-    DocumentUpdate,
-    DocumentResponse,
-    DocumentList,
-    SourceType,
-    ProcessingConfigRequest,
-    ProcessingStatusResponse,
-    ProcessingResultResponse,
+    get_processing_status,
+    process_documents,
+    process_documents_sync,
+    reprocess_document,
+    update_document,
 )
 from app.repositories.document_repository import DocumentRepository
-from app.repositories.chunk_repository import DocumentChunkRepository
 from app.services.document_processing_service import DocumentProcessingService
 
 
@@ -87,11 +75,13 @@ class TestAuthentication:
     async def test_get_current_user_jwt_blacklisted(self):
         """Test JWT authentication with blacklisted token (line 165)."""
         # We need to patch the entire module since imports are done inside the function
-        with patch("app.api.documents.is_token_blacklisted", create=True) as mock_blacklist:
-            with patch("app.api.documents.verify_token", create=True) as mock_verify:
-                with patch("app.api.documents.users_storage", create=True) as mock_users:
+        with patch(
+            "app.api.documents.is_token_blacklisted", create=True
+        ) as mock_blacklist:
+            with patch("app.api.documents.verify_token", create=True):
+                with patch("app.api.documents.users_storage", create=True):
                     mock_blacklist.return_value = True
-                    
+
                     with pytest.raises(HTTPException) as exc_info:
                         await get_current_user_or_api_key(
                             authorization="Bearer blacklisted-token", x_api_key=None
@@ -106,10 +96,10 @@ class TestAuthentication:
         """Test JWT authentication when user not found in storage (lines 176)."""
         with patch("app.core.auth.verify_token") as mock_verify:
             mock_verify.return_value = {"sub": "unknown@example.com"}
-            
+
             with patch("app.core.auth.is_token_blacklisted") as mock_blacklist:
                 mock_blacklist.return_value = False
-                
+
                 with patch("app.core.auth.users_storage") as mock_users:
                     mock_users.get.return_value = None
 
@@ -147,7 +137,7 @@ class TestDocumentUpdate:
             await update_document(
                 document_id="test-id",
                 document_update=doc_update,
-                current_user=mock_current_user_limited
+                current_user=mock_current_user_limited,
             )
 
         assert exc_info.value.status_code == 403
@@ -162,7 +152,7 @@ class TestDocumentUpdate:
             await update_document(
                 document_id="non-existent-id",
                 document_update=doc_update,
-                current_user=mock_current_user
+                current_user=mock_current_user,
             )
 
         assert exc_info.value.status_code == 404
@@ -176,7 +166,7 @@ class TestDocumentUpdate:
         result = await update_document(
             document_id="test-id",
             document_update=doc_update,
-            current_user=mock_current_user
+            current_user=mock_current_user,
         )
         assert result.title == "New Title"
         assert result.content == "Test content"  # Original content preserved
@@ -186,7 +176,7 @@ class TestDocumentUpdate:
         result = await update_document(
             document_id="test-id",
             document_update=doc_update,
-            current_user=mock_current_user
+            current_user=mock_current_user,
         )
         assert result.title == "Test Document"  # Original title preserved
         assert result.content == "New content"
@@ -196,7 +186,7 @@ class TestDocumentUpdate:
         result = await update_document(
             document_id="test-id",
             document_update=doc_update,
-            current_user=mock_current_user
+            current_user=mock_current_user,
         )
         assert result.source_type == SourceType.confluence
 
@@ -207,11 +197,12 @@ class TestDocumentProcessingService:
     @pytest.mark.asyncio
     async def test_get_document_processing_service(self, mock_session):
         """Test getting document processing service (lines 303-307)."""
+
         async def mock_get_db():
             yield mock_session
 
         service = await get_document_processing_service(db=mock_session)
-        
+
         assert isinstance(service, DocumentProcessingService)
         assert service.document_repository is not None
         assert service.chunk_repository is not None
@@ -224,8 +215,7 @@ class TestProcessDocuments:
     async def test_process_documents_no_permission(self, mock_current_user_limited):
         """Test processing documents without write permission (lines 321-322)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
         background_tasks = BackgroundTasks()
         mock_service = AsyncMock()
@@ -235,7 +225,7 @@ class TestProcessDocuments:
                 config=config,
                 background_tasks=background_tasks,
                 current_user=mock_current_user_limited,
-                processing_service=mock_service
+                processing_service=mock_service,
             )
 
         assert exc_info.value.status_code == 403
@@ -245,8 +235,7 @@ class TestProcessDocuments:
     async def test_process_documents_success(self, mock_current_user):
         """Test successful document processing (lines 324-344)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
         background_tasks = BackgroundTasks()
         mock_service = AsyncMock()
@@ -255,7 +244,7 @@ class TestProcessDocuments:
             config=config,
             background_tasks=background_tasks,
             current_user=mock_current_user,
-            processing_service=mock_service
+            processing_service=mock_service,
         )
 
         assert result.success is True
@@ -266,11 +255,10 @@ class TestProcessDocuments:
     async def test_process_documents_exception(self, mock_current_user):
         """Test document processing with exception (lines 346-350)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
         background_tasks = BackgroundTasks()
-        
+
         with patch("app.api.documents._convert_to_processing_config") as mock_convert:
             mock_convert.side_effect = Exception("Conversion error")
             mock_service = AsyncMock()
@@ -280,7 +268,7 @@ class TestProcessDocuments:
                     config=config,
                     background_tasks=background_tasks,
                     current_user=mock_current_user,
-                    processing_service=mock_service
+                    processing_service=mock_service,
                 )
 
             assert exc_info.value.status_code == 500
@@ -291,11 +279,12 @@ class TestProcessDocumentsSync:
     """Test synchronous document processing."""
 
     @pytest.mark.asyncio
-    async def test_process_documents_sync_no_permission(self, mock_current_user_limited):
+    async def test_process_documents_sync_no_permission(
+        self, mock_current_user_limited
+    ):
         """Test sync processing without permission (lines 363-364)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
         mock_service = AsyncMock()
 
@@ -303,7 +292,7 @@ class TestProcessDocumentsSync:
             await process_documents_sync(
                 config=config,
                 current_user=mock_current_user_limited,
-                processing_service=mock_service
+                processing_service=mock_service,
             )
 
         assert exc_info.value.status_code == 403
@@ -313,10 +302,9 @@ class TestProcessDocumentsSync:
     async def test_process_documents_sync_success(self, mock_current_user):
         """Test successful sync processing (lines 366-383)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
-        
+
         mock_result = Mock()
         mock_result.success = True
         mock_result.total_documents = 5
@@ -327,14 +315,14 @@ class TestProcessDocumentsSync:
         mock_result.failed_chunks = 1
         mock_result.processing_time = 10.5
         mock_result.errors = ["error1"]
-        
+
         mock_service = AsyncMock()
         mock_service.process_documents.return_value = mock_result
 
         result = await process_documents_sync(
             config=config,
             current_user=mock_current_user,
-            processing_service=mock_service
+            processing_service=mock_service,
         )
 
         assert result.success is True
@@ -345,10 +333,9 @@ class TestProcessDocumentsSync:
     async def test_process_documents_sync_exception(self, mock_current_user):
         """Test sync processing with exception (lines 385-389)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
-        
+
         mock_service = AsyncMock()
         mock_service.process_documents.side_effect = Exception("Processing error")
 
@@ -356,7 +343,7 @@ class TestProcessDocumentsSync:
             await process_documents_sync(
                 config=config,
                 current_user=mock_current_user,
-                processing_service=mock_service
+                processing_service=mock_service,
             )
 
         assert exc_info.value.status_code == 500
@@ -376,13 +363,13 @@ class TestProcessingStatus:
             "progress": 0.75,
             "error_message": None,
             "chunks_processed": 15,
-            "chunks_total": 20
+            "chunks_total": 20,
         }
 
         result = await get_processing_status(
             document_id="doc123",
             current_user=mock_current_user,
-            processing_service=mock_service
+            processing_service=mock_service,
         )
 
         assert result.document_id == "doc123"
@@ -399,7 +386,7 @@ class TestProcessingStatus:
             await get_processing_status(
                 document_id="unknown",
                 current_user=mock_current_user,
-                processing_service=mock_service
+                processing_service=mock_service,
             )
 
         assert exc_info.value.status_code == 404
@@ -415,7 +402,7 @@ class TestProcessingStatus:
             await get_processing_status(
                 document_id="doc123",
                 current_user=mock_current_user,
-                processing_service=mock_service
+                processing_service=mock_service,
             )
 
         assert exc_info.value.status_code == 500
@@ -436,7 +423,7 @@ class TestAllProcessingStatus:
                 "progress": 1.0,
                 "error_message": None,
                 "chunks_processed": 10,
-                "chunks_total": 10
+                "chunks_total": 10,
             },
             "doc2": {
                 "document_id": "doc2",
@@ -444,13 +431,12 @@ class TestAllProcessingStatus:
                 "progress": 0.5,
                 "error_message": "Timeout",
                 "chunks_processed": 5,
-                "chunks_total": 10
-            }
+                "chunks_total": 10,
+            },
         }
 
         result = await get_all_processing_status(
-            current_user=mock_current_user,
-            processing_service=mock_service
+            current_user=mock_current_user, processing_service=mock_service
         )
 
         assert "doc1" in result
@@ -465,8 +451,7 @@ class TestAllProcessingStatus:
 
         with pytest.raises(HTTPException) as exc_info:
             await get_all_processing_status(
-                current_user=mock_current_user,
-                processing_service=mock_service
+                current_user=mock_current_user, processing_service=mock_service
             )
 
         assert exc_info.value.status_code == 500
@@ -480,8 +465,7 @@ class TestReprocessDocument:
     async def test_reprocess_document_no_permission(self, mock_current_user_limited):
         """Test reprocessing without permission (lines 469-470)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
         mock_service = AsyncMock()
 
@@ -490,7 +474,7 @@ class TestReprocessDocument:
                 document_id="doc123",
                 config=config,
                 current_user=mock_current_user_limited,
-                processing_service=mock_service
+                processing_service=mock_service,
             )
 
         assert exc_info.value.status_code == 403
@@ -500,23 +484,22 @@ class TestReprocessDocument:
     async def test_reprocess_document_success(self, mock_current_user):
         """Test successful reprocessing (lines 472-492)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
-        
+
         mock_service = AsyncMock()
         mock_service.process_single_document_by_id.return_value = {
             "success": True,
             "total_chunks": 10,
             "successful_chunks": 10,
-            "failed_chunks": 0
+            "failed_chunks": 0,
         }
 
         result = await reprocess_document(
             document_id="doc123",
             config=config,
             current_user=mock_current_user,
-            processing_service=mock_service
+            processing_service=mock_service,
         )
 
         assert result.success is True
@@ -528,20 +511,17 @@ class TestReprocessDocument:
     async def test_reprocess_document_failure(self, mock_current_user):
         """Test failed reprocessing (lines 494-504)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
-        
+
         mock_service = AsyncMock()
-        mock_service.process_single_document_by_id.return_value = {
-            "success": False
-        }
+        mock_service.process_single_document_by_id.return_value = {"success": False}
 
         result = await reprocess_document(
             document_id="doc123",
             config=config,
             current_user=mock_current_user,
-            processing_service=mock_service
+            processing_service=mock_service,
         )
 
         assert result.success is False
@@ -552,19 +532,20 @@ class TestReprocessDocument:
     async def test_reprocess_document_exception(self, mock_current_user):
         """Test reprocessing with exception (lines 506-510)."""
         config = ProcessingConfigRequest(
-            source_type=SourceType.confluence,
-            source_path="/path/to/docs"
+            source_type=SourceType.confluence, source_path="/path/to/docs"
         )
-        
+
         mock_service = AsyncMock()
-        mock_service.process_single_document_by_id.side_effect = Exception("Reprocess error")
+        mock_service.process_single_document_by_id.side_effect = Exception(
+            "Reprocess error"
+        )
 
         with pytest.raises(HTTPException) as exc_info:
             await reprocess_document(
                 document_id="doc123",
                 config=config,
                 current_user=mock_current_user,
-                processing_service=mock_service
+                processing_service=mock_service,
             )
 
         assert exc_info.value.status_code == 500
@@ -585,11 +566,11 @@ class TestConversionHelpers:
             overlap_size=100,
             extract_structure=True,
             extract_entities=True,
-            extract_keywords=True
+            extract_keywords=True,
         )
-        
+
         config = _convert_to_processing_config(request)
-        
+
         assert config.collection_config.source_type.value == "confluence"
         assert config.collection_config.batch_size == 10
         assert config.extraction_config.extract_structure is True
@@ -617,12 +598,12 @@ class TestBackgroundProcessing:
         mock_service.process_documents.return_value = Mock(
             get_summary=Mock(return_value="Processing completed: 10 documents")
         )
-        
+
         mock_config = Mock()
-        
+
         # Should not raise any exception
         await _background_document_processing(mock_service, mock_config)
-        
+
         mock_service.process_documents.assert_called_once_with(mock_config)
 
     @pytest.mark.asyncio
@@ -630,12 +611,12 @@ class TestBackgroundProcessing:
         """Test background processing with exception (lines 561-562)."""
         mock_service = AsyncMock()
         mock_service.process_documents.side_effect = Exception("Background error")
-        
+
         mock_config = Mock()
-        
+
         # Should not raise exception (errors are logged)
         await _background_document_processing(mock_service, mock_config)
-        
+
         mock_service.process_documents.assert_called_once_with(mock_config)
 
 

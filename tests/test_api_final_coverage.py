@@ -1,8 +1,7 @@
 """Final coverage tests for remaining API lines"""
 
 import os
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -24,10 +23,13 @@ class TestRemainingSearchCoverage:
     async def test_search_jwt_paths(self, client):
         """Test JWT authentication paths in search (lines 220-238)"""
         # Mock all the dependencies at module level
-        with patch("app.core.auth.validate_api_key") as mock_validate, patch.object(
-            __import__("app.api.search", fromlist=["logging"]),
-            "logging",
-        ) as mock_logging:
+        with (
+            patch("app.core.auth.validate_api_key") as mock_validate,
+            patch.object(
+                __import__("app.api.search", fromlist=["logging"]),
+                "logging",
+            ),
+        ):
             mock_validate.return_value = None
 
             # Test successful JWT flow
@@ -42,7 +44,9 @@ class TestRemainingSearchCoverage:
                         return_value={"sub": "test@example.com"}
                     ),
                     "app.core.auth.users_storage": MagicMock(
-                        get=MagicMock(return_value={"role": "user", "permissions": ["read"]})
+                        get=MagicMock(
+                            return_value={"role": "user", "permissions": ["read"]}
+                        )
                     ),
                 },
             ):
@@ -57,24 +61,31 @@ class TestRemainingSearchCoverage:
                 from app.api.search import get_current_user_or_api_key
 
                 # Test with mocked functions in the search module
-                with patch(
-                    "app.api.search.is_token_blacklisted", return_value=False
-                ) as mock_blacklist, patch(
-                    "app.api.search.verify_token", return_value={"sub": "test@example.com"}
-                ) as mock_verify, patch(
-                    "app.api.search.users_storage"
-                ) as mock_users:
-                    mock_users.get.return_value = {"role": "user", "permissions": ["read"]}
-                    result = await get_current_user_or_api_key("Bearer valid-token", None)
+                with (
+                    patch("app.api.search.is_token_blacklisted", return_value=False),
+                    patch(
+                        "app.api.search.verify_token",
+                        return_value={"sub": "test@example.com"},
+                    ),
+                    patch("app.api.search.users_storage") as mock_users,
+                ):
+                    mock_users.get.return_value = {
+                        "role": "user",
+                        "permissions": ["read"],
+                    }
+                    result = await get_current_user_or_api_key(
+                        "Bearer valid-token", None
+                    )
                     assert result["auth_type"] == "jwt"
                     assert result["email"] == "test@example.com"
 
     @pytest.mark.asyncio
     async def test_search_weight_edge_cases(self, client):
         """Test search weight normalization edge cases (lines 429-435)"""
-        with patch("app.api.search.get_current_user_or_api_key") as mock_auth, patch(
-            "app.api.search.get_hybrid_search_engine"
-        ) as mock_engine:
+        with (
+            patch("app.api.search.get_current_user_or_api_key") as mock_auth,
+            patch("app.api.search.get_hybrid_search_engine") as mock_engine,
+        ):
             mock_auth.return_value = {"permissions": ["read"]}
             mock_search_engine = AsyncMock()
             mock_search_engine.config = MagicMock()
@@ -104,9 +115,10 @@ class TestRemainingSearchCoverage:
     @pytest.mark.asyncio
     async def test_search_legacy_overrides(self, client):
         """Test legacy field overrides (lines 444, 446, 448, 450)"""
-        with patch("app.api.search.get_current_user_or_api_key") as mock_auth, patch(
-            "app.api.search.get_hybrid_search_engine"
-        ) as mock_engine:
+        with (
+            patch("app.api.search.get_current_user_or_api_key") as mock_auth,
+            patch("app.api.search.get_hybrid_search_engine") as mock_engine,
+        ):
             mock_auth.return_value = {"permissions": ["read"]}
             mock_search_engine = AsyncMock()
             mock_search_engine.config = MagicMock()
@@ -140,9 +152,10 @@ class TestRemainingSearchCoverage:
     @pytest.mark.asyncio
     async def test_search_filters_and_facets(self, client):
         """Test filter conversion and facet handling (lines 457, 461, 492, 547-548)"""
-        with patch("app.api.search.get_current_user_or_api_key") as mock_auth, patch(
-            "app.api.search.get_hybrid_search_engine"
-        ) as mock_engine:
+        with (
+            patch("app.api.search.get_current_user_or_api_key") as mock_auth,
+            patch("app.api.search.get_hybrid_search_engine") as mock_engine,
+        ):
             mock_auth.return_value = {"permissions": ["read"]}
             mock_search_engine = AsyncMock()
             mock_search_engine.config = MagicMock()
@@ -177,7 +190,9 @@ class TestRemainingSearchCoverage:
                 json={
                     "query": "test",
                     "filters": {"source_types": ["confluence"]},
-                    "legacy_filters": [{"field": "status", "value": "active", "operator": "eq"}],
+                    "legacy_filters": [
+                        {"field": "status", "value": "active", "operator": "eq"}
+                    ],
                     "search_options": {"highlight": True},
                 },
             )
@@ -189,9 +204,10 @@ class TestRemainingSearchCoverage:
     @pytest.mark.asyncio
     async def test_search_failure_response(self, client):
         """Test search failure response (lines 574-595)"""
-        with patch("app.api.search.get_current_user_or_api_key") as mock_auth, patch(
-            "app.api.search.get_hybrid_search_engine"
-        ) as mock_engine:
+        with (
+            patch("app.api.search.get_current_user_or_api_key") as mock_auth,
+            patch("app.api.search.get_hybrid_search_engine") as mock_engine,
+        ):
             mock_auth.return_value = {"permissions": ["read"]}
             mock_search_engine = AsyncMock()
             mock_search_engine.config = MagicMock()
@@ -260,9 +276,7 @@ class TestRemainingDocumentsCoverage:
             mock_validate.return_value = None
 
             # Test blacklisted token by using the inline import
-            with patch(
-                "app.api.documents.is_token_blacklisted", return_value=True
-            ) as mock_blacklist:
+            with patch("app.api.documents.is_token_blacklisted", return_value=True):
                 with pytest.raises(HTTPException) as exc:
                     await get_current_user_or_api_key("Bearer blacklisted-token", None)
                 assert exc.value.status_code == 401
@@ -273,13 +287,14 @@ class TestRemainingDocumentsCoverage:
         """Test JWT exception with logging (lines 176-179)"""
         from app.api.documents import get_current_user_or_api_key
 
-        with patch("app.core.auth.validate_api_key") as mock_validate, patch(
-            "app.api.documents.is_token_blacklisted", return_value=False
-        ), patch(
-            "app.api.documents.verify_token", side_effect=Exception("Token error")
-        ), patch(
-            "app.api.documents.logging.debug"
-        ) as mock_log:
+        with (
+            patch("app.core.auth.validate_api_key") as mock_validate,
+            patch("app.api.documents.is_token_blacklisted", return_value=False),
+            patch(
+                "app.api.documents.verify_token", side_effect=Exception("Token error")
+            ),
+            patch("app.api.documents.logging.debug") as mock_log,
+        ):
             mock_validate.return_value = None
 
             with pytest.raises(HTTPException):
@@ -330,7 +345,11 @@ class TestRemainingDocumentsCoverage:
             # Success with all fields
             response = client.put(
                 "/v1/documents/test-id",
-                json={"title": "New Title", "content": "New Content", "source_type": "jira"},
+                json={
+                    "title": "New Title",
+                    "content": "New Content",
+                    "source_type": "jira",
+                },
             )
             assert response.status_code == 200
             data = response.json()
@@ -339,7 +358,9 @@ class TestRemainingDocumentsCoverage:
             assert data["source_type"] == "jira"
 
             # Partial update
-            response = client.put("/v1/documents/test-id", json={"content": "Only Content"})
+            response = client.put(
+                "/v1/documents/test-id", json={"content": "Only Content"}
+            )
             assert response.status_code == 200
             data = response.json()
             assert data["content"] == "Only Content"
@@ -353,11 +374,12 @@ class TestRemainingDocumentsCoverage:
             mock_auth.return_value = {"permissions": ["read", "write"]}
 
             # Process async with BackgroundTasks
-            with patch(
-                "app.api.documents.get_document_processing_service"
-            ) as mock_service, patch(
-                "app.api.documents.BackgroundTasks"
-            ) as mock_bg:
+            with (
+                patch(
+                    "app.api.documents.get_document_processing_service"
+                ) as mock_service,
+                patch("app.api.documents.BackgroundTasks"),
+            ):
                 mock_service.return_value = AsyncMock()
                 response = client.post(
                     "/v1/documents/process",
@@ -384,12 +406,17 @@ class TestRemainingAuthCoverage:
                 "role": "user",
                 "permissions": ["read"],
             }
-            response = client.get("/v1/auth/me", headers={"Authorization": "Bearer token"})
+            response = client.get(
+                "/v1/auth/me", headers={"Authorization": "Bearer token"}
+            )
             assert response.status_code == 200
 
         # Line 275 - API key no permission
         with patch("app.api.auth.get_current_user") as mock_auth:
-            mock_auth.return_value = {"email": "test@example.com", "permissions": ["read"]}
+            mock_auth.return_value = {
+                "email": "test@example.com",
+                "permissions": ["read"],
+            }
             response = client.post(
                 "/v1/auth/api-keys",
                 json={"name": "Test", "permissions": ["read"]},
@@ -398,10 +425,14 @@ class TestRemainingAuthCoverage:
             assert response.status_code == 403
 
         # Lines 332, 341 - API key revoke
-        with patch("app.api.auth.get_current_user") as mock_auth, patch(
-            "app.api.auth.api_keys_storage"
-        ) as mock_storage:
-            mock_auth.return_value = {"email": "test@example.com", "permissions": ["read"]}
+        with (
+            patch("app.api.auth.get_current_user") as mock_auth,
+            patch("app.api.auth.api_keys_storage") as mock_storage,
+        ):
+            mock_auth.return_value = {
+                "email": "test@example.com",
+                "permissions": ["read"],
+            }
 
             # Not found
             mock_storage.items.return_value = []
@@ -415,7 +446,10 @@ class TestRemainingAuthCoverage:
             mock_storage.items.return_value = [
                 ("sk_123", {"id": "ak_1", "user_id": "other@example.com"})
             ]
-            mock_storage.__getitem__.return_value = {"id": "ak_1", "user_id": "other@example.com"}
+            mock_storage.__getitem__.return_value = {
+                "id": "ak_1",
+                "user_id": "other@example.com",
+            }
             response = client.delete(
                 "/v1/auth/api-keys/ak_1",
                 headers={"Authorization": "Bearer token"},
@@ -482,7 +516,9 @@ class TestRemainingAuthCoverage:
 
             # Line 438 - team info no permission
             mock_auth.return_value = {"role": "user", "permissions": ["read"]}
-            response = client.get("/v1/admin/team", headers={"Authorization": "Bearer token"})
+            response = client.get(
+                "/v1/admin/team", headers={"Authorization": "Bearer token"}
+            )
             assert response.status_code == 403
 
 

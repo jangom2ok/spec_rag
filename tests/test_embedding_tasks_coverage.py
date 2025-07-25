@@ -2,340 +2,469 @@
 Test coverage for app/services/embedding_tasks.py to achieve 100% coverage.
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-import asyncio
-from typing import Any
 
 from app.services.embedding_tasks import (
-    MockConf,
-    MockInspect,
-    MockControl,
+    EmbeddingTaskManager,
+    EmbeddingTaskService,
+    MockAsyncResult,
     MockCelery,
-    MockTask,
+    MockConf,
+    MockControl,
+    MockInspect,
     celery_app,
-    is_celery_available,
-    get_celery_stats,
-    process_embeddings_task,
-    batch_process_embeddings_task,
-    check_task_status,
-    revoke_task,
-    retry_failed_tasks,
-    process_embeddings_async,
-    batch_process_embeddings_async,
-    update_embeddings_task,
-    delete_embeddings_task,
-    reindex_embeddings_task,
-    check_embedding_health,
-    process_embeddings_with_priority,
-    monitor_embedding_queue,
-    cleanup_old_embeddings,
-    export_embeddings_task,
-    import_embeddings_task,
-    validate_embeddings_task,
-    EmbeddingTaskResult,
-    TaskPriority,
+    embedding_health_check_task,
+    get_celery_health,
+    get_redis_health,
+    get_task_service,
+    process_batch_texts_task,
+    process_document_embedding_task,
 )
-from app.services.embedding_service import (
-    BatchEmbeddingRequest,
-    EmbeddingConfig,
-    EmbeddingService,
-)
-from app.models.aperturedb import VectorData
 
 
 class TestMockClasses:
     """Test mock classes for when Celery is not available."""
 
     def test_mock_conf(self):
-        """Test MockConf class (lines 22-23)."""
+        """Test MockConf class."""
         conf = MockConf()
         result = conf.update(test="value")
         assert result is None
 
     def test_mock_inspect(self):
-        """Test MockInspect class (lines 27-37)."""
+        """Test MockInspect class."""
         inspect = MockInspect()
-        
+
         assert inspect.active() == {}
         assert inspect.scheduled() == {}
         assert inspect.reserved() == {}
         assert inspect.stats() == {}
 
     def test_mock_control(self):
-        """Test MockControl class (lines 41-45)."""
+        """Test MockControl class."""
         control = MockControl()
-        
+
         # Test revoke
-        result = control.revoke("task_id", terminate=True)
-        assert result is None
-        
+        assert control.revoke("task_id", terminate=True) is None
+
         # Test inspect
         inspect = control.inspect()
         assert isinstance(inspect, MockInspect)
 
     def test_mock_celery(self):
-        """Test MockCelery class (lines 71)."""
+        """Test MockCelery class."""
+        celery = MockCelery()
+
+        # Test conf property
+        assert isinstance(celery.conf, MockConf)
+
         # Test task decorator
-        celery = MockCelery("test_app")
-        
         @celery.task
         def test_task():
             return "test"
-        
-        assert hasattr(test_task, "delay")
+
+        # Test that delay is added to the decorated function
+        result = test_task.delay()
+        assert hasattr(result, "id")
+        assert hasattr(result, "state")
+        assert result.state == "PENDING"
+        assert result.id.startswith("mock-task-")
+
+        # Test control property
+        assert isinstance(celery.control, MockControl)
+
+    def test_mock_async_result(self):
+        """Test MockAsyncResult class."""
+        result = MockAsyncResult("test_id")
+
+        assert result.status == "SUCCESS"
+        assert result.result == {}
+        assert result.info is None
+        assert result.id == "mock_task_id"
+        assert result.ready() is True
+        assert result.successful() is True
+        assert result.failed() is False
 
 
-class TestCeleryIntegration:
-    """Test Celery integration functions."""
-
-    def test_is_celery_available_false(self):
-        """Test when Celery is not available (lines 93-97)."""
-        # Mock celery_app.control.inspect to return None
-        with patch.object(celery_app.control, 'inspect', return_value=None):
-            assert not is_celery_available()
-
-    def test_is_celery_available_exception(self):
-        """Test when Celery check raises exception (lines 96-97)."""
-        with patch.object(celery_app.control, 'inspect', side_effect=Exception("Connection error")):
-            assert not is_celery_available()
-
-    def test_get_celery_stats_not_available(self):
-        """Test get stats when Celery not available (lines 111-120)."""
-        with patch("app.services.embedding_tasks.is_celery_available", return_value=False):
-            stats = get_celery_stats()
-            
-            assert stats["available"] is False
-            assert stats["active_tasks"] == 0
-            assert stats["scheduled_tasks"] == 0
-            assert stats["reserved_tasks"] == 0
-            assert stats["workers"] == 0
-
-    def test_get_celery_stats_with_active_tasks(self):
-        """Test get stats with active tasks (lines 113-118)."""
-        mock_inspect = Mock()
-        mock_inspect.active.return_value = {
-            "worker1": [{"id": "task1"}, {"id": "task2"}],
-            "worker2": [{"id": "task3"}]
-        }
-        mock_inspect.scheduled.return_value = {"worker1": [{"id": "task4"}]}
-        mock_inspect.reserved.return_value = {}
-        mock_inspect.stats.return_value = {"worker1": {}, "worker2": {}}
-        
-        with patch.object(celery_app.control, 'inspect', return_value=mock_inspect):
-            with patch("app.services.embedding_tasks.is_celery_available", return_value=True):
-                stats = get_celery_stats()
-                
-                assert stats["available"] is True
-                assert stats["active_tasks"] == 3
-                assert stats["scheduled_tasks"] == 1
-                assert stats["workers"] == 2
-
-
-class TestEmbeddingTasks:
-    """Test embedding task functions."""
+class TestEmbeddingTaskService:
+    """Test EmbeddingTaskService class."""
 
     @pytest.mark.asyncio
-    async def test_process_embeddings_task_direct_call(self):
-        """Test direct task call when not Celery worker (line 133)."""
-        with patch("app.services.embedding_tasks.is_celery_worker", return_value=False):
-            with patch("app.services.embedding_tasks.process_embeddings_async") as mock_async:
-                mock_async.return_value = {"status": "success"}
-                
-                result = process_embeddings_task("test_doc", {"content": "test"})
-                
-                # Should call async version via asyncio.run
-                assert result == {"status": "success"}
+    async def test_initialize(self):
+        """Test service initialization."""
+        service = EmbeddingTaskService()
 
-    def test_batch_process_embeddings_error_handling(self):
-        """Test batch processing error handling (lines 168-175)."""
-        documents = [
-            {"id": "doc1", "content": "test1"},
-            {"id": "doc2", "content": "test2"}
-        ]
-        
-        with patch("app.services.embedding_tasks.process_embeddings_async") as mock_process:
-            # Make first doc succeed, second fail
-            mock_process.side_effect = [
-                {"status": "success", "document_id": "doc1"},
-                Exception("Processing failed")
-            ]
-            
-            results = batch_process_embeddings_task(documents)
-            
-            assert len(results) == 2
-            assert results[0]["status"] == "success"
-            assert results[1]["status"] == "error"
-            assert "Processing failed" in results[1]["error"]
+        with patch("app.services.embedding_tasks.EmbeddingService") as mock_embedding:
+            with patch("app.services.embedding_tasks.ChunkRepository"):
+                mock_embedding_instance = Mock()
+                mock_embedding_instance.initialize = AsyncMock()
+                mock_embedding.return_value = mock_embedding_instance
 
-    def test_check_task_status_not_found(self):
-        """Test checking status of non-existent task (line 191)."""
-        mock_result = Mock()
-        mock_result.state = None
-        
-        with patch("app.services.embedding_tasks.AsyncResult", return_value=mock_result):
-            status = check_task_status("nonexistent_task_id")
-            
-            assert status["status"] == "UNKNOWN"
-            assert status["task_id"] == "nonexistent_task_id"
+                await service.initialize()
 
-    def test_revoke_task_success(self):
-        """Test revoking a task (line 214)."""
-        with patch.object(celery_app.control, 'revoke') as mock_revoke:
-            result = revoke_task("task_id_to_revoke", terminate=True)
-            
-            assert result["success"] is True
-            assert result["task_id"] == "task_id_to_revoke"
-            mock_revoke.assert_called_once_with("task_id_to_revoke", terminate=True)
+                assert service.embedding_service is not None
+                assert service.chunk_repository is not None
+                mock_embedding_instance.initialize.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_process_embeddings_async_with_existing_vector(self):
-        """Test processing with existing vector data (lines 274-277)."""
-        mock_service = AsyncMock()
-        mock_embedding = Mock()
-        mock_embedding.dense = [0.1, 0.2, 0.3]
-        mock_embedding.sparse = {"indices": [1, 2], "values": [0.5, 0.6]}
-        mock_service.generate_embeddings.return_value = [mock_embedding]
-        
-        # Mock vector collection
-        mock_collection = AsyncMock()
-        mock_collection.get_by_document_id.return_value = VectorData(
-            document_id="test_doc",
-            chunk_id="existing_chunk",
-            dense_vector=[0.0, 0.0, 0.0]
+    async def test_process_document_chunks_no_chunks(self):
+        """Test processing with no chunks."""
+        service = EmbeddingTaskService()
+        service.chunk_repository = Mock()
+        service.chunk_repository.get_by_document_id = AsyncMock(return_value=[])
+
+        result = await service.process_document_chunks("test_doc_id")
+
+        assert result["status"] == "completed"
+        assert result["processed_count"] == 0
+        assert result["message"] == "No chunks found for document"
+
+    @pytest.mark.asyncio
+    async def test_process_document_chunks_with_chunks(self):
+        """Test processing with chunks."""
+        service = EmbeddingTaskService()
+
+        # Mock chunks
+        mock_chunk = Mock()
+        mock_chunk.id = "chunk_1"
+        mock_chunk.document_id = "doc_1"
+        mock_chunk.content = "test content"
+        mock_chunk.chunk_type = "text"
+
+        service.chunk_repository = Mock()
+        service.chunk_repository.get_by_document_id = AsyncMock(
+            return_value=[mock_chunk]
         )
-        
-        with patch("app.services.embedding_tasks.get_embedding_service", return_value=mock_service):
-            with patch("app.services.embedding_tasks.get_vector_collection", return_value=mock_collection):
-                result = await process_embeddings_async("test_doc", {"content": "test"})
-                
-                assert result["status"] == "success"
-                # Verify update was called instead of add
-                mock_collection.update.assert_called_once()
+
+        # Mock embedding service
+        mock_result = Mock()
+        mock_result.dense_vector = [0.1, 0.2, 0.3]
+        mock_result.sparse_vector = {"token1": 0.5}
+
+        service.embedding_service = Mock()
+        service.embedding_service.process_batch_request = AsyncMock(
+            return_value=[mock_result]
+        )
+
+        result = await service.process_document_chunks("test_doc_id")
+
+        assert result["status"] == "completed"
+        assert result["processed_count"] == 1
+        assert result["vector_count"] == 2  # dense + sparse
 
     @pytest.mark.asyncio
-    async def test_batch_process_embeddings_async_partial_success(self):
-        """Test batch processing with partial success (lines 299-300)."""
-        documents = [
-            {"id": "doc1", "content": "test1"},
-            {"id": "doc2", "content": "test2"},
-            {"id": "doc3", "content": "test3"}
-        ]
-        
-        with patch("app.services.embedding_tasks.process_embeddings_async") as mock_process:
-            # Make second doc fail
-            async def side_effect(doc_id, metadata):
-                if doc_id == "doc2":
-                    raise Exception("Doc2 failed")
-                return {"status": "success", "document_id": doc_id}
-            
-            mock_process.side_effect = side_effect
-            
-            results = await batch_process_embeddings_async(documents)
-            
-            assert results["total"] == 3
-            assert results["successful"] == 2
-            assert results["failed"] == 1
-            assert len(results["errors"]) == 1
+    async def test_process_document_chunks_exception(self):
+        """Test processing with exception."""
+        service = EmbeddingTaskService()
+        service.chunk_repository = Mock()
+        service.chunk_repository.get_by_document_id = AsyncMock(
+            side_effect=Exception("Test error")
+        )
 
-    def test_update_embeddings_task_celery_not_available(self):
-        """Test update task when Celery not available (lines 341-346)."""
-        with patch("app.services.embedding_tasks.is_celery_available", return_value=False):
-            result = update_embeddings_task("doc_id", {"content": "updated"})
-            
-            assert result["status"] == "error"
-            assert "Celery not available" in result["error"]
+        result = await service.process_document_chunks("test_doc_id")
 
-    def test_delete_embeddings_task_async_error(self):
-        """Test delete task with async error (lines 369-371)."""
-        async def failing_delete():
-            raise Exception("Delete failed")
-        
-        with patch("app.services.embedding_tasks.delete_embeddings_async", side_effect=failing_delete):
-            result = delete_embeddings_task("doc_to_delete")
-            
-            assert result["status"] == "error"
-            assert "Delete failed" in result["error"]
-
-    def test_reindex_embeddings_task_exception(self):
-        """Test reindex with exception (lines 384-387)."""
-        with patch("app.services.embedding_tasks.get_all_documents", side_effect=Exception("DB error")):
-            result = reindex_embeddings_task(batch_size=10)
-            
-            assert result["status"] == "error"
-            assert "DB error" in result["error"]
+        assert result["status"] == "failed"
+        assert "Test error" in result["message"]
 
     @pytest.mark.asyncio
-    async def test_check_embedding_health_unhealthy(self):
-        """Test health check when unhealthy (line 414)."""
-        mock_service = AsyncMock()
-        mock_service.health_check.side_effect = Exception("Service down")
-        
-        with patch("app.services.embedding_tasks.get_embedding_service", return_value=mock_service):
-            result = await check_embedding_health()
-            
-            assert result["healthy"] is False
-            assert result["embedding_service"] is False
+    async def test_get_task_service(self):
+        """Test get_task_service singleton."""
+        with patch("app.services.embedding_tasks._task_service", None):
+            with patch.object(
+                EmbeddingTaskService, "initialize", new_callable=AsyncMock
+            ):
+                service1 = await get_task_service()
+                service2 = await get_task_service()
 
-    def test_process_embeddings_with_priority_high(self):
-        """Test high priority processing (lines 425-430)."""
-        from app.services.embedding_tasks import TaskPriority
-        
-        with patch.object(process_embeddings_task, 'apply_async') as mock_apply:
-            mock_apply.return_value = Mock(id="high_priority_task")
-            
-            result = process_embeddings_with_priority(
-                "urgent_doc",
-                {"content": "urgent"},
-                priority=TaskPriority.HIGH
+                assert service1 is service2
+
+
+class TestCeleryTasks:
+    """Test Celery tasks."""
+
+    def test_process_document_embedding_task(self):
+        """Test document embedding task."""
+        with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            mock_service = Mock()
+            mock_service.process_document_chunks = AsyncMock(
+                return_value={"status": "completed", "processed_count": 5}
             )
-            
-            assert result["task_id"] == "high_priority_task"
-            assert result["priority"] == TaskPriority.HIGH.value
-            
-            # Verify high priority queue was used
-            call_args = mock_apply.call_args
-            assert call_args[1]["priority"] == 9
-            assert call_args[1]["queue"] == "high_priority"
+            mock_get_service.return_value = mock_service
 
-    @pytest.mark.asyncio
-    async def test_monitor_embedding_queue_with_issues(self):
-        """Test queue monitoring with issues (lines 470-477)."""
-        # Mock unhealthy stats
-        mock_stats = {
-            "available": True,
-            "active_tasks": 100,  # High number of active tasks
-            "scheduled_tasks": 50,
-            "reserved_tasks": 20,
-            "workers": 1  # Only one worker for many tasks
-        }
-        
-        with patch("app.services.embedding_tasks.get_celery_stats", return_value=mock_stats):
-            with patch("app.services.embedding_tasks.check_embedding_health") as mock_health:
-                mock_health.return_value = {
-                    "healthy": False,
-                    "embedding_service": False
-                }
-                
-                result = await monitor_embedding_queue()
-                
-                assert result["status"]["healthy"] is False
-                assert result["status"]["issues"] == ["High task load", "Embedding service unhealthy"]
-                assert result["recommendations"] == ["Scale workers", "Check embedding service"]
+            # Mock self parameter
+            mock_self = Mock()
+            mock_self.update_state = Mock()
 
-    def test_export_embeddings_task_completion(self):
-        """Test export task completion (line 603)."""
-        mock_embeddings = [
-            {"document_id": "doc1", "embedding": [0.1, 0.2]},
-            {"document_id": "doc2", "embedding": [0.3, 0.4]}
-        ]
-        
-        with patch("app.services.embedding_tasks.get_all_embeddings", return_value=mock_embeddings):
-            with patch("app.services.embedding_tasks.save_to_file") as mock_save:
-                mock_save.return_value = "/tmp/export.json"
-                
-                result = export_embeddings_task("json", output_path="/tmp/export.json")
-                
-                assert result["status"] == "success"
-                assert result["total_exported"] == 2
-                assert result["output_path"] == "/tmp/export.json"
+            result = process_document_embedding_task(mock_self, "test_doc_id")
+
+            assert result["status"] == "completed"
+            mock_self.update_state.assert_called()
+
+    def test_process_document_embedding_task_exception(self):
+        """Test document embedding task with exception."""
+        with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            mock_get_service.side_effect = Exception("Service error")
+
+            mock_self = Mock()
+            mock_self.update_state = Mock()
+
+            result = process_document_embedding_task(mock_self, "test_doc_id")
+
+            assert result["status"] == "failed"
+            assert "Service error" in result["message"]
+
+    def test_process_batch_texts_task(self):
+        """Test batch texts task."""
+        with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            mock_service = Mock()
+            mock_embedding_service = Mock()
+            mock_result = Mock()
+            mock_result.dense_vector = [0.1, 0.2]
+            mock_result.sparse_vector = {"token": 0.5}
+            mock_result.processing_time = 0.1
+
+            mock_embedding_service.embed_batch = AsyncMock(return_value=[mock_result])
+            mock_service.embedding_service = mock_embedding_service
+            mock_get_service.return_value = mock_service
+
+            mock_self = Mock()
+            mock_self.update_state = Mock()
+
+            result = process_batch_texts_task(mock_self, ["test text"])
+
+            assert result["status"] == "completed"
+            assert result["text_count"] == 1
+            assert len(result["results"]) == 1
+
+    def test_process_batch_texts_task_no_service(self):
+        """Test batch texts task with no embedding service."""
+        with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            mock_service = Mock()
+            mock_service.embedding_service = None
+            mock_get_service.return_value = mock_service
+
+            mock_self = Mock()
+            mock_self.update_state = Mock()
+
+            result = process_batch_texts_task(mock_self, ["test text"])
+
+            assert result["status"] == "failed"
+            assert "not initialized" in result["message"]
+
+    def test_embedding_health_check_task(self):
+        """Test health check task."""
+        with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            mock_service = Mock()
+            mock_embedding_service = Mock()
+            mock_embedding_service.health_check = AsyncMock(
+                return_value={"status": "healthy"}
+            )
+            mock_service.embedding_service = mock_embedding_service
+            mock_get_service.return_value = mock_service
+
+            result = embedding_health_check_task()
+
+            assert result["status"] == "healthy"
+
+    def test_embedding_health_check_task_exception(self):
+        """Test health check task with exception."""
+        with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            mock_get_service.side_effect = Exception("Health check error")
+
+            result = embedding_health_check_task()
+
+            assert result["status"] == "unhealthy"
+            assert "Health check error" in result["reason"]
+
+
+class TestHealthChecks:
+    """Test health check functions."""
+
+    def test_get_redis_health_no_redis(self):
+        """Test Redis health when Redis is not available."""
+        with patch("app.services.embedding_tasks.HAS_REDIS", False):
+            result = get_redis_health()
+
+            assert result["status"] == "unhealthy"
+            assert "not available" in result["reason"]
+
+    def test_get_redis_health_success(self):
+        """Test Redis health check success."""
+        with patch("app.services.embedding_tasks.HAS_REDIS", True):
+            with patch("app.services.embedding_tasks.redis") as mock_redis:
+                mock_client = Mock()
+                mock_client.ping = Mock()
+                mock_client.info = Mock(
+                    return_value={
+                        "redis_version": "6.2.0",
+                        "connected_clients": 5,
+                        "used_memory_human": "1.5M",
+                        "uptime_in_seconds": 3600,
+                    }
+                )
+                mock_redis.Redis.from_url.return_value = mock_client
+
+                result = get_redis_health()
+
+                assert result["status"] == "healthy"
+                assert result["redis_version"] == "6.2.0"
+                assert result["connected_clients"] == 5
+
+    def test_get_redis_health_exception(self):
+        """Test Redis health check with exception."""
+        with patch("app.services.embedding_tasks.HAS_REDIS", True):
+            with patch("app.services.embedding_tasks.redis") as mock_redis:
+                mock_redis.Redis.from_url.side_effect = Exception("Connection failed")
+
+                result = get_redis_health()
+
+                assert result["status"] == "unhealthy"
+                assert "Connection failed" in result["reason"]
+
+    def test_get_celery_health_no_celery(self):
+        """Test Celery health when Celery is not available."""
+        with patch("app.services.embedding_tasks.HAS_CELERY", False):
+            result = get_celery_health()
+
+            assert result["status"] == "unhealthy"
+            assert "not available" in result["reason"]
+
+    def test_get_celery_health_success(self):
+        """Test Celery health check success."""
+        with patch("app.services.embedding_tasks.HAS_CELERY", True):
+            mock_inspect = Mock()
+            mock_inspect.stats = Mock(return_value={"worker1": {"stats": "data"}})
+            mock_inspect.active = Mock(return_value={"worker1": ["task1", "task2"]})
+
+            with patch.object(celery_app.control, "inspect", return_value=mock_inspect):
+                result = get_celery_health()
+
+                assert result["status"] == "healthy"
+                assert result["total_workers"] == 1
+                assert result["active_tasks"] == 2
+                assert "worker1" in result["workers"]
+
+    def test_get_celery_health_no_workers(self):
+        """Test Celery health check with no workers."""
+        with patch("app.services.embedding_tasks.HAS_CELERY", True):
+            mock_inspect = Mock()
+            mock_inspect.stats = Mock(return_value=None)
+
+            with patch.object(celery_app.control, "inspect", return_value=mock_inspect):
+                result = get_celery_health()
+
+                assert result["status"] == "unhealthy"
+                assert "No Celery workers" in result["reason"]
+
+
+class TestEmbeddingTaskManager:
+    """Test EmbeddingTaskManager class."""
+
+    def test_submit_document_processing(self):
+        """Test submit document processing."""
+        with patch.object(process_document_embedding_task, "delay") as mock_delay:
+            mock_delay.return_value = Mock(id="task_123")
+
+            EmbeddingTaskManager.submit_document_processing("doc_123")
+
+            mock_delay.assert_called_once_with("doc_123")
+
+    def test_submit_batch_processing(self):
+        """Test submit batch processing."""
+        with patch.object(process_batch_texts_task, "delay") as mock_delay:
+            mock_delay.return_value = Mock(id="task_456")
+
+            EmbeddingTaskManager.submit_batch_processing(
+                ["text1", "text2"], {"meta": "data"}
+            )
+
+            mock_delay.assert_called_once_with(["text1", "text2"], {"meta": "data"})
+
+    def test_get_task_status(self):
+        """Test get task status."""
+        with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
+            mock_result = Mock()
+            mock_result.status = "SUCCESS"
+            mock_result.result = {"data": "result"}
+            mock_result.info = None
+            mock_result.ready = Mock(return_value=True)
+            mock_result.successful = Mock(return_value=True)
+            mock_result.failed = Mock(return_value=False)
+            mock_async_result.return_value = mock_result
+
+            status = EmbeddingTaskManager.get_task_status("task_123")
+
+            assert status["task_id"] == "task_123"
+            assert status["status"] == "SUCCESS"
+            assert status["ready"] is True
+            assert status["successful"] is True
+
+    def test_cancel_task(self):
+        """Test cancel task."""
+        with patch.object(celery_app.control, "revoke") as mock_revoke:
+            result = EmbeddingTaskManager.cancel_task("task_123")
+
+            mock_revoke.assert_called_once_with("task_123", terminate=True)
+            assert result["status"] == "cancelled"
+
+    def test_get_queue_status(self):
+        """Test get queue status."""
+        result = EmbeddingTaskManager.get_queue_status()
+
+        assert "active_tasks" in result
+        assert "scheduled_tasks" in result
+        assert "workers" in result
+
+    def test_get_worker_status(self):
+        """Test get worker status."""
+        with patch("app.services.embedding_tasks.HAS_CELERY", True):
+            mock_inspect = Mock()
+            mock_inspect.active = Mock(return_value={"worker1": []})
+            mock_inspect.scheduled = Mock(return_value={})
+            mock_inspect.reserved = Mock(return_value={})
+            mock_inspect.stats = Mock(return_value={"worker1": {}})
+
+            with patch.object(celery_app.control, "inspect", return_value=mock_inspect):
+                result = EmbeddingTaskManager.get_worker_status()
+
+                assert "active_tasks" in result
+                assert "scheduled_tasks" in result
+                assert "reserved_tasks" in result
+                assert "stats" in result
+
+    def test_get_system_health(self):
+        """Test get system health."""
+        with patch("app.services.embedding_tasks.get_redis_health") as mock_redis:
+            with patch("app.services.embedding_tasks.get_celery_health") as mock_celery:
+                mock_redis.return_value = {"status": "healthy"}
+                mock_celery.return_value = {"status": "healthy"}
+
+                result = EmbeddingTaskManager.get_system_health()
+
+                assert result["overall_status"] == "healthy"
+                assert result["redis"]["status"] == "healthy"
+                assert result["celery"]["status"] == "healthy"
+
+    def test_get_system_health_degraded(self):
+        """Test get system health degraded."""
+        with patch("app.services.embedding_tasks.get_redis_health") as mock_redis:
+            with patch("app.services.embedding_tasks.get_celery_health") as mock_celery:
+                mock_redis.return_value = {"status": "unhealthy"}
+                mock_celery.return_value = {"status": "healthy"}
+
+                result = EmbeddingTaskManager.get_system_health()
+
+                assert result["overall_status"] == "degraded"
+
+    def test_get_system_health_unhealthy(self):
+        """Test get system health unhealthy."""
+        with patch("app.services.embedding_tasks.get_redis_health") as mock_redis:
+            with patch("app.services.embedding_tasks.get_celery_health") as mock_celery:
+                mock_redis.return_value = {"status": "unhealthy"}
+                mock_celery.return_value = {"status": "unhealthy"}
+
+                result = EmbeddingTaskManager.get_system_health()
+
+                assert result["overall_status"] == "unhealthy"
