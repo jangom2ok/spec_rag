@@ -1,13 +1,14 @@
 """Final coverage tests for remaining API lines"""
 
 import os
+
+os.environ["TESTING"] = "true"
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-
-os.environ["TESTING"] = "true"
 
 from app.main import app
 
@@ -58,7 +59,7 @@ class TestRemainingSearchCoverage:
                 importlib.reload(app.api.search)
 
                 # Now test JWT flow
-                from app.api.search import get_current_user_or_api_key
+                from app.api.search import get_current_user_or_api_key  # noqa: F811
 
                 # Test with mocked functions in the search module
                 with (

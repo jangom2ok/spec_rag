@@ -18,9 +18,9 @@ attempt=1
 
 while [ $attempt -le $MAX_ATTEMPTS ]; do
     echo -e "\n${YELLOW}試行 $attempt/$MAX_ATTEMPTS${NC}"
-    
+
     all_passed=true
-    
+
     # 1. Black フォーマッティング
     echo -e "\n${YELLOW}1. Black フォーマッティングチェック${NC}"
     if ! black --check --diff app/ tests/; then
@@ -30,7 +30,7 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
     else
         echo -e "${GREEN}✓ Blackフォーマッティング: OK${NC}"
     fi
-    
+
     # 2. Ruff linting
     echo -e "\n${YELLOW}2. Ruff リンティング${NC}"
     if ! ruff check app/ tests/; then
@@ -40,7 +40,7 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
     else
         echo -e "${GREEN}✓ Ruff: OK${NC}"
     fi
-    
+
     # 3. mypy 型チェック
     echo -e "\n${YELLOW}3. mypy 型チェック${NC}"
     if ! mypy app/; then
@@ -49,7 +49,7 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
     else
         echo -e "${GREEN}✓ mypy: OK${NC}"
     fi
-    
+
     # 4. pytest テスト
     echo -e "\n${YELLOW}4. pytest テスト実行${NC}"
     if ! pytest -x; then
@@ -58,19 +58,19 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
     else
         echo -e "${GREEN}✓ pytest: OK${NC}"
     fi
-    
+
     # すべてのチェックが成功した場合
     if [ "$all_passed" = true ]; then
         echo -e "\n${GREEN}=== すべてのチェックが成功しました！ ===${NC}"
         exit 0
     fi
-    
+
     # 次の試行の前に一時停止
     if [ $attempt -lt $MAX_ATTEMPTS ]; then
         echo -e "\n${YELLOW}修正を適用しました。再度チェックします...${NC}"
         sleep 1
     fi
-    
+
     attempt=$((attempt + 1))
 done
 

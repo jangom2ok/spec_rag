@@ -628,7 +628,7 @@ class TestSearchSuggestionsEndpoint:
             response = await get_search_suggestions(
                 q="xyzabc123notfound", limit=5, current_user=mock_current_user
             )
-            
+
             # Should still return empty suggestions without error
             assert response.suggestions == []
 

@@ -180,7 +180,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.DocumentRepository") as mock_doc_repo_class,
             patch("app.api.search.DocumentChunkRepository") as mock_chunk_repo_class,
         ):
-
             # Mock embedding service
             mock_embedding = AsyncMock()
             mock_embedding.initialize = AsyncMock()
@@ -201,7 +200,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             # Mock auth
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
@@ -296,7 +294,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -325,7 +322,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -343,7 +339,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -376,7 +371,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -405,7 +399,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -442,7 +435,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -465,7 +457,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -491,7 +482,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -543,7 +533,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -571,7 +560,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -589,7 +577,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -623,7 +610,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()
@@ -651,7 +637,6 @@ class TestSearchAPICoverage:
             patch("app.api.search.get_current_user_or_api_key") as mock_auth,
             patch("app.api.search.get_hybrid_search_engine") as mock_engine_dep,
         ):
-
             mock_auth.return_value = {"user_id": "test", "permissions": ["read"]}
 
             mock_engine = AsyncMock()

@@ -180,8 +180,8 @@ class TestSearchDiversityService:
 
             result = await diversity_service._diversify_with_mmr(
                 diversification_request.candidates,
-                diversification_request.max_results,
-                diversification_request.diversity_factor,
+                diversification_request.max_results or 10,
+                diversification_request.diversity_factor or 0.5,
             )
 
             assert len(result) == 3
@@ -209,7 +209,7 @@ class TestSearchDiversityService:
 
             result = await diversity_service._diversify_with_clustering(
                 diversification_request.candidates,
-                diversification_request.max_results,
+                diversification_request.max_results or 10,
                 clustering_config.cluster_count,
             )
 
@@ -240,7 +240,7 @@ class TestSearchDiversityService:
 
             result = await diversity_service._diversify_with_topics(
                 diversification_request.candidates,
-                diversification_request.max_results,
+                diversification_request.max_results or 10,
                 topic_diversity_config.topic_weight,
             )
 
@@ -272,7 +272,7 @@ class TestSearchDiversityService:
 
             result = await diversity_service._diversify_with_temporal(
                 diversification_request.candidates,
-                diversification_request.max_results,
+                diversification_request.max_results or 10,
                 time_window_days=7,
             )
 
@@ -352,7 +352,7 @@ class TestSearchDiversityService:
         with patch.object(mmr_diversifier, "_calculate_similarity") as mock_similarity:
             mock_similarity.return_value = 0.7
 
-            mmr_score = mmr_diversifier._calculate_mmr_score(
+            mmr_score = mmr_diversifier._calculate_mmr_score(  # type: ignore
                 candidate, selected_candidates, diversity_factor
             )
 
@@ -399,7 +399,7 @@ class TestSearchDiversityService:
                 ),
             ]
 
-            clusters = await clustering_diversifier._cluster_candidates(
+            clusters = await clustering_diversifier._cluster_candidates(  # type: ignore
                 sample_candidates, clustering_config.cluster_count
             )
 
@@ -432,14 +432,14 @@ class TestSearchDiversityService:
                 "doc-5": ["machine_learning", "prediction"],
             }
 
-            topics_dict = await topic_diversifier._extract_topics(sample_candidates)
+            topics_dict = await topic_diversifier._extract_topics(sample_candidates)  # type: ignore
 
             assert len(topics_dict) == 5
             assert "machine_learning" in topics_dict["doc-1"]
             assert "deep_learning" in topics_dict["doc-2"]
 
             # トピック多様性スコア計算
-            diversity_score = topic_diversifier._calculate_topic_diversity_score(
+            diversity_score = topic_diversifier._calculate_topic_diversity_score(  # type: ignore
                 topics_dict
             )
             assert 0 <= diversity_score <= 1
@@ -592,7 +592,7 @@ class TestSearchDiversityService:
             result = await diversity_service.diversify(diversification_request)
 
             assert result.success is False
-            assert "Diversification failed" in result.error_message
+            assert result.error_message and "Diversification failed" in result.error_message
             assert result.diversified_candidates == []
 
     @pytest.mark.unit

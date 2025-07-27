@@ -1,8 +1,7 @@
 """リポジトリパターンによるCRUD操作のテスト"""
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.models.database import Base, Document
 from app.repositories.document_repository import DocumentRepository
@@ -21,7 +20,7 @@ async def async_engine():
 @pytest.fixture
 async def async_session(async_engine):
     """テスト用のasync session"""
-    async_session = sessionmaker(
+    async_session = async_sessionmaker(
         async_engine, class_=AsyncSession, expire_on_commit=False
     )
     async with async_session() as session:

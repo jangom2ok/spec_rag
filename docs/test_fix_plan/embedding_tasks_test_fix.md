@@ -28,7 +28,7 @@ The embedding tasks tests in `test_embedding_tasks.py` were failing in GitHub Ac
 ## Test Results
 All 14 tests in `test_embedding_tasks.py` are now passing:
 - TestEmbeddingTaskService: 3 tests passed
-- TestEmbeddingTaskManager: 5 tests passed  
+- TestEmbeddingTaskManager: 5 tests passed
 - TestCeleryTasks: 5 tests passed
 - TestIntegration: 1 test passed
 

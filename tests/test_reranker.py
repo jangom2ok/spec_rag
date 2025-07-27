@@ -415,7 +415,7 @@ class TestRerankerService:
             result = await reranker.rerank(rerank_request)
 
             assert result.success is False
-            assert "Model loading failed" in result.error_message
+            assert result.error_message and "Model loading failed" in result.error_message
             assert len(result.documents) == 0
 
     @pytest.mark.unit
@@ -528,7 +528,7 @@ class TestCrossEncoderReranker:
         from app.services.reranker import MockCrossEncoderModel
 
         mock_model = MockCrossEncoderModel("test-model")
-        mock_model.predict = MagicMock(return_value=np.array([0.85, 0.92, 0.78]))
+        mock_model.predict = MagicMock(return_value=np.array([0.85, 0.92, 0.78]))  # type: ignore
         reranker.model = mock_model
 
         query = "machine learning"

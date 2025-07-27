@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-# Import everything available
 from app.services.search_diversity import (
     ClusteringDiversifier,
     ClusterResult,
@@ -37,11 +36,11 @@ class TestSearchDiversity:
 
     def test_enum_values(self):
         """Test enum values."""
-        assert DiversificationAlgorithm.MMR == "mmr"
-        assert DiversificationAlgorithm.CLUSTERING == "clustering"
-        assert DiversificationAlgorithm.TOPIC_BASED == "topic_based"
-        assert DiversificationAlgorithm.TEMPORAL == "temporal"
-        assert DiversificationAlgorithm.HYBRID == "hybrid"
+        assert DiversificationAlgorithm.MMR.value == "mmr"
+        assert DiversificationAlgorithm.CLUSTERING.value == "clustering"
+        assert DiversificationAlgorithm.TOPIC_BASED.value == "topic_based"
+        assert DiversificationAlgorithm.TEMPORAL.value == "temporal"
+        assert DiversificationAlgorithm.HYBRID.value == "hybrid"
 
     def test_diversity_config_creation(self):
         """Test DiversityConfig creation."""
@@ -103,7 +102,7 @@ class TestSearchDiversity:
             metadata={"category": "test", "author": "John"},
         )
 
-        assert np.array_equal(candidate2.embedding, custom_embedding)
+        assert candidate2.embedding is not None and np.array_equal(candidate2.embedding, custom_embedding)
         assert candidate2.metadata["category"] == "test"
         assert candidate2.metadata["author"] == "John"
 
@@ -421,9 +420,9 @@ class TestSearchDiversity:
         # Create a candidate that might cause issues
         bad_candidate = DiversityCandidate(
             id="bad",
-            content=None,  # None content
+            content=None,  # type: ignore  # None content
             title="Title",
-            score=None,  # None score
+            score=None,  # type: ignore  # None score
         )
 
         request = DiversificationRequest(query="error test", candidates=[bad_candidate])
