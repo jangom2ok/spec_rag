@@ -408,7 +408,7 @@ class TestAnomalyDetection:
             await service.ingest_log_entry(entry)
 
         # 異常検知実行
-        anomalies = await service._detect_anomalies(service._log_buffer)
+        anomalies = await service._detect_anomalies(list(service._log_buffer))
 
         # 異常が検出されることを確認
         response_time_anomalies = [a for a in anomalies if "response_time" in a.field]
