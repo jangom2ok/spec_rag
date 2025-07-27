@@ -498,9 +498,9 @@
     "severity": 8,
     "message": "\"parameters\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 380,
+    "startLineNumber": 379,
     "startColumn": 13,
-    "endLineNumber": 380,
+    "endLineNumber": 379,
     "endColumn": 23
   },
   {
@@ -519,9 +519,9 @@
     "severity": 8,
     "message": "\"parameters\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 389,
+    "startLineNumber": 388,
     "startColumn": 42,
-    "endLineNumber": 389,
+    "endLineNumber": 388,
     "endColumn": 52
   },
   {
@@ -1359,9 +1359,9 @@
     "severity": 8,
     "message": "\"name\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 119,
+    "startLineNumber": 118,
     "startColumn": 44,
-    "endLineNumber": 119,
+    "endLineNumber": 118,
     "endColumn": 48
   },
   {
@@ -1380,9 +1380,9 @@
     "severity": 8,
     "message": "クラス \"DenseVectorCollection\" の属性 \"create\" にアクセスできません\n  属性 \"create\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 128,
+    "startLineNumber": 127,
     "startColumn": 30,
-    "endLineNumber": 128,
+    "endLineNumber": 127,
     "endColumn": 36
   },
   {
@@ -1401,9 +1401,9 @@
     "severity": 8,
     "message": "クラス \"DenseVectorCollection\" の属性 \"delete\" にアクセスできません\n  属性 \"delete\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 132,
+    "startLineNumber": 131,
     "startColumn": 30,
-    "endLineNumber": 132,
+    "endLineNumber": 131,
     "endColumn": 36
   },
   {
@@ -1911,27 +1911,6 @@
     "endColumn": 67
   },
   {
-    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_remaining_coverage.py",
-    "owner": "python",
-    "code": {
-      "value": "reportUnusedImport",
-      "target": {
-        "$mid": 1,
-        "path": "/microsoft/pyright/blob/main/docs/configuration.md",
-        "scheme": "https",
-        "authority": "github.com",
-        "fragment": "reportUnusedImport"
-      }
-    },
-    "severity": 2,
-    "message": "インポート \"Request\" にアクセスできません",
-    "source": "Pylance",
-    "startLineNumber": 96,
-    "startColumn": 40,
-    "endLineNumber": 96,
-    "endColumn": 47
-  },
-  {
     "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_search_ranking_optimization.py",
     "owner": "python",
     "code": {
@@ -1991,9 +1970,9 @@
     "severity": 8,
     "message": "クラス \"CollectionResult\" の属性 \"total_documents\" にアクセスできません\n  属性 \"total_documents\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 57,
+    "startLineNumber": 61,
     "startColumn": 27,
-    "endLineNumber": 57,
+    "endLineNumber": 61,
     "endColumn": 42
   },
   {
@@ -2012,9 +1991,9 @@
     "severity": 8,
     "message": "クラス \"CollectionResult\" の属性 \"total_documents\" にアクセスできません\n  属性 \"total_documents\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 85,
+    "startLineNumber": 93,
     "startColumn": 27,
-    "endLineNumber": 85,
+    "endLineNumber": 93,
     "endColumn": 42
   },
   {
@@ -2033,9 +2012,9 @@
     "severity": 8,
     "message": "クラス \"CollectionResult\" の属性 \"total_documents\" にアクセスできません\n  属性 \"total_documents\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 112,
+    "startLineNumber": 126,
     "startColumn": 35,
-    "endLineNumber": 112,
+    "endLineNumber": 126,
     "endColumn": 50
   },
   {
@@ -2054,9 +2033,9 @@
     "severity": 8,
     "message": "クラス \"CollectionResult\" の属性 \"total_documents\" にアクセスできません\n  属性 \"total_documents\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 124,
+    "startLineNumber": 142,
     "startColumn": 23,
-    "endLineNumber": 124,
+    "endLineNumber": 142,
     "endColumn": 38
   },
   {
@@ -2075,9 +2054,9 @@
     "severity": 8,
     "message": "\"process_document_batch\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 133,
+    "startLineNumber": 151,
     "startColumn": 50,
-    "endLineNumber": 133,
+    "endLineNumber": 151,
     "endColumn": 72
   },
   {
@@ -2096,9 +2075,9 @@
     "severity": 8,
     "message": "\"update_embeddings_for_documents\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 160,
+    "startLineNumber": 178,
     "startColumn": 50,
-    "endLineNumber": 160,
+    "endLineNumber": 178,
     "endColumn": 81
   },
   {
@@ -2117,9 +2096,9 @@
     "severity": 8,
     "message": "\"generate_embeddings_task\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 181,
+    "startLineNumber": 199,
     "startColumn": 50,
-    "endLineNumber": 181,
+    "endLineNumber": 199,
     "endColumn": 74
   },
   {
@@ -2138,9 +2117,9 @@
     "severity": 8,
     "message": "\"Reranker\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 194,
+    "startLineNumber": 212,
     "startColumn": 43,
-    "endLineNumber": 194,
+    "endLineNumber": 212,
     "endColumn": 51
   },
   {
@@ -2159,9 +2138,9 @@
     "severity": 8,
     "message": "\"Reranker\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 220,
+    "startLineNumber": 238,
     "startColumn": 43,
-    "endLineNumber": 220,
+    "endLineNumber": 238,
     "endColumn": 51
   },
   {
@@ -2180,9 +2159,9 @@
     "severity": 8,
     "message": "\"Reranker\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 236,
+    "startLineNumber": 254,
     "startColumn": 43,
-    "endLineNumber": 236,
+    "endLineNumber": 254,
     "endColumn": 51
   },
   {
@@ -2201,9 +2180,9 @@
     "severity": 8,
     "message": "\"Reranker\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 258,
+    "startLineNumber": 276,
     "startColumn": 43,
-    "endLineNumber": 258,
+    "endLineNumber": 276,
     "endColumn": 51
   },
   {
@@ -2222,9 +2201,9 @@
     "severity": 8,
     "message": "\"QueryExpander\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 273,
+    "startLineNumber": 291,
     "startColumn": 50,
-    "endLineNumber": 273,
+    "endLineNumber": 291,
     "endColumn": 63
   },
   {
@@ -2243,9 +2222,9 @@
     "severity": 8,
     "message": "\"QueryExpander\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 295,
+    "startLineNumber": 313,
     "startColumn": 50,
-    "endLineNumber": 295,
+    "endLineNumber": 313,
     "endColumn": 63
   },
   {
@@ -2264,9 +2243,9 @@
     "severity": 8,
     "message": "\"QueryExpander\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 312,
+    "startLineNumber": 330,
     "startColumn": 50,
-    "endLineNumber": 312,
+    "endLineNumber": 330,
     "endColumn": 63
   },
   {
@@ -2285,9 +2264,9 @@
     "severity": 8,
     "message": "\"QueryExpander\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 328,
+    "startLineNumber": 346,
     "startColumn": 50,
-    "endLineNumber": 328,
+    "endLineNumber": 346,
     "endColumn": 63
   },
   {
@@ -2306,9 +2285,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 351,
+    "startLineNumber": 369,
     "startColumn": 19,
-    "endLineNumber": 351,
+    "endLineNumber": 369,
     "endColumn": 55
   },
   {
@@ -2327,9 +2306,9 @@
     "severity": 8,
     "message": "\"strategy\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 351,
+    "startLineNumber": 369,
     "startColumn": 35,
-    "endLineNumber": 351,
+    "endLineNumber": 369,
     "endColumn": 43
   },
   {
@@ -2348,9 +2327,9 @@
     "severity": 8,
     "message": "型 \"ChunkResult\" の引数を、関数 \"len\" の型 \"Sized\" のパラメーター \"obj\" に割り当てることはできません\n  \"ChunkResult\" はプロトコル \"Sized\" と互換性がありません\n    \"__len__\" が存在しません",
     "source": "Pylance",
-    "startLineNumber": 365,
+    "startLineNumber": 383,
     "startColumn": 24,
-    "endLineNumber": 365,
+    "endLineNumber": 383,
     "endColumn": 30
   },
   {
@@ -2369,9 +2348,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 372,
+    "startLineNumber": 390,
     "startColumn": 19,
-    "endLineNumber": 374,
+    "endLineNumber": 392,
     "endColumn": 10
   },
   {
@@ -2390,9 +2369,9 @@
     "severity": 8,
     "message": "\"strategy\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 373,
+    "startLineNumber": 391,
     "startColumn": 13,
-    "endLineNumber": 373,
+    "endLineNumber": 391,
     "endColumn": 21
   },
   {
@@ -2411,9 +2390,9 @@
     "severity": 8,
     "message": "\"chunk_size\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 373,
+    "startLineNumber": 391,
     "startColumn": 40,
-    "endLineNumber": 373,
+    "endLineNumber": 391,
     "endColumn": 50
   },
   {
@@ -2432,9 +2411,9 @@
     "severity": 8,
     "message": "\"overlap_size\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 373,
+    "startLineNumber": 391,
     "startColumn": 56,
-    "endLineNumber": 373,
+    "endLineNumber": 391,
     "endColumn": 68
   },
   {
@@ -2453,9 +2432,9 @@
     "severity": 8,
     "message": "型 \"ChunkResult\" の引数を、関数 \"len\" の型 \"Sized\" のパラメーター \"obj\" に割り当てることはできません\n  \"ChunkResult\" はプロトコル \"Sized\" と互換性がありません\n    \"__len__\" が存在しません",
     "source": "Pylance",
-    "startLineNumber": 381,
+    "startLineNumber": 399,
     "startColumn": 28,
-    "endLineNumber": 381,
+    "endLineNumber": 399,
     "endColumn": 34
   },
   {
@@ -2474,9 +2453,9 @@
     "severity": 8,
     "message": "型 \"ChunkResult\" に \"__getitem__\" メソッドが定義されていません",
     "source": "Pylance",
-    "startLineNumber": 382,
+    "startLineNumber": 400,
     "startColumn": 26,
-    "endLineNumber": 382,
+    "endLineNumber": 400,
     "endColumn": 32
   },
   {
@@ -2495,9 +2474,9 @@
     "severity": 8,
     "message": "型 \"ChunkResult\" に \"__getitem__\" メソッドが定義されていません",
     "source": "Pylance",
-    "startLineNumber": 383,
+    "startLineNumber": 401,
     "startColumn": 13,
-    "endLineNumber": 383,
+    "endLineNumber": 401,
     "endColumn": 19
   },
   {
@@ -2516,9 +2495,9 @@
     "severity": 8,
     "message": "型 \"ChunkResult\" に \"__getitem__\" メソッドが定義されていません",
     "source": "Pylance",
-    "startLineNumber": 384,
+    "startLineNumber": 402,
     "startColumn": 34,
-    "endLineNumber": 384,
+    "endLineNumber": 402,
     "endColumn": 40
   },
   {
@@ -2537,9 +2516,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 391,
+    "startLineNumber": 409,
     "startColumn": 19,
-    "endLineNumber": 391,
+    "endLineNumber": 409,
     "endColumn": 36
   },
   {
@@ -2558,9 +2537,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 414,
+    "startLineNumber": 432,
     "startColumn": 19,
-    "endLineNumber": 414,
+    "endLineNumber": 432,
     "endColumn": 59
   },
   {
@@ -2579,9 +2558,9 @@
     "severity": 8,
     "message": "\"strategy\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 414,
+    "startLineNumber": 432,
     "startColumn": 35,
-    "endLineNumber": 414,
+    "endLineNumber": 432,
     "endColumn": 43
   },
   {
@@ -2600,9 +2579,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 446,
+    "startLineNumber": 464,
     "startColumn": 21,
-    "endLineNumber": 446,
+    "endLineNumber": 464,
     "endColumn": 37
   },
   {
@@ -2621,9 +2600,9 @@
     "severity": 8,
     "message": "演算子 \"in\" は型 \"Literal['error']\" と \"SystemMetrics\" ではサポートされていません",
     "source": "Pylance",
-    "startLineNumber": 454,
+    "startLineNumber": 472,
     "startColumn": 20,
-    "endLineNumber": 454,
+    "endLineNumber": 472,
     "endColumn": 38
   },
   {
@@ -2642,9 +2621,9 @@
     "severity": 8,
     "message": "型 \"SystemMetrics\" に \"__getitem__\" メソッドが定義されていません",
     "source": "Pylance",
-    "startLineNumber": 454,
+    "startLineNumber": 472,
     "startColumn": 42,
-    "endLineNumber": 454,
+    "endLineNumber": 472,
     "endColumn": 49
   },
   {
@@ -2663,9 +2642,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 461,
+    "startLineNumber": 479,
     "startColumn": 21,
-    "endLineNumber": 461,
+    "endLineNumber": 479,
     "endColumn": 37
   },
   {
@@ -2684,9 +2663,9 @@
     "severity": 8,
     "message": "クラス \"AdminDashboard\" の属性 \"generate_usage_report\" にアクセスできません\n  属性 \"generate_usage_report\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 470,
+    "startLineNumber": 488,
     "startColumn": 38,
-    "endLineNumber": 470,
+    "endLineNumber": 488,
     "endColumn": 59
   },
   {
@@ -2705,9 +2684,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 481,
+    "startLineNumber": 499,
     "startColumn": 21,
-    "endLineNumber": 481,
+    "endLineNumber": 499,
     "endColumn": 37
   },
   {
@@ -2726,9 +2705,9 @@
     "severity": 8,
     "message": "クラス \"AdminDashboard\" の属性 \"export_dashboard_data\" にアクセスできません\n  属性 \"export_dashboard_data\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 484,
+    "startLineNumber": 502,
     "startColumn": 29,
-    "endLineNumber": 484,
+    "endLineNumber": 502,
     "endColumn": 50
   },
   {
@@ -2747,9 +2726,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 495,
+    "startLineNumber": 513,
     "startColumn": 21,
-    "endLineNumber": 495,
+    "endLineNumber": 513,
     "endColumn": 37
   },
   {
@@ -2768,9 +2747,9 @@
     "severity": 8,
     "message": "\"interval\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 499,
+    "startLineNumber": 517,
     "startColumn": 50,
-    "endLineNumber": 499,
+    "endLineNumber": 517,
     "endColumn": 58
   },
   {
@@ -2789,9 +2768,9 @@
     "severity": 8,
     "message": "クラス \"AdminDashboard\" の属性 \"stop_monitoring\" に割り当てることはできません\n  属性 \"stop_monitoring\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 506,
+    "startLineNumber": 524,
     "startColumn": 19,
-    "endLineNumber": 506,
+    "endLineNumber": 524,
     "endColumn": 34
   },
   {
@@ -2810,9 +2789,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 518,
+    "startLineNumber": 536,
     "startColumn": 19,
-    "endLineNumber": 518,
+    "endLineNumber": 536,
     "endColumn": 36
   },
   {
@@ -2831,9 +2810,9 @@
     "severity": 8,
     "message": "クラス \"AlertingService\" の属性 \"send_email_alert\" にアクセスできません\n  属性 \"send_email_alert\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 524,
+    "startLineNumber": 542,
     "startColumn": 27,
-    "endLineNumber": 524,
+    "endLineNumber": 542,
     "endColumn": 43
   },
   {
@@ -2852,9 +2831,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 537,
+    "startLineNumber": 555,
     "startColumn": 19,
-    "endLineNumber": 537,
+    "endLineNumber": 555,
     "endColumn": 36
   },
   {
@@ -2873,9 +2852,9 @@
     "severity": 8,
     "message": "クラス \"AlertingService\" の属性 \"send_slack_alert\" にアクセスできません\n  属性 \"send_slack_alert\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 544,
+    "startLineNumber": 562,
     "startColumn": 27,
-    "endLineNumber": 544,
+    "endLineNumber": 562,
     "endColumn": 43
   },
   {
@@ -2894,9 +2873,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 553,
+    "startLineNumber": 571,
     "startColumn": 19,
-    "endLineNumber": 553,
+    "endLineNumber": 571,
     "endColumn": 36
   },
   {
@@ -2915,9 +2894,9 @@
     "severity": 8,
     "message": "クラス \"AlertingService\" の属性 \"check_conditions\" にアクセスできません\n  属性 \"check_conditions\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 571,
+    "startLineNumber": 589,
     "startColumn": 35,
-    "endLineNumber": 571,
+    "endLineNumber": 589,
     "endColumn": 51
   },
   {
@@ -2936,9 +2915,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 580,
+    "startLineNumber": 598,
     "startColumn": 19,
-    "endLineNumber": 580,
+    "endLineNumber": 598,
     "endColumn": 36
   },
   {
@@ -2957,9 +2936,9 @@
     "severity": 8,
     "message": "クラス \"AlertingService\" の属性 \"queue_alert\" にアクセスできません\n  属性 \"queue_alert\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 584,
+    "startLineNumber": 602,
     "startColumn": 27,
-    "endLineNumber": 584,
+    "endLineNumber": 602,
     "endColumn": 38
   },
   {
@@ -2978,9 +2957,9 @@
     "severity": 8,
     "message": "クラス \"AlertingService\" の属性 \"get_aggregated_alerts\" にアクセスできません\n  属性 \"get_aggregated_alerts\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 593,
+    "startLineNumber": 611,
     "startColumn": 36,
-    "endLineNumber": 593,
+    "endLineNumber": 611,
     "endColumn": 57
   },
   {
@@ -2999,9 +2978,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 606,
+    "startLineNumber": 624,
     "startColumn": 19,
-    "endLineNumber": 606,
+    "endLineNumber": 624,
     "endColumn": 45
   },
   {
@@ -3020,9 +2999,9 @@
     "severity": 8,
     "message": "型 \"Literal['pyth']\" の引数を、関数 \"get_suggestions\" の型 \"SuggestionRequest\" のパラメーター \"request\" に割り当てることはできません\n  \"Literal['pyth']\" は \"SuggestionRequest\" と互換性がありません",
     "source": "Pylance",
-    "startLineNumber": 615,
+    "startLineNumber": 633,
     "startColumn": 57,
-    "endLineNumber": 615,
+    "endLineNumber": 633,
     "endColumn": 63
   },
   {
@@ -3041,9 +3020,9 @@
     "severity": 8,
     "message": "演算子 \"in\" は型 \"Literal['python tutorial']\" と \"SuggestionResult\" ではサポートされていません",
     "source": "Pylance",
-    "startLineNumber": 617,
+    "startLineNumber": 635,
     "startColumn": 20,
-    "endLineNumber": 617,
+    "endLineNumber": 635,
     "endColumn": 52
   },
   {
@@ -3062,9 +3041,9 @@
     "severity": 8,
     "message": "演算子 \"in\" は型 \"Literal['python pandas']\" と \"SuggestionResult\" ではサポートされていません",
     "source": "Pylance",
-    "startLineNumber": 618,
+    "startLineNumber": 636,
     "startColumn": 20,
-    "endLineNumber": 618,
+    "endLineNumber": 636,
     "endColumn": 50
   },
   {
@@ -3083,9 +3062,9 @@
     "severity": 8,
     "message": "演算子 \"not in\" は型 \"Literal['java basics']\" と \"SuggestionResult\" ではサポートされていません",
     "source": "Pylance",
-    "startLineNumber": 619,
+    "startLineNumber": 637,
     "startColumn": 20,
-    "endLineNumber": 619,
+    "endLineNumber": 637,
     "endColumn": 52
   },
   {
@@ -3104,9 +3083,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 626,
+    "startLineNumber": 644,
     "startColumn": 19,
-    "endLineNumber": 626,
+    "endLineNumber": 644,
     "endColumn": 45
   },
   {
@@ -3125,9 +3104,9 @@
     "severity": 8,
     "message": "クラス \"SearchSuggestionsService\" の属性 \"get_personalized_suggestions\" にアクセスできません\n  属性 \"get_personalized_suggestions\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 633,
+    "startLineNumber": 651,
     "startColumn": 37,
-    "endLineNumber": 633,
+    "endLineNumber": 651,
     "endColumn": 65
   },
   {
@@ -3146,9 +3125,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 643,
+    "startLineNumber": 661,
     "startColumn": 19,
-    "endLineNumber": 643,
+    "endLineNumber": 661,
     "endColumn": 45
   },
   {
@@ -3167,9 +3146,9 @@
     "severity": 8,
     "message": "型 \"Literal['pythn']\" の引数を、関数 \"get_suggestions\" の型 \"SuggestionRequest\" のパラメーター \"request\" に割り当てることはできません\n  \"Literal['pythn']\" は \"SuggestionRequest\" と互換性がありません",
     "source": "Pylance",
-    "startLineNumber": 648,
+    "startLineNumber": 666,
     "startColumn": 43,
-    "endLineNumber": 648,
+    "endLineNumber": 666,
     "endColumn": 50
   },
   {
@@ -3188,9 +3167,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 657,
+    "startLineNumber": 675,
     "startColumn": 19,
-    "endLineNumber": 657,
+    "endLineNumber": 675,
     "endColumn": 45
   },
   {
@@ -3209,9 +3188,9 @@
     "severity": 8,
     "message": "クラス \"SearchSuggestionsService\" の属性 \"get_trending_suggestions\" にアクセスできません\n  属性 \"get_trending_suggestions\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 666,
+    "startLineNumber": 684,
     "startColumn": 41,
-    "endLineNumber": 666,
+    "endLineNumber": 684,
     "endColumn": 65
   },
   {
@@ -3230,9 +3209,9 @@
     "severity": 8,
     "message": "\"DiversityOptimizer\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 677,
+    "startLineNumber": 695,
     "startColumn": 51,
-    "endLineNumber": 677,
+    "endLineNumber": 695,
     "endColumn": 69
   },
   {
@@ -3251,9 +3230,9 @@
     "severity": 8,
     "message": "\"DiversityOptimizer\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 703,
+    "startLineNumber": 721,
     "startColumn": 51,
-    "endLineNumber": 703,
+    "endLineNumber": 721,
     "endColumn": 69
   },
   {
@@ -3272,9 +3251,9 @@
     "severity": 8,
     "message": "\"DiversityOptimizer\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 723,
+    "startLineNumber": 741,
     "startColumn": 51,
-    "endLineNumber": 723,
+    "endLineNumber": 741,
     "endColumn": 69
   },
   {
@@ -3293,9 +3272,9 @@
     "severity": 8,
     "message": "パラメーター \"metric_types\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 753,
+    "startLineNumber": 774,
     "startColumn": 18,
-    "endLineNumber": 753,
+    "endLineNumber": 774,
     "endColumn": 33
   },
   {
@@ -3314,9 +3293,9 @@
     "severity": 8,
     "message": "クラス \"MetricsCollectionService\" の属性 \"record_search_event\" にアクセスできません\n  属性 \"record_search_event\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 764,
+    "startLineNumber": 785,
     "startColumn": 25,
-    "endLineNumber": 764,
+    "endLineNumber": 785,
     "endColumn": 44
   },
   {
@@ -3335,9 +3314,9 @@
     "severity": 8,
     "message": "クラス \"MetricsCollectionService\" の属性 \"get_search_metrics\" にアクセスできません\n  属性 \"get_search_metrics\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 766,
+    "startLineNumber": 787,
     "startColumn": 35,
-    "endLineNumber": 766,
+    "endLineNumber": 787,
     "endColumn": 53
   },
   {
@@ -3356,9 +3335,9 @@
     "severity": 8,
     "message": "パラメーター \"metric_types\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 777,
+    "startLineNumber": 801,
     "startColumn": 18,
-    "endLineNumber": 777,
+    "endLineNumber": 801,
     "endColumn": 33
   },
   {
@@ -3377,9 +3356,9 @@
     "severity": 8,
     "message": "クラス \"MetricsCollectionService\" の属性 \"record_metric\" にアクセスできません\n  属性 \"record_metric\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 782,
+    "startLineNumber": 806,
     "startColumn": 23,
-    "endLineNumber": 782,
+    "endLineNumber": 806,
     "endColumn": 36
   },
   {
@@ -3398,9 +3377,9 @@
     "severity": 8,
     "message": "クラス \"MetricsCollectionService\" の属性 \"get_metrics\" にアクセスできません\n  属性 \"get_metrics\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 785,
+    "startLineNumber": 809,
     "startColumn": 29,
-    "endLineNumber": 785,
+    "endLineNumber": 809,
     "endColumn": 40
   },
   {
@@ -3419,9 +3398,9 @@
     "severity": 8,
     "message": "パラメーター \"metric_types\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 793,
+    "startLineNumber": 820,
     "startColumn": 18,
-    "endLineNumber": 793,
+    "endLineNumber": 820,
     "endColumn": 33
   },
   {
@@ -3440,9 +3419,9 @@
     "severity": 8,
     "message": "クラス \"MetricsCollectionService\" の属性 \"get_metrics\" にアクセスできません\n  属性 \"get_metrics\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 797,
+    "startLineNumber": 824,
     "startColumn": 29,
-    "endLineNumber": 797,
+    "endLineNumber": 824,
     "endColumn": 40
   },
   {
@@ -3461,9 +3440,9 @@
     "severity": 8,
     "message": "パラメーター \"metric_types\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 805,
+    "startLineNumber": 835,
     "startColumn": 18,
-    "endLineNumber": 805,
+    "endLineNumber": 835,
     "endColumn": 33
   },
   {
@@ -3482,9 +3461,9 @@
     "severity": 8,
     "message": "クラス \"MetricsCollectionService\" の属性 \"check_thresholds\" にアクセスできません\n  属性 \"check_thresholds\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 824,
+    "startLineNumber": 854,
     "startColumn": 34,
-    "endLineNumber": 824,
+    "endLineNumber": 854,
     "endColumn": 50
   },
   {
@@ -3503,9 +3482,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 837,
+    "startLineNumber": 867,
     "startColumn": 18,
-    "endLineNumber": 837,
+    "endLineNumber": 867,
     "endColumn": 38
   },
   {
@@ -3524,9 +3503,9 @@
     "severity": 8,
     "message": "型 \"dict[str, Unknown]\" の引数を、関数 \"search\" の型 \"SearchQuery\" のパラメーター \"query\" に割り当てることはできません\n  \"dict[str, Unknown]\" は \"SearchQuery\" と互換性がありません",
     "source": "Pylance",
-    "startLineNumber": 858,
+    "startLineNumber": 888,
     "startColumn": 46,
-    "endLineNumber": 858,
+    "endLineNumber": 888,
     "endColumn": 51
   },
   {
@@ -3545,9 +3524,9 @@
     "severity": 8,
     "message": "演算子 \"in\" は型 \"Literal['facets']\" と \"SearchResult\" ではサポートされていません",
     "source": "Pylance",
-    "startLineNumber": 860,
+    "startLineNumber": 890,
     "startColumn": 24,
-    "endLineNumber": 860,
+    "endLineNumber": 890,
     "endColumn": 42
   },
   {
@@ -3566,9 +3545,9 @@
     "severity": 8,
     "message": "型 \"SearchResult\" に \"__getitem__\" メソッドが定義されていません",
     "source": "Pylance",
-    "startLineNumber": 861,
+    "startLineNumber": 891,
     "startColumn": 41,
-    "endLineNumber": 861,
+    "endLineNumber": 891,
     "endColumn": 47
   },
   {
@@ -3587,9 +3566,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 868,
+    "startLineNumber": 898,
     "startColumn": 18,
-    "endLineNumber": 868,
+    "endLineNumber": 898,
     "endColumn": 55
   },
   {
@@ -3608,9 +3587,9 @@
     "severity": 8,
     "message": "\"enable_cache\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 868,
+    "startLineNumber": 898,
     "startColumn": 37,
-    "endLineNumber": 868,
+    "endLineNumber": 898,
     "endColumn": 49
   },
   {
@@ -3629,9 +3608,9 @@
     "severity": 8,
     "message": "型 \"dict[str, Unknown]\" の引数を、関数 \"search\" の型 \"SearchQuery\" のパラメーター \"query\" に割り当てることはできません\n  \"dict[str, Unknown]\" は \"SearchQuery\" と互換性がありません",
     "source": "Pylance",
-    "startLineNumber": 879,
+    "startLineNumber": 909,
     "startColumn": 43,
-    "endLineNumber": 879,
+    "endLineNumber": 909,
     "endColumn": 48
   },
   {
@@ -3650,9 +3629,9 @@
     "severity": 8,
     "message": "型 \"dict[str, Unknown]\" の引数を、関数 \"search\" の型 \"SearchQuery\" のパラメーター \"query\" に割り当てることはできません\n  \"dict[str, Unknown]\" は \"SearchQuery\" と互換性がありません",
     "source": "Pylance",
-    "startLineNumber": 882,
+    "startLineNumber": 912,
     "startColumn": 43,
-    "endLineNumber": 882,
+    "endLineNumber": 912,
     "endColumn": 48
   },
   {
@@ -3671,9 +3650,9 @@
     "severity": 8,
     "message": "パラメーター \"config\" に引数がありません",
     "source": "Pylance",
-    "startLineNumber": 893,
+    "startLineNumber": 923,
     "startColumn": 18,
-    "endLineNumber": 893,
+    "endLineNumber": 923,
     "endColumn": 59
   },
   {
@@ -3692,9 +3671,9 @@
     "severity": 8,
     "message": "\"adaptive_weights\" という名前のパラメーターがありません",
     "source": "Pylance",
-    "startLineNumber": 893,
+    "startLineNumber": 923,
     "startColumn": 37,
-    "endLineNumber": 893,
+    "endLineNumber": 923,
     "endColumn": 53
   },
   {
@@ -3713,9 +3692,9 @@
     "severity": 8,
     "message": "クラス \"HybridSearchEngine\" の属性 \"_determine_weights\" にアクセスできません\n  属性 \"_determine_weights\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 897,
+    "startLineNumber": 927,
     "startColumn": 32,
-    "endLineNumber": 897,
+    "endLineNumber": 927,
     "endColumn": 50
   },
   {
@@ -3734,9 +3713,9 @@
     "severity": 8,
     "message": "クラス \"HybridSearchEngine\" の属性 \"_determine_weights\" にアクセスできません\n  属性 \"_determine_weights\" が不明です",
     "source": "Pylance",
-    "startLineNumber": 902,
+    "startLineNumber": 932,
     "startColumn": 32,
-    "endLineNumber": 902,
+    "endLineNumber": 932,
     "endColumn": 50
   },
   {
@@ -3755,9 +3734,9 @@
     "severity": 8,
     "message": "\"LogAnalyzer\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 912,
+    "startLineNumber": 942,
     "startColumn": 51,
-    "endLineNumber": 912,
+    "endLineNumber": 942,
     "endColumn": 62
   },
   {
@@ -3776,9 +3755,9 @@
     "severity": 8,
     "message": "\"LogAnalyzer\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 931,
+    "startLineNumber": 961,
     "startColumn": 51,
-    "endLineNumber": 931,
+    "endLineNumber": 961,
     "endColumn": 62
   },
   {
@@ -3797,9 +3776,9 @@
     "severity": 8,
     "message": "\"LogAnalyzer\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 964,
+    "startLineNumber": 994,
     "startColumn": 51,
-    "endLineNumber": 964,
+    "endLineNumber": 994,
     "endColumn": 62
   },
   {
@@ -3818,9 +3797,9 @@
     "severity": 8,
     "message": "\"LogAnalyzer\" は不明なインポート シンボルです",
     "source": "Pylance",
-    "startLineNumber": 992,
+    "startLineNumber": 1022,
     "startColumn": 51,
-    "endLineNumber": 992,
+    "endLineNumber": 1022,
     "endColumn": 62
   },
   {

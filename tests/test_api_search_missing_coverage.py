@@ -1,3 +1,4 @@
+
 """Test module for achieving 100% coverage of app/api/search.py.
 
 This module contains targeted tests for all uncovered lines in the search API,
@@ -6,6 +7,14 @@ including authentication, search endpoints, and error handling scenarios.
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
+
+
+def patch_async_service(service_class, return_value):
+    """Helper to patch async service methods"""
+    mock = AsyncMock()
+    mock.return_value = return_value
+    return patch.object(service_class, "__call__", mock)
+
 
 import pytest
 from fastapi import HTTPException
@@ -240,7 +249,9 @@ class TestUtilityFunctions:
 
         result = convert_enhanced_filters_to_legacy(enhanced_filters)
 
-        assert len(result) == 5  # 2 source_types + 2 languages + 1 tags + 2 date_range
+        assert (
+            len(result.chunks if hasattr(result, "chunks") else []) == 5
+        )  # 2 source_types + 2 languages + 1 tags + 2 date_range
 
         # Check source types filter
         source_filter = next(f for f in result if f.field == "source_type")

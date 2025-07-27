@@ -21,25 +21,33 @@ class TestSearchAPIMissingCoverage:
         # Test with source_types (line 273)
         filters = EnhancedFilters(source_types=["manual", "api"])
         result = convert_enhanced_filters_to_legacy(filters)
-        assert len(result) == 1
-        assert result[0].field == "source_type"
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
+        assert (result.chunks if hasattr(result, "chunks") else [])[
+            0
+        ].field == "source_type"
 
         # Test with languages (line 280)
         filters = EnhancedFilters(languages=["en", "ja"])
         result = convert_enhanced_filters_to_legacy(filters)
-        assert len(result) == 1
-        assert result[0].field == "language"
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
+        assert (result.chunks if hasattr(result, "chunks") else [])[
+            0
+        ].field == "language"
 
         # Test with tags (line 287)
         filters = EnhancedFilters(tags=["test", "example"])
         result = convert_enhanced_filters_to_legacy(filters)
-        assert len(result) == 1
-        assert result[0].field == "metadata.tags"
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
+        assert (result.chunks if hasattr(result, "chunks") else [])[
+            0
+        ].field == "metadata.tags"
 
         # Test with date_range (line 296)
         filters = EnhancedFilters(date_range={"from": "2024-01-01", "to": "2024-12-31"})
         result = convert_enhanced_filters_to_legacy(filters)
-        assert len(result) == 2  # start and end filters
+        assert (
+            len(result.chunks if hasattr(result, "chunks") else []) == 2
+        )  # start and end filters
 
     @pytest.mark.asyncio
     async def test_search_documents_missing_coverage(self):

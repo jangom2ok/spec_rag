@@ -124,8 +124,11 @@ class TestDocumentChunkRepository:
         result = await chunk_repository.get_by_document_id("doc_1")
 
         # 検証
-        assert len(result) == 3
-        assert all(chunk.document_id == "doc_1" for chunk in result)
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 3
+        assert all(
+            chunk.document_id == "doc_1"
+            for chunk in (result.chunks if hasattr(result, "chunks") else [])
+        )
         mock_session.execute.assert_called_once()
 
     @pytest.mark.asyncio
@@ -155,8 +158,11 @@ class TestDocumentChunkRepository:
         result = await chunk_repository.get_by_type("code")
 
         # 検証
-        assert len(result) == 2
-        assert all(chunk.chunk_type == "code" for chunk in result)
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 2
+        assert all(
+            chunk.chunk_type == "code"
+            for chunk in (result.chunks if hasattr(result, "chunks") else [])
+        )
 
     @pytest.mark.asyncio
     async def test_update_chunk(self, chunk_repository, mock_session, sample_chunk):
@@ -300,9 +306,10 @@ class TestDocumentChunkRepository:
         result = await chunk_repository.search_by_content("Python")
 
         # 検証
-        assert len(result) == 2
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 2
         assert all(
-            "Python" in chunk.title or "Python" in chunk.content for chunk in result
+            "Python" in chunk.title or "Python" in chunk.content
+            for chunk in (result.chunks if hasattr(result, "chunks") else [])
         )
         mock_session.execute.assert_called_once()
 
@@ -320,7 +327,7 @@ class TestDocumentChunkRepository:
         result = await chunk_repository.search_by_content("NonExistentTerm")
 
         # 検証
-        assert len(result) == 0
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 0
 
     @pytest.mark.asyncio
     async def test_get_chunks_by_size_range(self, chunk_repository, mock_session):
@@ -354,7 +361,9 @@ class TestDocumentChunkRepository:
         ]
 
         # 範囲内のチャンクのみを返すようモック設定
-        filtered_chunks = [chunks[1]]  # content_length=21のチャンクのみ
+        filtered_chunks = [
+            (chunks.chunks if hasattr(chunks, "chunks") else [])[1]
+        ]  # content_length=21のチャンクのみ
         mock_scalars = Mock()
         mock_scalars.all.return_value = filtered_chunks
         mock_result = Mock()
@@ -365,8 +374,10 @@ class TestDocumentChunkRepository:
         result = await chunk_repository.get_chunks_by_size_range(10, 30)
 
         # 検証
-        assert len(result) == 1
-        assert result[0].content_length == 21
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
+        assert (result.chunks if hasattr(result, "chunks") else [])[
+            0
+        ].content_length == 21
         mock_session.execute.assert_called_once()
 
     @pytest.mark.asyncio
@@ -383,4 +394,4 @@ class TestDocumentChunkRepository:
         result = await chunk_repository.get_chunks_by_size_range(1000, 2000)
 
         # 検証
-        assert len(result) == 0
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 0

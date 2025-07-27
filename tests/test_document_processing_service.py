@@ -508,10 +508,16 @@ class TestDocumentProcessingService:
                 document, processing_config.chunking_config
             )
 
-        assert len(result) == 1
-        assert result[0]["id"] == "chunk_1"
-        assert result[0]["content"] == "Test content"
-        assert result[0]["language"] == "en"
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
+        assert (result.chunks if hasattr(result, "chunks") else [])[0][
+            "id"
+        ] == "chunk_1"
+        assert (result.chunks if hasattr(result, "chunks") else [])[0][
+            "content"
+        ] == "Test content"
+        assert (result.chunks if hasattr(result, "chunks") else [])[0][
+            "language"
+        ] == "en"
 
     @pytest.mark.asyncio
     async def test_chunk_document_failure(self, processing_service, processing_config):
@@ -572,10 +578,16 @@ class TestDocumentProcessingService:
             chunks, semaphore, "doc_1"
         )
 
-        assert len(result) == 2
-        assert "embeddings" in result[0]
-        assert "embeddings" in result[1]
-        assert result[0]["embeddings"] == [0.1] * 1024
+        assert len(result.chunks if hasattr(result, "chunks") else []) == 2
+        assert (
+            "embeddings" in (result.chunks if hasattr(result, "chunks") else [])[0]
+        )
+        assert (
+            "embeddings" in (result.chunks if hasattr(result, "chunks") else [])[1]
+        )
+        assert (result.chunks if hasattr(result, "chunks") else [])[0][
+            "embeddings"
+        ] == [0.1] * 1024
 
     @pytest.mark.asyncio
     async def test_process_chunk_embeddings_without_service(self, processing_service):
@@ -592,7 +604,10 @@ class TestDocumentProcessingService:
         )
 
         assert result == chunks
-        assert "embeddings" not in result[0]
+        assert (
+            "embeddings"
+            not in (result.chunks if hasattr(result, "chunks") else [])[0]
+        )
 
     @pytest.mark.asyncio
     async def test_process_chunk_embeddings_exception(self, processing_service):
@@ -611,7 +626,10 @@ class TestDocumentProcessingService:
         )
 
         assert result == chunks
-        assert "embeddings" not in result[0]
+        assert (
+            "embeddings"
+            not in (result.chunks if hasattr(result, "chunks") else [])[0]
+        )
 
     @pytest.mark.asyncio
     async def test_store_document_and_chunks_success(

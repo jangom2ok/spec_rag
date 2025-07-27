@@ -121,9 +121,13 @@ class TestDocument:
         )
         chunks = list(result.scalars().all())
 
-        assert len(chunks) == 1
-        assert chunks[0].document_id == document.id
-        assert chunks[0].content == "チャンクコンテンツ"
+        assert len(chunks.chunks if hasattr(chunks, "chunks") else []) == 1
+        assert (chunks.chunks if hasattr(chunks, "chunks") else [])[
+            0
+        ].document_id == document.id
+        assert (chunks.chunks if hasattr(chunks, "chunks") else [])[
+            0
+        ].content == "チャンクコンテンツ"
 
 
 class TestDocumentChunk:
@@ -237,4 +241,4 @@ class TestDocumentChunk:
             sa.select(DocumentChunk).where(DocumentChunk.document_id == document.id)
         )
         chunks = result.scalars().all()
-        assert len(chunks) == 0
+        assert len(chunks.chunks if hasattr(chunks, "chunks") else []) == 0

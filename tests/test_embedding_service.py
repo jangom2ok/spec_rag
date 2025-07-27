@@ -1,3 +1,4 @@
+
 """BGE-M3 Embedding Serviceのテスト"""
 
 import asyncio
