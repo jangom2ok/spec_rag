@@ -108,9 +108,10 @@ class TestMissingCoverage:
         connector = ConfluenceConnector(confluence_config)
 
         async with connector:
-            connector._session.request = AsyncMock(
-                side_effect=Exception("Network error")
-            )
+            if connector._session is not None:
+                connector._session.request = AsyncMock(
+                    side_effect=Exception("Network error")
+                )
 
             result = await connector.test_connection()
 
@@ -155,7 +156,8 @@ class TestMissingCoverage:
             }
 
             mock_request = AsyncMock(return_value=mock_response)
-            connector._session.request = mock_request
+            if connector._session is not None:
+                connector._session.request = mock_request
 
             await connector._fetch_pages_batch(0, 10)
 

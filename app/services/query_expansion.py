@@ -406,9 +406,7 @@ class QueryExpansionService:
     def __init__(self, config: QueryExpansionConfig):
         self.config = config
         self.expanders = self._create_expanders()
-        self.cache: dict[str, tuple[ExpansionResult, datetime]] = (
-            {}
-        )  # 簡易キャッシュ実装
+        self.cache: dict[str, tuple[ExpansionResult, datetime]] = {}  # 簡易キャッシュ実装
 
     def _create_expanders(self) -> dict[ExpansionMethod, BaseExpander]:
         """拡張器インスタンス作成"""
@@ -813,4 +811,4 @@ class MockSemanticModel:
         dot_product = np.dot(embedding1, embedding2)
         norm1 = np.linalg.norm(embedding1)
         norm2 = np.linalg.norm(embedding2)
-        return dot_product / (norm1 * norm2) if norm1 > 0 and norm2 > 0 else 0.0
+        return float(dot_product / (norm1 * norm2)) if norm1 > 0 and norm2 > 0 else 0.0

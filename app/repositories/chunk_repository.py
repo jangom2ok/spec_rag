@@ -24,7 +24,7 @@ class DocumentChunkRepository:
         result = await self.session.execute(
             sa.select(DocumentChunk).where(DocumentChunk.id == chunk_id)
         )
-        return result.scalar_one_or_none()
+        return result.scalar_one_or_none()  # type: ignore
 
     async def get_by_document_id(self, document_id: str) -> list[DocumentChunk]:
         """ドキュメントIDでチャンクを取得"""

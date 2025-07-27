@@ -270,7 +270,9 @@ class TestUtilityFunctions:
 
     def test_convert_enhanced_filters_empty(self):
         """Test filter conversion with empty filters."""
-        result = convert_enhanced_filters_to_legacy(EnhancedFilters(source_types=[], languages=[], tags=[], date_range=None))
+        result = convert_enhanced_filters_to_legacy(
+            EnhancedFilters(source_types=[], languages=[], tags=[], date_range=None)
+        )
         assert result == []
 
     def test_generate_search_suggestions_with_tags(self):

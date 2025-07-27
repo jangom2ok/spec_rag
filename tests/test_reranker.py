@@ -302,9 +302,7 @@ class TestRerankerService:
             result2 = await reranker.rerank(rerank_request)
 
             assert result2.cache_hit is True
-            assert (
-                result2.rerank_time <= result1.rerank_time
-            )  # キャッシュヒット時は同等かより短い
+            assert result2.rerank_time <= result1.rerank_time  # キャッシュヒット時は同等かより短い
 
     @pytest.mark.unit
     async def test_batch_reranking(
@@ -415,7 +413,9 @@ class TestRerankerService:
             result = await reranker.rerank(rerank_request)
 
             assert result.success is False
-            assert result.error_message and "Model loading failed" in result.error_message
+            assert (
+                result.error_message and "Model loading failed" in result.error_message
+            )
             assert len(result.documents) == 0
 
     @pytest.mark.unit

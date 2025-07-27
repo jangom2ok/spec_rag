@@ -34,6 +34,7 @@ class TestMainCoverage:
         # Test with a general exception
         exc = Exception("Test error")
         from inspect import iscoroutinefunction
+
         if iscoroutinefunction(handler):
             response = await handler(request, exc)
         else:

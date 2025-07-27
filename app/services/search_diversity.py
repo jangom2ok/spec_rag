@@ -418,7 +418,7 @@ class ClusteringDiversifier(BaseDiversifier):
         total_similarity = np.sum(similarities) - np.trace(similarities)
         avg_similarity = total_similarity / (n * n - n) if n > 1 else 0.0
 
-        return max(0.0, min(1.0, avg_similarity))
+        return float(max(0.0, min(1.0, avg_similarity)))
 
 
 class TopicDiversifier(BaseDiversifier):
@@ -608,9 +608,7 @@ class SearchDiversityService:
     def __init__(self, config: DiversityConfig):
         self.config = config
         self.diversifiers = self._create_diversifiers()
-        self.cache: dict[str, tuple[DiversificationResult, datetime]] = (
-            {}
-        )  # 簡易キャッシュ実装
+        self.cache: dict[str, tuple[DiversificationResult, datetime]] = {}  # 簡易キャッシュ実装
 
     def _create_diversifiers(self) -> dict[DiversificationAlgorithm, BaseDiversifier]:
         """多様化器インスタンス作成"""
@@ -850,9 +848,7 @@ class SearchDiversityService:
             if selected_candidates
             else 0.0
         )
-        novelty_score = min(
-            1.0, novelty_score / 3.0
-        )  # 正規化（平均3トピック/候補と仮定）
+        novelty_score = min(1.0, novelty_score / 3.0)  # 正規化（平均3トピック/候補と仮定）
 
         # 冗長性スコア（1 - 多様性）
         redundancy_score = 1.0 - intra_list_diversity
@@ -894,10 +890,10 @@ class SearchDiversityService:
                     )
                 elif criterion == "topic":
                     # トピック多様性
-                    scores["topic"] = (
-                        self._calculate_topic_diversity_score_for_candidate(
-                            candidate, candidates
-                        )
+                    scores[
+                        "topic"
+                    ] = self._calculate_topic_diversity_score_for_candidate(
+                        candidate, candidates
                     )
 
             diversity_scores[candidate.id] = scores

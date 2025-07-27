@@ -174,9 +174,9 @@ class TestDocumentEndpointsCoverage:
             with patch("app.api.documents.get_current_user_or_api_key"):
                 # When service returns None, endpoint should handle it
                 result = await get_processing_status(
-                    document_id="unknown-task", 
+                    document_id="unknown-task",
                     current_user={"permissions": ["read"]},
-                    processing_service=mock_service
+                    processing_service=mock_service,
                 )
 
                 # Should return None or handle appropriately
@@ -354,35 +354,30 @@ class TestProcessingConfigConversion:
             chunk_overlap=200,
         )
         file_config = _convert_to_processing_config(file_request)
-        assert file_config["source_type"] == SourceType.test
-        assert file_config["chunk_size"] == 1000
-        assert file_config["chunk_overlap"] == 200
+        assert file_config.collection_config.source_type.value == SourceType.test.value
+        assert file_config.chunking_config.chunk_size == 1000
+        assert file_config.chunking_config.overlap_size == 200
 
-        # Test URL source type
-        url_request = ProcessingConfigRequest(
-            source_type=SourceType.URL,
-            parameters={"url": "https://example.com"},
+        # Test confluence source type
+        confluence_request = ProcessingConfigRequest(
+            source_type=SourceType.confluence,
+            parameters={"url": "https://confluence.example.com"},
             chunk_size=2000,
         )
-        url_config = _convert_to_processing_config(url_request)
-        assert url_config["source_type"] == SourceType.URL
-        assert url_config["chunk_size"] == 2000
-
-        # Test API source type
-        api_request = ProcessingConfigRequest(
-            source_type=SourceType.API,
-            parameters={"endpoint": "https://api.example.com", "api_key": "secret"},
+        confluence_config = _convert_to_processing_config(confluence_request)
+        assert (
+            confluence_config.collection_config.source_type.value
+            == SourceType.confluence.value
         )
-        api_config = _convert_to_processing_config(api_request)
-        assert api_config["source_type"] == SourceType.API
+        assert confluence_config.chunking_config.chunk_size == 2000
 
-        # Test DATABASE source type
-        db_request = ProcessingConfigRequest(
-            source_type=SourceType.DATABASE,
-            parameters={"connection_string": "postgresql://localhost/db"},
+        # Test jira source type
+        jira_request = ProcessingConfigRequest(
+            source_type=SourceType.jira,
+            parameters={"url": "https://jira.example.com", "api_key": "secret"},
         )
-        db_config = _convert_to_processing_config(db_request)
-        assert db_config["source_type"] == SourceType.DATABASE
+        jira_config = _convert_to_processing_config(jira_request)
+        assert jira_config.collection_config.source_type.value == SourceType.jira.value
 
     def test_convert_to_processing_config_optional_params(self):
         """Test conversion with optional parameters."""
@@ -393,8 +388,8 @@ class TestProcessingConfigConversion:
         config = _convert_to_processing_config(request)
 
         # Check defaults are applied
-        assert "chunk_size" in config
-        assert "chunk_overlap" in config
+        assert hasattr(config.chunking_config, "chunk_size")
+        assert hasattr(config.chunking_config, "overlap_size")
 
 
 # No cleanup needed since we're not modifying sys.modules anymore

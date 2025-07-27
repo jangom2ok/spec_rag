@@ -514,7 +514,11 @@ class TestQueryExpansionService:
                     _expansion, score = expansion_item
                 assert score >= basic_expansion_config.similarity_threshold
             # スコア降順でソートされていることを確認
-            scores = [item[1] for item in expansions if isinstance(item, tuple) and len(item) == 2]
+            scores = [
+                item[1]
+                for item in expansions
+                if isinstance(item, tuple) and len(item) == 2
+            ]
             assert scores == sorted(scores, reverse=True)
 
     @pytest.mark.unit
@@ -613,7 +617,10 @@ class TestQueryExpansionService:
             result = await expansion_service.expand_query(sample_expansion_request)
 
             assert result.success is False
-            assert result.error_message and "Term extraction failed" in result.error_message
+            assert (
+                result.error_message
+                and "Term extraction failed" in result.error_message
+            )
             assert result.expanded_terms == []
 
     @pytest.mark.unit

@@ -4,7 +4,8 @@
 Black、Ruff、mypy、pytestを順番に実行し、すべてが成功するまで修正を試みる
 """
 
-import subprocess
+# This script uses subprocess to run code quality tools - security risk is acceptable
+import subprocess  # noqa: S404, B404
 import sys
 import time
 
@@ -18,7 +19,9 @@ NC = "\033[0m"  # No Color
 def run_command(command: list[str], check: bool = True) -> tuple[int, str, str]:
     """コマンドを実行して結果を返す"""
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=check)  # noqa: S603
+        result = subprocess.run(  # noqa: S603, B603
+            command, capture_output=True, text=True, check=check
+        )
         return result.returncode, result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
         return e.returncode, e.stdout, e.stderr

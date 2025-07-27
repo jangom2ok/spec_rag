@@ -592,7 +592,10 @@ class TestSearchDiversityService:
             result = await diversity_service.diversify(diversification_request)
 
             assert result.success is False
-            assert result.error_message and "Diversification failed" in result.error_message
+            assert (
+                result.error_message
+                and "Diversification failed" in result.error_message
+            )
             assert result.diversified_candidates == []
 
     @pytest.mark.unit

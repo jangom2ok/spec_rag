@@ -1,15 +1,14 @@
 """Simple test for search_diversity.py to achieve coverage."""
 
 import os
+from datetime import datetime, timedelta
 
 os.environ["TESTING"] = "true"
 
-from datetime import datetime, timedelta
+import numpy as np  # noqa: E402
+import pytest  # noqa: E402
 
-import numpy as np
-import pytest
-
-from app.services.search_diversity import (
+from app.services.search_diversity import (  # noqa: E402
     ClusteringDiversifier,
     ClusterResult,
     DiversificationAlgorithm,
@@ -102,7 +101,9 @@ class TestSearchDiversity:
             metadata={"category": "test", "author": "John"},
         )
 
-        assert candidate2.embedding is not None and np.array_equal(candidate2.embedding, custom_embedding)
+        assert candidate2.embedding is not None and np.array_equal(
+            candidate2.embedding, custom_embedding
+        )
         assert candidate2.metadata["category"] == "test"
         assert candidate2.metadata["author"] == "John"
 

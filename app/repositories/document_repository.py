@@ -25,7 +25,7 @@ class DocumentRepository:
         result = await self.session.execute(
             sa.select(Document).where(Document.id == document_id)
         )
-        return result.scalar_one_or_none()
+        return result.scalar_one_or_none()  # type: ignore
 
     async def get_by_source(self, source_type: str, source_id: str) -> Document | None:
         """ソースタイプとIDでドキュメントを取得"""
@@ -34,7 +34,7 @@ class DocumentRepository:
                 Document.source_type == source_type, Document.source_id == source_id
             )
         )
-        return result.scalar_one_or_none()
+        return result.scalar_one_or_none()  # type: ignore
 
     async def get_with_chunks(self, document_id: str) -> Document | None:
         """チャンクも含めてドキュメントを取得"""
@@ -43,7 +43,7 @@ class DocumentRepository:
             .options(selectinload(Document.chunks))
             .where(Document.id == document_id)
         )
-        return result.scalar_one_or_none()
+        return result.scalar_one_or_none()  # type: ignore
 
     async def update(self, document: Document) -> Document:
         """ドキュメントを更新"""

@@ -209,7 +209,9 @@ class TestSearchSuggestionsService:
             ]
 
             suggestions = await suggestions_service._get_contextual_suggestions(
-                sample_suggestion_request.query, sample_suggestion_request.context or {}, 5
+                sample_suggestion_request.query,
+                sample_suggestion_request.context or {},
+                5,
             )
 
             assert len(suggestions) == 2
@@ -255,7 +257,9 @@ class TestSearchSuggestionsService:
             ]
 
             suggestions = await suggestions_service._get_personalized_suggestions(
-                sample_suggestion_request.query, sample_suggestion_request.user_id or "", 5
+                sample_suggestion_request.query,
+                sample_suggestion_request.user_id or "",
+                5,
             )
 
             assert len(suggestions) == 2
@@ -619,7 +623,10 @@ class TestSearchSuggestionsService:
             )
 
             assert result.success is False
-            assert result.error_message and "Autocomplete service failed" in result.error_message
+            assert (
+                result.error_message
+                and "Autocomplete service failed" in result.error_message
+            )
             assert result.suggestions == []
 
     @pytest.mark.unit
@@ -638,7 +645,10 @@ class TestSearchSuggestionsService:
         result = await suggestions_service.get_suggestions(empty_request)
 
         assert result.success is False
-        assert result.error_message and "query is too short" in result.error_message.lower()
+        assert (
+            result.error_message
+            and "query is too short" in result.error_message.lower()
+        )
         assert result.suggestions == []
 
     @pytest.mark.unit
@@ -657,7 +667,10 @@ class TestSearchSuggestionsService:
         result = await suggestions_service.get_suggestions(short_request)
 
         assert result.success is False
-        assert result.error_message and "query is too short" in result.error_message.lower()
+        assert (
+            result.error_message
+            and "query is too short" in result.error_message.lower()
+        )
         assert result.suggestions == []
 
     @pytest.mark.integration

@@ -260,7 +260,8 @@ class TestBaseConnectorErrorHandling:
             mock_response.status = 200
 
             mock_request = AsyncMock(return_value=mock_response)
-            connector._session.request = mock_request
+            if connector._session is not None:
+                connector._session.request = mock_request
 
             custom_headers = {"X-Custom": "value"}
             await connector._make_request(
@@ -293,9 +294,9 @@ class TestBaseConnectorErrorHandling:
             if connector._session:
                 connector._session.request = AsyncMock(  # type: ignore
                     side_effect=aiohttp.ClientConnectorError(
-                    connection_key=MagicMock(), os_error=OSError("Network error")
+                        connection_key=MagicMock(), os_error=OSError("Network error")
+                    )
                 )
-            )
 
             with pytest.raises(ConnectionError, match="Connection failed"):
                 await connector._make_request("GET", "https://example.com")
@@ -372,7 +373,8 @@ class TestConfluenceConnectorErrors:
             mock_response.json.return_value = {"results": []}
 
             mock_request = AsyncMock(return_value=mock_response)
-            connector._session.request = mock_request
+            if connector._session is not None:
+                connector._session.request = mock_request
 
             await connector._fetch_pages_batch(0, 10, incremental=True)
 
@@ -391,7 +393,8 @@ class TestConfluenceConnectorErrors:
             mock_response.json.return_value = {"results": []}
 
             mock_request = AsyncMock(return_value=mock_response)
-            connector._session.request = mock_request
+            if connector._session is not None:
+                connector._session.request = mock_request
 
             await connector._fetch_pages_batch(0, 10)
 
@@ -558,7 +561,8 @@ class TestJiraConnector:
             }
 
             mock_request = AsyncMock(return_value=mock_response)
-            connector._session.request = mock_request
+            if connector._session is not None:
+                connector._session.request = mock_request
 
             issues = await connector._fetch_issues_batch(0, 50, incremental=True)
 
@@ -746,7 +750,9 @@ class TestExternalSourceIntegrator:
         # Exception case - test with object that can't be processed as string
         result = integrator._normalize_timestamp("")  # type: ignore
         # Should return current ISO timestamp on any exception
-        assert "T" in result or result == ""  # Basic check that it's ISO format or empty string
+        assert (
+            "T" in result or result == ""
+        )  # Basic check that it's ISO format or empty string
 
     @pytest.mark.unit
     async def test_fetch_confluence_pages_method(self):

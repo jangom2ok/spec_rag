@@ -2,7 +2,7 @@
 Final push for 100% coverage - testing specific missing lines.
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -106,7 +106,9 @@ class TestMiddlewareLines:
 
         # ErrorHandlingMiddleware doesn't have dispatch method
         if hasattr(middleware, "dispatch"):
-            response = await middleware.dispatch(mock_request, call_next_validation_error)
+            response = await middleware.dispatch(
+                mock_request, call_next_validation_error
+            )
             assert response.status_code == 422
         else:
             pytest.skip("ErrorHandlingMiddleware doesn't have dispatch method")
@@ -130,14 +132,14 @@ class TestEmbeddingServiceLines:
     def test_init_import_error(self):
         """Test initialization when imports fail (lines 31-38)."""
         with patch("app.services.embedding_service.FlagEmbedding", None):
-            from app.services.embedding_service import EmbeddingService
-
             # EmbeddingService requires config parameter
             from app.models.embedding import EmbeddingConfig
+            from app.services.embedding_service import EmbeddingService
+
             config = EmbeddingConfig()
             service = EmbeddingService(config)
-            assert not hasattr(service, 'available') or not service.available
-            assert not hasattr(service, 'model') or service.model is None
+            assert not hasattr(service, "available") or not service.available
+            assert not hasattr(service, "model") or service.model is None
 
     def test_load_model_exception(self):
         """Test model loading exception (line 57)."""
@@ -148,9 +150,10 @@ class TestEmbeddingServiceLines:
 
             # EmbeddingService requires config parameter
             from app.models.embedding import EmbeddingConfig
+
             config = EmbeddingConfig()
             service = EmbeddingService(config)
-            if hasattr(service, '_load_model'):
+            if hasattr(service, "_load_model"):
                 loaded_model = service._load_model()
                 assert loaded_model is None
             else:
@@ -159,15 +162,15 @@ class TestEmbeddingServiceLines:
     @pytest.mark.asyncio
     async def test_batch_generate_failure(self):
         """Test batch generation failure (lines 152-154, 343-357)."""
-        from app.services.embedding_service import EmbeddingService
-
         # EmbeddingService requires config parameter
         from app.models.embedding import EmbeddingConfig
+        from app.services.embedding_service import EmbeddingService
+
         config = EmbeddingConfig()
         service = EmbeddingService(config)
-        
+
         # Skip test if method doesn't exist
-        if not hasattr(service, 'batch_generate_embeddings'):
+        if not hasattr(service, "batch_generate_embeddings"):
             pytest.skip("batch_generate_embeddings method not available")
 
 
@@ -215,7 +218,8 @@ class TestAuthAPILines:
 
             with pytest.raises(HTTPException) as exc:
                 await create_api_key(
-                    request={"name": "test-key", "permissions": ["read"]}, current_user=mock_user
+                    request={"name": "test-key", "permissions": ["read"]},
+                    current_user=mock_user,
                 )
             assert exc.value.status_code == 400
 
@@ -239,4 +243,6 @@ class TestCoreAuthLines:
     def test_permission_checks(self):
         """Test permission checking edge cases (lines 162, 197, etc)."""
         # Functions not available in app.core.auth
-        pytest.skip("check_permission and has_any_permission not available in app.core.auth")
+        pytest.skip(
+            "check_permission and has_any_permission not available in app.core.auth"
+        )
