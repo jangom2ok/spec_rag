@@ -1067,6 +1067,7 @@ class MetricsCollectionService:
     async def _aggregate_metric_type(self, metric_type: MetricType) -> None:
         """特定メトリクスタイプの集約"""
         cache_key = f"aggregated_{metric_type}_{datetime.now().strftime('%Y%m%d%H%M')}"
+        aggregated: dict[str, Any]
 
         if metric_type == MetricType.SEARCH_METRICS:
             search_metrics = list(self._search_metrics_buffer)
