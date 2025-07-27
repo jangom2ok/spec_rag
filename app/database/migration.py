@@ -58,7 +58,11 @@ class MigrationManager:
         revision = revisions[0] if isinstance(revisions, list) else revisions
 
         # revisionがScript型であることを保証
-        if hasattr(revision, "revision") and hasattr(revision, "path"):
+        if (
+            revision is not None
+            and hasattr(revision, "revision")
+            and hasattr(revision, "path")
+        ):
             return {
                 "revision": revision.revision,
                 "message": message,
@@ -101,7 +105,7 @@ class MigrationManager:
             with engine.connect() as connection:
                 context = MigrationContext.configure(connection)
                 current_rev = context.get_current_revision()
-                return current_rev
+                return str(current_rev) if current_rev else None
         finally:
             engine.dispose()
 
@@ -131,7 +135,7 @@ class MigrationManager:
         script = ScriptDirectory.from_config(config)
         head_revision = script.get_current_head()
 
-        return current_rev == head_revision
+        return bool(current_rev == head_revision)
 
     async def validate_migrations(self) -> dict[str, Any]:
         """マイグレーションの整合性を検証"""
@@ -178,7 +182,11 @@ def create_migration(
     revision = revisions[0] if isinstance(revisions, list) else revisions
 
     # revisionがScript型であることを保証
-    if hasattr(revision, "revision") and hasattr(revision, "path"):
+    if (
+        revision is not None
+        and hasattr(revision, "revision")
+        and hasattr(revision, "path")
+    ):
         return {
             "revision": revision.revision,
             "message": message,
