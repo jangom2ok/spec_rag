@@ -21,27 +21,71 @@ except ImportError:
     class JWTAuthenticationMiddleware(BaseHTTPMiddleware):  # type: ignore[no-redef]
         """Mock JWT Authentication middleware."""
 
-        def __init__(self, app, secret_key: str):
-            super().__init__(app)
+        def __init__(self, app=None, secret_key: str = "test-secret"):  # noqa: S107
+            if app:
+                super().__init__(app)
             self.secret_key = secret_key
 
         async def dispatch(self, request, call_next):
             return await call_next(request)
 
+        def authenticate(self, request):
+            """Mock authenticate method."""
+            auth_header = request.headers.get("Authorization", "")
+            if not auth_header:
+                raise HTTPException(
+                    status_code=401, detail="Missing authorization header"
+                )
+
+            parts = auth_header.split()
+            if len(parts) != 2:
+                raise HTTPException(
+                    status_code=401, detail="Invalid authorization header format"
+                )
+
+            scheme, token = parts
+            if scheme != "Bearer":
+                raise HTTPException(
+                    status_code=401, detail="Invalid authentication scheme"
+                )
+
+            # Mock JWT validation
+            try:
+                payload = jwt.decode(token, self.secret_key, algorithms=["HS256"])
+                return payload
+            except jwt.ExpiredSignatureError as e:
+                raise HTTPException(status_code=401, detail="Token has expired") from e
+            except jwt.InvalidTokenError as e:
+                raise HTTPException(status_code=401, detail="Invalid token") from e
+
     class APIKeyAuthenticationMiddleware(BaseHTTPMiddleware):  # type: ignore[no-redef]
         """Mock API Key Authentication middleware."""
 
-        def __init__(self, app):
-            super().__init__(app)
+        def __init__(self, app=None):
+            if app:
+                super().__init__(app)
 
         async def dispatch(self, request, call_next):
             return await call_next(request)
 
+        def authenticate(self, request):
+            """Mock authenticate method."""
+            api_key = request.headers.get("X-API-Key", "")
+            if not api_key:
+                raise HTTPException(status_code=401, detail="Missing API key")
+
+            # Mock API key validation
+            if api_key != "valid-api-key":
+                raise HTTPException(status_code=401, detail="Invalid API key")
+
+            return {"api_key": api_key, "permissions": ["read", "write"]}
+
     class CombinedAuthenticationMiddleware(BaseHTTPMiddleware):  # type: ignore[no-redef]
         """Mock Combined Authentication middleware."""
 
-        def __init__(self, app, jwt_secret: str):
-            super().__init__(app)
+        def __init__(self, app=None, jwt_secret: str = "test-secret"):  # noqa: S107
+            if app:
+                super().__init__(app)
             self.jwt_secret = jwt_secret
 
         async def dispatch(self, request, call_next):
@@ -50,8 +94,9 @@ except ImportError:
     class RateLimitMiddleware(BaseHTTPMiddleware):  # type: ignore[no-redef]
         """Mock Rate Limit middleware."""
 
-        def __init__(self, app):
-            super().__init__(app)
+        def __init__(self, app=None):
+            if app:
+                super().__init__(app)
             self.request_counts = {}
 
         async def dispatch(self, request, call_next):
