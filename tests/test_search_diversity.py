@@ -184,16 +184,10 @@ class TestSearchDiversityService:
                 diversification_request.diversity_factor or 0.5,
             )
 
-            assert len(result.chunks if hasattr(result, "chunks") else []) == 3
-            assert (result.chunks if hasattr(result, "chunks") else [])[
-                0
-            ].id == "doc-1"  # 最高スコアが保持される
-            assert (result.chunks if hasattr(result, "chunks") else [])[
-                1
-            ].id == "doc-3"  # 異なるカテゴリ
-            assert (result.chunks if hasattr(result, "chunks") else [])[
-                2
-            ].id == "doc-4"  # さらに異なるカテゴリ
+            assert len(result) == 3
+            assert result[0].id == "doc-1"  # 最高スコアが保持される
+            assert result[1].id == "doc-3"  # 異なるカテゴリ
+            assert result[2].id == "doc-4"  # さらに異なるカテゴリ
 
     @pytest.mark.unit
     async def test_clustering_diversification(
@@ -219,7 +213,7 @@ class TestSearchDiversityService:
                 clustering_config.cluster_count,
             )
 
-            assert len(result.chunks if hasattr(result, "chunks") else []) == 3
+            assert len(result) == 3
             # 各クラスターから代表的な結果が選ばれていることを確認
             categories = [candidate.metadata["category"] for candidate in result]
             assert len(set(categories)) == 3  # 異なるカテゴリが選ばれている
@@ -250,7 +244,7 @@ class TestSearchDiversityService:
                 topic_diversity_config.topic_weight,
             )
 
-            assert len(result.chunks if hasattr(result, "chunks") else []) == 3
+            assert len(result) == 3
             # 異なるトピックが選ばれていることを確認
             all_topics = []
             for candidate in result:
@@ -282,7 +276,7 @@ class TestSearchDiversityService:
                 time_window_days=7,
             )
 
-            assert len(result.chunks if hasattr(result, "chunks") else []) == 3
+            assert len(result) == 3
             # 時系列的に分散されていることを確認
             dates = [candidate.metadata["date"] for candidate in result]
             assert len(set(dates)) == 3  # 異なる日付が選ばれている
