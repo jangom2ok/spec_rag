@@ -420,16 +420,16 @@ class TestCoreAuthCoverage:
         """Test token operations edge cases."""
         from app.core.auth import (  # type: ignore
             create_refresh_token,
-            verify_refresh_token,
+            verify_token,
         )
 
         # Test refresh token creation
         token = create_refresh_token({"sub": "test@example.com"})
         assert token is not None
 
-        # Test invalid refresh token
+        # Test invalid token
         with pytest.raises(Exception):  # noqa: B017
-            verify_refresh_token("invalid-token")  # type: ignore
+            verify_token("invalid-token")  # type: ignore
 
     def test_api_key_validation_not_found(self):
         """Test API key validation when key not found."""
