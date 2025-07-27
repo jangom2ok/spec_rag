@@ -122,7 +122,7 @@ class TestEmbeddingTaskManager:
     async def test_submit_document_processing_task(self):
         """ドキュメント処理タスクの投入テスト"""
         with patch(
-            "app.services.embedding_tasks.process_document_embedding"
+            "app.services.embedding_tasks.process_document_embedding_task"
         ) as mock_task:
             mock_result = Mock()
             mock_result.id = "task_12345"
@@ -136,39 +136,47 @@ class TestEmbeddingTaskManager:
     @pytest.mark.asyncio
     async def test_submit_batch_processing_task(self):
         """バッチ処理タスクの投入テスト"""
-        with patch("app.services.embedding_tasks.process_batch_embedding") as mock_task:
+        with patch(
+            "app.services.embedding_tasks.process_batch_texts_task"
+        ) as mock_task:
             mock_result = Mock()
             mock_result.id = "batch_task_67890"
             mock_task.delay.return_value = mock_result
 
-            batch_request = {
-                "texts": ["text1", "text2", "text3"],
+            texts = ["text1", "text2", "text3"]
+            metadata = {
                 "chunk_ids": ["chunk1", "chunk2", "chunk3"],
                 "document_ids": ["doc1", "doc1", "doc2"],
             }
 
-            result = EmbeddingTaskManager.submit_batch_processing(batch_request)
+            result = EmbeddingTaskManager.submit_batch_processing(texts, metadata)
 
             assert result.id == "batch_task_67890"
-            mock_task.delay.assert_called_once_with(batch_request)
+            mock_task.delay.assert_called_once_with(texts, metadata)
 
     @pytest.mark.asyncio
     async def test_get_task_status(self):
         """タスク状態取得テスト"""
-        with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
-            mock_result = Mock()
-            mock_result.status = "SUCCESS"
-            mock_result.result = {"processed_count": 5}
-            mock_result.ready.return_value = True
-            mock_result.successful.return_value = True
-            mock_async_result.return_value = mock_result
+        import os
 
-            status = EmbeddingTaskManager.get_task_status("task_12345")
+        with patch.dict(os.environ, {"TESTING": "false"}):
+            with patch("app.services.embedding_tasks.AsyncResult") as mock_async_result:
+                mock_result = Mock()
+                mock_result.status = "SUCCESS"
+                mock_result.result = {"processed_count": 5}
+                mock_result.info = None
+                mock_result.ready.return_value = True
+                mock_result.successful.return_value = True
+                mock_result.failed.return_value = False
+                mock_async_result.return_value = mock_result
 
-            assert status["status"] == "SUCCESS"
-            assert status["result"]["processed_count"] == 5
-            assert status["ready"] is True
-            assert status["successful"] is True
+                with patch("app.services.embedding_tasks.HAS_CELERY", True):
+                    status = EmbeddingTaskManager.get_task_status("task_12345")
+
+                assert status["status"] == "SUCCESS"
+                assert status["result"] == {"processed_count": 5}
+                assert status["ready"] is True
+                assert status["successful"] is True
 
     @pytest.mark.asyncio
     async def test_cancel_task(self):

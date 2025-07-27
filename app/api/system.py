@@ -1,7 +1,8 @@
 """システム管理API"""
 
 import logging
-from datetime import datetime
+import uuid
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -367,9 +368,6 @@ async def reindex_documents(
     管理者権限が必要です。
     """
     try:
-        import uuid
-        from datetime import timedelta
-
         # リインデックスタスクを開始
         task_id = str(uuid.uuid4())
 

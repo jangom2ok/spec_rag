@@ -64,13 +64,13 @@ async def get_health_status() -> dict[str, Any]:
 
 
 @router.get("")
-async def health_check():
+async def health_check() -> dict[str, Any]:
     """基本ヘルスチェック"""
     return await get_health_status()
 
 
 @router.get("/detailed")
-async def detailed_health_check():
+async def detailed_health_check() -> dict[str, Any]:
     """詳細ヘルスチェック"""
     try:
         postgresql_status = await check_postgresql_connection()
@@ -111,7 +111,7 @@ async def detailed_health_check():
 
 
 @router.get("/ready")
-async def readiness_probe():
+async def readiness_probe() -> dict[str, Any]:
     """Readiness Probe - アプリケーションが要求を処理する準備ができているかチェック"""
     try:
         # データベース接続チェック
@@ -138,6 +138,6 @@ async def readiness_probe():
 
 
 @router.get("/live")
-async def liveness_probe():
+async def liveness_probe() -> dict[str, Any]:
     """Liveness Probe - アプリケーションが生存しているかチェック"""
     return {"alive": True, "timestamp": datetime.utcnow().isoformat()}

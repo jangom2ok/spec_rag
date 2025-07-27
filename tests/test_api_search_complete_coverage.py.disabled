@@ -1,0 +1,774 @@
+"""
+Comprehensive test coverage for app/api/search.py to achieve 100% coverage.
+This file focuses on covering all missing lines identified in the coverage report.
+"""
+
+import pytest
+from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from datetime import datetime, timedelta
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+
+# Import the search module and related dependencies
+from app.api.search import (
+    router,
+    convert_enhanced_filters_to_legacy,
+    search_documents,
+    semantic_search,
+    keyword_search,
+    get_search_suggestions,
+    get_search_config,
+    search_semantic,
+    search_keyword,
+    generate_search_suggestions,
+    highlight_content,
+)
+from app.models.search import (
+    SearchQuery,
+    SearchFilter,
+    SearchResponse,
+    SearchRequest,
+    SearchMode,
+    EnhancedFilters,
+    SearchOptions,
+    RankingOptions,
+    SearchResultDocument,
+    SourceInfo,
+    ContextInfo,
+)
+# Import SearchSuggestionsResponse from search module directly
+import sys
+sys.path.insert(0, '/Users/jangom2ok/work/git/spec_rag')
+from app.api.search import SearchSuggestionsResponse
+from app.services.hybrid_search_engine import SearchResult
+
+
+@pytest.fixture
+def mock_search_engine():
+    """Mock search engine for testing."""
+    engine = Mock()
+    engine.config = Mock()
+    engine.config.dense_weight = 0.7
+    engine.config.sparse_weight = 0.3
+    engine.config.enable_reranking = True
+    engine.config.similarity_threshold = 0.0
+    return engine
+
+
+@pytest.fixture
+def mock_current_user():
+    """Mock current user with permissions."""
+    return {
+        "user_id": "test_user",
+        "email": "test@example.com",
+        "permissions": ["read", "write"],
+    }
+
+
+@pytest.fixture
+def mock_search_result():
+    """Mock successful search result."""
+    result = Mock(spec=SearchResult)
+    result.success = True
+    result.total_hits = 2
+    result.documents = [
+        {
+            "id": "doc1",
+            "document_id": "doc1",
+            "chunk_id": "chunk1",
+            "search_score": 0.95,
+            "chunk_type": "paragraph",
+            "title": "Test Document 1",
+            "content": "This is a test document content.",
+            "source_type": "manual",
+            "language": "en",
+            "document_type": "text",
+            "metadata": {
+                "url": "http://example.com/doc1",
+                "author": "Test Author",
+                "tags": ["test", "example"],
+                "parent_sections": ["Section 1"],
+                "related_chunks": ["chunk2", "chunk3"],
+            },
+            "hierarchy_path": "/root/section1/doc1",
+            "updated_at": datetime.utcnow().isoformat(),
+            "rerank_score": 0.98,
+            "ranking_explanation": "High relevance",
+        },
+        {
+            "id": "doc2",
+            "document_id": "doc2",
+            "chunk_id": "chunk2",
+            "search_score": 0.85,
+            "chunk_type": "section",
+            "title": "Test Document 2",
+            "content": "Another test document.",
+            "source_type": "api",
+            "language": "ja",
+            "document_type": "markdown",
+            "metadata": {
+                "url": "http://example.com/doc2",
+                "author": "Another Author",
+                "tags": ["sample"],
+                "parent_sections": [],
+                "related_chunks": [],
+            },
+            "hierarchy_path": "/root/doc2",
+            "updated_at": datetime.utcnow().isoformat(),
+        },
+    ]
+    result.facets = {
+        "source_type": [Mock(value="manual", count=1), Mock(value="api", count=1)],
+        "language": [Mock(value="en", count=1), Mock(value="ja", count=1)],
+    }
+    result.error_message = None
+    return result
+
+
+class TestEnhancedFiltersConversion:
+    """Test enhanced filters to legacy conversion."""
+
+    def test_convert_empty_enhanced_filters(self):
+        """Test converting empty enhanced filters."""
+        filters = EnhancedFilters()
+        result = convert_enhanced_filters_to_legacy(filters)
+        assert result == []
+
+    def test_convert_source_types_filter(self):
+        """Test converting source types filter."""
+        filters = EnhancedFilters(source_types=["manual", "api"])
+        result = convert_enhanced_filters_to_legacy(filters)
+        assert len(result) == 1
+        assert result[0].field == "source_type"
+        assert result[0].value == ["manual", "api"]
+        assert result[0].operator == "in"
+
+    def test_convert_languages_filter(self):
+        """Test converting languages filter."""
+        filters = EnhancedFilters(languages=["en", "ja"])
+        result = convert_enhanced_filters_to_legacy(filters)
+        assert len(result) == 1
+        assert result[0].field == "language"
+        assert result[0].value == ["en", "ja"]
+        assert result[0].operator == "in"
+
+    def test_convert_tags_filter(self):
+        """Test converting tags filter."""
+        filters = EnhancedFilters(tags=["test", "example"])
+        result = convert_enhanced_filters_to_legacy(filters)
+        assert len(result) == 1
+        assert result[0].field == "metadata.tags"
+        assert result[0].value == ["test", "example"]
+        assert result[0].operator == "contains_any"
+
+    def test_convert_date_range_filter(self):
+        """Test converting date range filter."""
+        start_date = datetime.utcnow() - timedelta(days=7)
+        end_date = datetime.utcnow()
+        filters = EnhancedFilters(
+            date_range={"start": start_date.isoformat(), "end": end_date.isoformat()}
+        )
+        result = convert_enhanced_filters_to_legacy(filters)
+        assert len(result) == 2
+        assert result[0].field == "updated_at"
+        assert result[0].operator == "gte"
+        assert result[1].field == "updated_at"
+        assert result[1].operator == "lte"
+
+    def test_convert_all_filters_combined(self):
+        """Test converting all filter types combined."""
+        filters = EnhancedFilters(
+            source_types=["manual"],
+            languages=["en"],
+            tags=["test"],
+            date_range={
+                "start": (datetime.utcnow() - timedelta(days=1)).isoformat(),
+                "end": datetime.utcnow().isoformat(),
+            },
+        )
+        result = convert_enhanced_filters_to_legacy(filters)
+        assert len(result) == 5  # source_types + languages + tags + 2 date filters
+
+
+class TestSearchDocumentsEndpoint:
+    """Test the main search documents endpoint with comprehensive coverage."""
+
+    @pytest.mark.asyncio
+    async def test_search_documents_no_read_permission(
+        self, mock_search_engine, mock_current_user
+    ):
+        """Test search when user lacks read permission."""
+        mock_current_user["permissions"] = ["write"]  # No read permission
+
+        request = SearchRequest(query="test")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await search_documents(
+                request, current_user=mock_current_user, search_engine=mock_search_engine
+            )
+
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail == "Read permission required"
+
+    @pytest.mark.asyncio
+    async def test_search_documents_with_default_options(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with default search and ranking options."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(query="test query")
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        assert response.query == "test query"
+        assert response.success is True
+        assert response.total_results == 2
+        assert len(response.results) == 2
+
+        # Verify default options were applied
+        assert mock_search_engine.config.dense_weight == 0.7
+        assert mock_search_engine.config.sparse_weight == 0.3
+        assert mock_search_engine.config.enable_reranking is True
+
+    @pytest.mark.asyncio
+    async def test_search_documents_dense_mode(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with dense (semantic) mode."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            search_options=SearchOptions(search_type="dense"),
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify search mode was set correctly
+        call_args = mock_search_engine.search.call_args[0][0]
+        assert call_args.search_mode == SearchMode.SEMANTIC
+
+    @pytest.mark.asyncio
+    async def test_search_documents_sparse_mode(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with sparse (keyword) mode."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            search_options=SearchOptions(search_type="sparse"),
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify search mode was set correctly
+        call_args = mock_search_engine.search.call_args[0][0]
+        assert call_args.search_mode == SearchMode.KEYWORD
+
+    @pytest.mark.asyncio
+    async def test_search_documents_weight_normalization(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test weight normalization when sum != 1.0."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            ranking_options=RankingOptions(dense_weight=0.8, sparse_weight=0.4),
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Weights should be normalized: 0.8/(0.8+0.4) = 0.667, 0.4/(0.8+0.4) = 0.333
+        assert abs(mock_search_engine.config.dense_weight - 0.667) < 0.01
+        assert abs(mock_search_engine.config.sparse_weight - 0.333) < 0.01
+
+    @pytest.mark.asyncio
+    async def test_search_documents_zero_weights(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test weight handling when both weights are zero."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            ranking_options=RankingOptions(dense_weight=0.0, sparse_weight=0.0),
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Should fall back to defaults
+        assert mock_search_engine.config.dense_weight == 0.7
+        assert mock_search_engine.config.sparse_weight == 0.3
+
+    @pytest.mark.asyncio
+    async def test_search_documents_legacy_parameters(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test legacy parameter compatibility."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            dense_weight=0.6,
+            sparse_weight=0.4,
+            similarity_threshold=0.5,
+            enable_reranking=False,
+            max_results=20,
+            search_mode=SearchMode.KEYWORD,
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Legacy parameters should override defaults
+        assert mock_search_engine.config.dense_weight == 0.6
+        assert mock_search_engine.config.sparse_weight == 0.4
+        assert mock_search_engine.config.similarity_threshold == 0.5
+        assert mock_search_engine.config.enable_reranking is False
+
+        # Verify search query used legacy values
+        call_args = mock_search_engine.search.call_args[0][0]
+        assert call_args.max_results == 20
+        assert call_args.search_mode == SearchMode.KEYWORD
+
+    @pytest.mark.asyncio
+    async def test_search_documents_with_filters(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with enhanced filters."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            filters=EnhancedFilters(
+                source_types=["manual"],
+                languages=["en"],
+                tags=["test"],
+            ),
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify filters were converted and passed
+        call_args = mock_search_engine.search.call_args[0][0]
+        assert len(call_args.filters) == 3
+
+    @pytest.mark.asyncio
+    async def test_search_documents_with_legacy_filters(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with legacy filters."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        legacy_filter = SearchFilter(
+            field="source_type", value="manual", operator="eq"
+        )
+        request = SearchRequest(
+            query="test",
+            legacy_filters=[legacy_filter],
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify legacy filters were passed
+        call_args = mock_search_engine.search.call_args[0][0]
+        assert len(call_args.filters) == 1
+        assert call_args.filters[0].field == "source_type"
+
+    @pytest.mark.asyncio
+    async def test_search_documents_with_highlighting(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with content highlighting enabled."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            search_options=SearchOptions(highlight=True),
+        )
+
+        with patch("app.api.search.highlight_content", return_value="<em>test</em> content"):
+            response = await search_documents(
+                request, current_user=mock_current_user, search_engine=mock_search_engine
+            )
+
+        # Verify highlighting was applied
+        assert response.results[0].highlighted_content == "<em>test</em> content"
+
+    @pytest.mark.asyncio
+    async def test_search_documents_without_metadata(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search without including metadata."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            search_options=SearchOptions(include_metadata=False),
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify metadata was excluded
+        assert response.results[0].source is None
+        assert response.results[0].context is None
+        assert response.results[0].metadata is None
+
+    @pytest.mark.asyncio
+    async def test_search_documents_with_facets(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with facets."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(
+            query="test",
+            facets=["source_type", "language"],
+        )
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify facets were returned
+        assert response.facets is not None
+        assert "source_type" in response.facets
+        assert response.facets["source_type"]["manual"] == 1
+        assert response.facets["source_type"]["api"] == 1
+
+    @pytest.mark.asyncio
+    async def test_search_documents_failed_search(
+        self, mock_search_engine, mock_current_user
+    ):
+        """Test handling of failed search."""
+        failed_result = Mock(spec=SearchResult)
+        failed_result.success = False
+        failed_result.error_message = "Search engine error"
+        failed_result.total_hits = 0
+        failed_result.documents = []
+        failed_result.facets = None
+
+        mock_search_engine.search = AsyncMock(return_value=failed_result)
+
+        request = SearchRequest(query="test")
+
+        response = await search_documents(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        assert response.success is False
+        assert response.total_results == 0
+        assert len(response.results) == 0
+        assert response.error_message == "Search engine error"
+
+    @pytest.mark.asyncio
+    async def test_search_documents_exception(
+        self, mock_search_engine, mock_current_user
+    ):
+        """Test exception handling in search."""
+        mock_search_engine.search = AsyncMock(side_effect=Exception("Unexpected error"))
+
+        request = SearchRequest(query="test")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await search_documents(
+                request, current_user=mock_current_user, search_engine=mock_search_engine
+            )
+
+        assert exc_info.value.status_code == 500
+        assert "Search failed: Unexpected error" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_search_documents_with_suggestions(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test search with suggestions generation."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(query="test")
+
+        with patch(
+            "app.api.search.generate_search_suggestions",
+            return_value=["test document", "test example"],
+        ):
+            response = await search_documents(
+                request, current_user=mock_current_user, search_engine=mock_search_engine
+            )
+
+        assert response.suggestions == ["test document", "test example"]
+
+
+class TestSemanticSearchEndpoint:
+    """Test the semantic search endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_semantic_search_success(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test successful semantic search."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(query="test semantic search")
+
+        response = await semantic_search(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify search mode was set to semantic
+        call_args = mock_search_engine.search.call_args[0][0]
+        assert call_args.search_mode == SearchMode.SEMANTIC
+        assert response.success is True
+
+    @pytest.mark.asyncio
+    async def test_semantic_search_failure(
+        self, mock_search_engine, mock_current_user
+    ):
+        """Test semantic search failure."""
+        mock_search_engine.search = AsyncMock(side_effect=Exception("Semantic search error"))
+
+        request = SearchRequest(query="test")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await semantic_search(
+                request, current_user=mock_current_user, search_engine=mock_search_engine
+            )
+
+        assert exc_info.value.status_code == 500
+        assert "Semantic search failed" in exc_info.value.detail
+
+
+class TestKeywordSearchEndpoint:
+    """Test the keyword search endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_keyword_search_success(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test successful keyword search."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(query="test keyword search")
+
+        response = await keyword_search(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        # Verify search mode was set to keyword
+        call_args = mock_search_engine.search.call_args[0][0]
+        assert call_args.search_mode == SearchMode.KEYWORD
+        assert response.success is True
+
+
+class TestSearchSuggestionsEndpoint:
+    """Test the search suggestions endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_search_suggestions_success(self, mock_current_user):
+        """Test successful search suggestions."""
+        response = await get_search_suggestions(
+            q="machine", limit=5, current_user=mock_current_user
+        )
+
+        assert isinstance(response, SearchSuggestionsResponse)
+        assert response.query == "machine"
+        assert len(response.suggestions) > 0
+        assert any("machine" in s.lower() for s in response.suggestions)
+
+    @pytest.mark.asyncio
+    async def test_search_suggestions_empty_query(self, mock_current_user):
+        """Test search suggestions with empty query."""
+        response = await get_search_suggestions(
+            q="", limit=5, current_user=mock_current_user
+        )
+
+        assert isinstance(response, SearchSuggestionsResponse)
+        assert response.suggestions == []
+        assert response.query == ""
+
+    @pytest.mark.asyncio
+    async def test_search_suggestions_no_permission(self):
+        """Test search suggestions without read permission."""
+        user_without_read = {"user_id": "test", "permissions": ["write"]}
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_search_suggestions(
+                q="test", limit=5, current_user=user_without_read
+            )
+
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail == "Read permission required"
+
+    @pytest.mark.asyncio
+    async def test_search_suggestions_exception(self, mock_current_user):
+        """Test search suggestions exception handling."""
+        # Mock an exception during suggestion generation
+        with patch("app.api.search.logger.error") as mock_logger:
+            # This test is tricky because the function doesn't have external dependencies
+            # We'll test with a query that won't match any suggestions
+            response = await get_search_suggestions(
+                q="xyzabc123notfound", limit=5, current_user=mock_current_user
+            )
+
+            # Should still return empty suggestions without error
+            assert response.suggestions == []
+
+
+class TestSearchConfigEndpoint:
+    """Test the search config endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_get_search_config_success(
+        self, mock_search_engine, mock_current_user
+    ):
+        """Test successful retrieval of search config."""
+        mock_search_engine.config.dense_weight = 0.8
+        mock_search_engine.config.sparse_weight = 0.2
+        mock_search_engine.config.enable_reranking = True
+        mock_search_engine.config.similarity_threshold = 0.5
+        mock_search_engine.config.max_results = 50
+        mock_search_engine.config.enable_highlighting = True
+        mock_search_engine.config.enable_faceting = True
+
+        response = await get_search_config(
+            current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        assert response["config"]["dense_weight"] == 0.8
+        assert response["config"]["sparse_weight"] == 0.2
+        assert response["config"]["enable_reranking"] is True
+
+    @pytest.mark.asyncio
+    async def test_get_search_config_no_permission(self, mock_search_engine):
+        """Test search config without read permission."""
+        user_without_read = {"user_id": "test", "permissions": ["write"]}
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_search_config(
+                current_user=user_without_read, search_engine=mock_search_engine
+            )
+
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail == "Read permission required"
+
+    @pytest.mark.asyncio
+    async def test_get_search_config_exception(
+        self, mock_search_engine, mock_current_user
+    ):
+        """Test search config exception handling."""
+        # Make config access raise an exception
+        mock_search_engine.config = Mock(
+            side_effect=Exception("Config access error")
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_search_config(
+                current_user=mock_current_user, search_engine=mock_search_engine
+            )
+
+        assert exc_info.value.status_code == 500
+        assert "Failed to get search configuration" in exc_info.value.detail
+
+
+class TestSearchAliasEndpoints:
+    """Test the alias endpoints for backward compatibility."""
+
+    @pytest.mark.asyncio
+    async def test_semantic_search_alias(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test semantic search alias endpoint."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(query="test")
+
+        response = await search_semantic(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        assert response.success is True
+
+    @pytest.mark.asyncio
+    async def test_keyword_search_alias(
+        self, mock_search_engine, mock_current_user, mock_search_result
+    ):
+        """Test keyword search alias endpoint."""
+        mock_search_engine.search = AsyncMock(return_value=mock_search_result)
+
+        request = SearchRequest(query="test")
+
+        response = await search_keyword(
+            request, current_user=mock_current_user, search_engine=mock_search_engine
+        )
+
+        assert response.success is True
+
+
+class TestUtilityFunctions:
+    """Test utility functions in search module."""
+
+    def test_generate_search_suggestions_with_documents(self):
+        """Test generating search suggestions from documents."""
+        documents = [
+            {"title": "Python Programming Guide", "content": "Learn Python basics"},
+            {"title": "JavaScript Tutorial", "content": "Modern JS features"},
+        ]
+
+        suggestions = generate_search_suggestions("programming", documents)
+
+        assert isinstance(suggestions, list)
+        assert len(suggestions) <= 5  # Max 5 suggestions
+
+    def test_generate_search_suggestions_empty_documents(self):
+        """Test generating suggestions with no documents."""
+        suggestions = generate_search_suggestions("test", [])
+        assert suggestions == []
+
+    def test_highlight_content(self):
+        """Test content highlighting."""
+        content = "This is a test document with test content."
+        query = "test"
+
+        highlighted = highlight_content(content, query)
+
+        assert "<em>" in highlighted
+        assert "</em>" in highlighted
+        assert highlighted.count("<em>test</em>") == 2
+
+    def test_highlight_content_no_match(self):
+        """Test highlighting with no matches."""
+        content = "This document has no matches."
+        query = "xyz"
+
+        highlighted = highlight_content(content, query)
+
+        assert highlighted == content  # No changes
+
+    def test_highlight_content_case_insensitive(self):
+        """Test case-insensitive highlighting."""
+        content = "Test TEST TeSt"
+        query = "test"
+
+        highlighted = highlight_content(content, query)
+
+        assert highlighted.count("<em>") == 3
+        assert highlighted.count("</em>") == 3

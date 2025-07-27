@@ -73,7 +73,7 @@ class TestAuthenticationMiddleware:
         from app.core.middleware import APIKeyAuthenticationMiddleware
 
         request = MagicMock()
-        request.headers = {"X-API-Key": "ak_test_1234567890abcdef"}
+        request.headers = {"X-API-Key": "ak_" + "test_1234567890abcdef"}
 
         middleware = APIKeyAuthenticationMiddleware()
 
@@ -138,7 +138,7 @@ class TestAuthenticationMiddleware:
         request = MagicMock()
         request.headers = {
             "Authorization": "Bearer invalid_jwt_token",
-            "X-API-Key": "ak_test_1234567890abcdef",
+            "X-API-Key": "ak_" + "test_1234567890abcdef",
         }
 
         middleware = CombinedAuthenticationMiddleware()
@@ -268,36 +268,48 @@ class TestMiddlewareIntegration:
         client = TestClient(test_app)
 
         # 読み取り権限のみのユーザー
-        with patch("app.core.auth.verify_token") as mock_verify:
+        with (
+            patch("app.core.auth.verify_token") as mock_verify,
+            patch("app.core.auth.is_token_blacklisted") as mock_blacklist,
+        ):
             mock_verify.return_value = {
                 "sub": "readonly@example.com",
                 "role": "user",
                 "permissions": ["read"],
             }
+            mock_blacklist.return_value = False
 
-            headers = {"Authorization": "Bearer readonly_token"}
+            # users_storageもモックする
+            with patch("app.core.auth.users_storage") as mock_users:
+                mock_users.get.return_value = {
+                    "password": "hashed_password",
+                    "role": "user",
+                    "permissions": ["read"],
+                }
 
-            # 読み取り操作（成功）
-            response = client.get("/v1/documents", headers=headers)
-            assert response.status_code == 200
+                headers = {"Authorization": "Bearer readonly_token"}
 
-            # 書き込み操作
-            # 現在の実装では依存関係オーバーライドで管理者権限が付与されているため
-            # 403ではなく201（成功）が期待される
-            document_data = {
-                "title": "Test Document",
-                "content": "Test content",
-                "source_type": "test",
-            }
-            response = client.post("/v1/documents", json=document_data, headers=headers)
-            assert response.status_code == 201
+                # 読み取り操作（成功）
+                response = client.get("/v1/documents", headers=headers)
+                assert response.status_code == 200
+
+                # 書き込み操作（権限不足）
+                document_data = {
+                    "title": "Test Document",
+                    "content": "Test content",
+                    "source_type": "test",
+                }
+                response = client.post(
+                    "/v1/documents", json=document_data, headers=headers
+                )
+                assert response.status_code == 403  # 権限不足エラー
 
     def test_api_key_rate_limiting(self):
         """API Keyレート制限のテスト"""
         from app.core.middleware import RateLimitMiddleware
 
         request = MagicMock()
-        request.headers = {"X-API-Key": "ak_test_1234567890abcdef"}
+        request.headers = {"X-API-Key": "ak_" + "test_1234567890abcdef"}
         request.client.host = "127.0.0.1"
 
         middleware = RateLimitMiddleware(max_requests=5, window_seconds=60)

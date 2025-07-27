@@ -11,6 +11,7 @@ This is a RAG (Retrieval-Augmented Generation) system for system development doc
 ## Common Commands
 
 ### Development Environment Setup
+
 ```bash
 # Create virtual environment and install dependencies
 python -m venv venv
@@ -22,6 +23,7 @@ pre-commit install
 ```
 
 ### Running the Application
+
 ```bash
 # Start with Docker Compose (includes ApertureDB, PostgreSQL, Redis)
 docker-compose up -d
@@ -33,6 +35,7 @@ uvicorn app.main:app --reload
 ```
 
 ### Testing
+
 ```bash
 # Run all tests
 pytest
@@ -50,6 +53,7 @@ pytest tests/test_embedding_service.py
 ```
 
 ### Code Quality Checks
+
 ```bash
 # Format code
 black app/ tests/
@@ -77,6 +81,7 @@ python scripts/check_code_quality.py  # Python版
 ```
 
 ### Database Operations
+
 ```bash
 # Apply database migrations
 alembic upgrade head
@@ -88,7 +93,8 @@ alembic revision --autogenerate -m "description"
 ## Architecture Overview
 
 ### Directory Structure
-```
+
+```plaintext
 app/
 ├── api/           # FastAPI route handlers
 │   ├── auth.py    # Authentication endpoints
@@ -136,6 +142,7 @@ app/
 ### Vector Search Architecture
 
 The system implements hybrid search using BGE-M3:
+
 - **Dense vectors**: 1024-dimensional semantic embeddings
 - **Sparse vectors**: Traditional keyword-based sparse representations
 - **Multi-vectors**: ColBERT-style multi-vector representations
@@ -144,6 +151,7 @@ The system implements hybrid search using BGE-M3:
 ## Development Guidelines
 
 ### Code Style
+
 - Use Python 3.11+ features
 - Follow Black formatting (line length: 88)
 - Use type hints for all functions
@@ -151,6 +159,7 @@ The system implements hybrid search using BGE-M3:
 - Follow snake_case naming convention
 
 ### Testing Strategy
+
 - Target ≥80% test coverage
 - Use pytest markers for test categorization:
   - `@pytest.mark.unit` for unit tests
@@ -159,6 +168,7 @@ The system implements hybrid search using BGE-M3:
   - Authentication-related markers for auth testing
 
 ### Error Handling
+
 - Use custom exceptions defined in `app/core/exceptions.py`
 - All API errors return structured JSON responses with:
   - `error.code`: Machine-readable error code
@@ -168,20 +178,25 @@ The system implements hybrid search using BGE-M3:
   - `request_id`: Unique request identifier
 
 ### Environment Variables
+
 Key environment variables for configuration:
+
 - `DATABASE_URL`: PostgreSQL connection string
 - `REDIS_URL`: Redis connection string
 - `ENVIRONMENT`: deployment environment (development/staging/production)
 - `TESTING`: set to "true" to disable authentication middleware in tests
 
 ### Performance Considerations
+
 - Vector search response time target: <500ms (95th percentile)
 - Embedding processing: batch operations preferred
 - Use async/await for I/O-bound operations
 - GPU acceleration for embedding generation when available
 
 ### External Dependencies
+
 The system integrates with several external services:
+
 - **ApertureDB**: Vector database (port 55555)
 - **PostgreSQL**: Metadata storage (port 5432)
 - **Redis**: Caching and task queue (port 6379)
@@ -190,6 +205,7 @@ The system integrates with several external services:
 ## Cursor Rules Integration
 
 This project follows detailed development rules defined in `.cursor/rules/`:
+
 - Project overview and tech stack requirements
 - TDD development process mandatory
 - Performance targets and monitoring requirements

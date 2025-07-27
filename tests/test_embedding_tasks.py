@@ -2,8 +2,8 @@
 
 from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
 import numpy as np
+import pytest
 
 from app.services.embedding_tasks import (
     EmbeddingTaskManager,
@@ -52,11 +52,13 @@ class TestEmbeddingTaskService:
         mock_chunk.content = "テストコンテンツ"
         mock_chunk.chunk_type = "paragraph"
 
-        mock_repo.get_chunks_by_document_id.return_value = [mock_chunk]
+        mock_repo.get_by_document_id.return_value = [mock_chunk]
         return mock_repo
 
     @pytest.fixture
-    def embedding_task_service(self, local_embedding_service, mock_chunk_repository, mock_aperturedb_client):
+    def embedding_task_service(
+        self, local_embedding_service, mock_chunk_repository, mock_aperturedb_client
+    ):
         """EmbeddingTaskServiceのフィクスチャ"""
         service = EmbeddingTaskService()
         service.embedding_service = local_embedding_service
@@ -65,7 +67,9 @@ class TestEmbeddingTaskService:
         return service
 
     @pytest.mark.asyncio
-    async def test_process_document_chunks_success(self, embedding_task_service, mock_celery_app):
+    async def test_process_document_chunks_success(
+        self, embedding_task_service, mock_celery_app
+    ):
         """ドキュメントチャンク処理の成功テスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
             document_id = "test-doc-123"
@@ -78,13 +82,13 @@ class TestEmbeddingTaskService:
             assert result["vector_count"] == 2  # Dense + Sparse
 
     @pytest.mark.asyncio
-    async def test_process_document_chunks_no_chunks(self, embedding_task_service, mock_celery_app):
+    async def test_process_document_chunks_no_chunks(
+        self, embedding_task_service, mock_celery_app
+    ):
         """チャンクが存在しない場合のテスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
             # チャンクリポジトリが空のリストを返すように設定
-            embedding_task_service.chunk_repository.get_chunks_by_document_id.return_value = (
-                []
-            )
+            embedding_task_service.chunk_repository.get_by_document_id.return_value = []
 
             document_id = "empty-doc"
             result = await embedding_task_service.process_document_chunks(document_id)
@@ -146,11 +150,12 @@ class TestEmbeddingTaskManager:
             assert status["ready"] is True
             assert status["successful"] is True
 
-
     def test_cancel_task(self, mock_celery_app):
         """タスクキャンセルのテスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", True):
-            with patch("app.services.embedding_tasks.celery_app") as mock_celery_app_inner:
+            with patch(
+                "app.services.embedding_tasks.celery_app"
+            ) as mock_celery_app_inner:
                 mock_control = Mock()
                 mock_celery_app_inner.control = mock_control
 
@@ -185,12 +190,17 @@ class TestCeleryTasks:
     """Celeryタスクのテスト（モック使用）"""
 
     def test_process_document_embedding_task_success(
-        self, mock_celery_app, local_embedding_service, mock_chunk_repository, mock_aperturedb_client
+        self,
+        mock_celery_app,
+        mock_embedding_service,
+        mock_aperturedb_client,
     ):
         """ドキュメント埋め込みタスクの成功テスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
             # サービスのモック
-            with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            with patch(
+                "app.services.embedding_tasks.get_task_service"
+            ) as mock_get_service:
                 mock_service = AsyncMock()
                 mock_service.process_document_chunks.return_value = {
                     "status": "completed",
@@ -202,139 +212,152 @@ class TestCeleryTasks:
                 # モックタスクオブジェクト
                 mock_task = Mock()
                 mock_task.request = Mock(id="task-123")
+                mock_task.update_state = Mock()
 
-                # テスト実行 - use the actual function if available
-                if hasattr(process_document_embedding_task, "__wrapped__"):
-                    with patch("asyncio.new_event_loop") as mock_new_loop:
+                # Direct function call instead of __wrapped__
+                with patch("asyncio.new_event_loop") as mock_new_loop:
+                    with patch("asyncio.set_event_loop"):
                         mock_loop = Mock()
                         mock_new_loop.return_value = mock_loop
-                        mock_loop.run_until_complete.return_value = mock_service.process_document_chunks.return_value
-                        
-                        result = process_document_embedding_task.__wrapped__(mock_task, "test-doc")
-                        
-                        # 検証
-                        assert result["status"] == "completed"
-                        assert result["document_id"] == "test-doc"
-                        assert result["processed_count"] == 5
-                else:
-                    # If Celery is not available, skip
-                    pytest.skip("Celery tasks not available")
+                        mock_loop.run_until_complete.return_value = (
+                            mock_service.process_document_chunks.return_value
+                        )
+                        mock_loop.close = Mock()
 
-    def test_process_document_embedding_task_error(
-        self, mock_celery_app
-    ):
+                        result = process_document_embedding_task(mock_task, "test-doc")
+
+                    # 検証
+                    assert result["status"] == "completed"
+                    assert result["document_id"] == "test-doc"
+                    assert result["processed_count"] == 5
+
+    def test_process_document_embedding_task_error(self, mock_celery_app):
         """ドキュメント埋め込みタスクのエラーテスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
-            # Skip if Celery tasks not available
-            if not hasattr(process_document_embedding_task, "__wrapped__"):
-                pytest.skip("Celery tasks not available")
-            
             with patch("asyncio.new_event_loop") as mock_new_loop:
-                # エラーを発生させる設定
-                mock_loop = Mock()
-                mock_new_loop.return_value = mock_loop
-                mock_loop.run_until_complete.side_effect = Exception("Processing error")
+                with patch("asyncio.set_event_loop"):
+                    # エラーを発生させる設定
+                    mock_loop = Mock()
+                    mock_new_loop.return_value = mock_loop
+                    mock_loop.run_until_complete.side_effect = Exception(
+                        "Processing error"
+                    )
+                    mock_loop.close = Mock()
 
-                mock_task = Mock()
+                    mock_task = Mock()
+                    mock_task.update_state = Mock()
 
-                # テスト実行
-                result = process_document_embedding_task.__wrapped__(mock_task, "error-doc")
+                    # テスト実行
+                    result = process_document_embedding_task(mock_task, "error-doc")
 
                 # 検証
                 assert result["status"] == "failed"
                 assert "Processing error" in result["message"]
 
-    def test_process_batch_texts_task_success(self, mock_celery_app, local_embedding_service):
+    def test_process_batch_texts_task_success(
+        self, mock_celery_app, mock_embedding_service
+    ):
         """バッチテキストタスクの成功テスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
-            if not hasattr(process_batch_texts_task, "__wrapped__"):
-                pytest.skip("Celery tasks not available")
-            
-            with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
+            with patch(
+                "app.services.embedding_tasks.get_task_service"
+            ) as mock_get_service:
                 with patch("asyncio.new_event_loop") as mock_new_loop:
-                    mock_loop = Mock()
-                    mock_new_loop.return_value = mock_loop
+                    with patch("asyncio.set_event_loop"):
+                        mock_loop = Mock()
+                        mock_new_loop.return_value = mock_loop
+                        mock_loop.close = Mock()
 
-                    mock_service = AsyncMock()
-                    mock_embedding_service = AsyncMock()
-                    mock_embedding_service.embed_batch.return_value = [
-                        Mock(dense_vector=[0.1] * 1024, sparse_vector={}, processing_time=0.1),
-                        Mock(dense_vector=[0.2] * 1024, sparse_vector={}, processing_time=0.1),
-                    ]
-                    mock_service.embedding_service = mock_embedding_service
-                    mock_get_service.return_value = mock_service
+                        mock_service = AsyncMock()
+                        mock_embedding_service = AsyncMock()
+                        mock_embedding_service.embed_batch.return_value = [
+                            Mock(
+                                dense_vector=[0.1] * 1024,
+                                sparse_vector={},
+                                processing_time=0.1,
+                            ),
+                            Mock(
+                                dense_vector=[0.2] * 1024,
+                                sparse_vector={},
+                                processing_time=0.1,
+                            ),
+                        ]
+                        mock_service.embedding_service = mock_embedding_service
+                        mock_get_service.return_value = mock_service
 
-                    expected_result = {
-                        "status": "completed",
-                        "message": "Processed 2 texts successfully",
-                        "text_count": 2,
-                        "results": [
-                            {
-                                "dense_vector_length": 1024,
-                                "sparse_vector_size": 0,
-                                "processing_time": 0.1,
-                            },
-                            {
-                                "dense_vector_length": 1024,
-                                "sparse_vector_size": 0,
-                                "processing_time": 0.1,
-                            },
-                        ],
-                    }
+                        expected_result = {
+                            "status": "completed",
+                            "message": "Processed 2 texts successfully",
+                            "text_count": 2,
+                            "results": [
+                                {
+                                    "dense_vector_length": 1024,
+                                    "sparse_vector_size": 0,
+                                    "processing_time": 0.1,
+                                },
+                                {
+                                    "dense_vector_length": 1024,
+                                    "sparse_vector_size": 0,
+                                    "processing_time": 0.1,
+                                },
+                            ],
+                        }
 
-                    mock_loop.run_until_complete.return_value = expected_result
+                        mock_loop.run_until_complete.return_value = expected_result
 
-                    mock_task = Mock()
-                    texts = ["text1", "text2"]
+                        mock_task = Mock()
+                        mock_task.update_state = Mock()
+                        texts = ["text1", "text2"]
 
-                    # テスト実行 - use the actual function if available
-                    if hasattr(process_batch_texts_task, "__wrapped__"):
-                        result = process_batch_texts_task.__wrapped__(mock_task, texts)
-                        
-                        # 検証
-                        assert result["status"] == "completed"
-                        assert result["text_count"] == 2
-                        mock_task.update_state.assert_called_once()
-                    else:
-                        pytest.skip("Celery tasks not available")
-
-    def test_embedding_health_check_task_success(self, mock_celery_app, local_embedding_service):
-        """ヘルスチェックタスクの成功テスト"""
-        with patch("app.services.embedding_tasks.HAS_CELERY", False):
-            if not hasattr(embedding_health_check_task, "__wrapped__"):
-                pytest.skip("Celery tasks not available")
-            
-            with patch("app.services.embedding_tasks.get_task_service") as mock_get_service:
-                with patch("asyncio.new_event_loop") as mock_new_loop:
-                    mock_loop = Mock()
-                    mock_new_loop.return_value = mock_loop
-
-                    mock_service = AsyncMock()
-                    mock_embedding_service = AsyncMock()
-                    mock_embedding_service.health_check.return_value = {"status": "healthy"}
-                    mock_service.embedding_service = mock_embedding_service
-                    mock_get_service.return_value = mock_service
-
-                    mock_loop.run_until_complete.return_value = {"status": "healthy"}
-
-                    # テスト実行
-                    result = embedding_health_check_task.__wrapped__()
+                        # テスト実行
+                        result = process_batch_texts_task(mock_task, texts)
 
                     # 検証
-                    assert result["status"] == "healthy"
-                    mock_loop.close.assert_called_once()
+                    assert result["status"] == "completed"
+                    assert result["text_count"] == 2
+                    mock_task.update_state.assert_called_once()
+
+    def test_embedding_health_check_task_success(
+        self, mock_celery_app, mock_embedding_service
+    ):
+        """ヘルスチェックタスクの成功テスト"""
+        with patch("app.services.embedding_tasks.HAS_CELERY", False):
+            with patch(
+                "app.services.embedding_tasks.get_task_service"
+            ) as mock_get_service:
+                with patch("asyncio.new_event_loop") as mock_new_loop:
+                    with patch("asyncio.set_event_loop"):
+                        mock_loop = Mock()
+                        mock_new_loop.return_value = mock_loop
+                        mock_loop.close = Mock()
+
+                        mock_service = AsyncMock()
+                        mock_embedding_service = AsyncMock()
+                        mock_embedding_service.health_check.return_value = {
+                            "status": "healthy"
+                        }
+                        mock_service.embedding_service = mock_embedding_service
+                        mock_get_service.return_value = mock_service
+
+                        mock_loop.run_until_complete.return_value = {
+                            "status": "healthy"
+                        }
+
+                        # テスト実行
+                        result = embedding_health_check_task()
+
+                        # 検証
+                        assert result["status"] == "healthy"
+                        mock_loop.close.assert_called_once()
 
     def test_embedding_health_check_task_error(self, mock_celery_app):
         """ヘルスチェックタスクのエラーテスト"""
         with patch("app.services.embedding_tasks.HAS_CELERY", False):
-            if not hasattr(embedding_health_check_task, "__wrapped__"):
-                pytest.skip("Celery tasks not available")
-            
             with patch("asyncio.new_event_loop") as mock_new_loop:
                 mock_new_loop.side_effect = Exception("Health check error")
 
                 # テスト実行
-                result = embedding_health_check_task.__wrapped__()
+                result = embedding_health_check_task()
 
                 # 検証
                 assert result["status"] == "unhealthy"

@@ -792,7 +792,7 @@ class DatabaseHealthChecker:
         self._is_monitoring = False
 
     def get_health_history(
-        self, service: str = None, limit: int = 100
+        self, service: str | None = None, limit: int = 100
     ) -> list[HealthCheckResult]:
         """ヘルスチェック履歴取得"""
         if service:
@@ -904,7 +904,7 @@ class ProductionDatabaseManager:
 
         try:
             # メインRedis接続
-            pool = redis.ConnectionPool.from_url(
+            pool = redis.ConnectionPool.from_url(  # type: ignore[var-annotated]
                 self.config.redis_url,
                 max_connections=self.config.max_connections,
             )

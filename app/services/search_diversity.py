@@ -13,7 +13,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -64,7 +64,7 @@ class DiversityConfig:
     # タイムアウト設定
     timeout: float = 30.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """設定値のバリデーション"""
         if not 0 <= self.diversity_factor <= 1:
             raise ValueError("diversity_factor must be between 0 and 1")
@@ -96,10 +96,10 @@ class DiversityCandidate:
     content: str
     title: str
     score: float
-    embedding: np.ndarray | None = None
+    embedding: np.ndarray[Any, np.dtype[np.float64]] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """後処理"""
         if self.embedding is None:
             # デフォルトの埋め込みベクトルを生成（実際はembedding serviceから取得）
@@ -112,7 +112,7 @@ class ClusterResult:
 
     cluster_id: int
     candidates: list[DiversityCandidate]
-    centroid: np.ndarray
+    centroid: np.ndarray[Any, np.dtype[np.float64]]
     coherence_score: float = 0.0
 
 
@@ -214,8 +214,8 @@ class MMRDiversifier(BaseDiversifier):
         candidate: DiversityCandidate,
         selected: list[DiversityCandidate],
         diversity_factor: float,
-        similarity_matrix: np.ndarray = None,
-        all_candidates: list[DiversityCandidate] = None,
+        similarity_matrix: np.ndarray[Any, np.dtype[np.float64]] | None = None,
+        all_candidates: list[DiversityCandidate] | None = None,
     ) -> float:
         """MMRスコア計算"""
         relevance_score = candidate.score
@@ -253,7 +253,7 @@ class MMRDiversifier(BaseDiversifier):
                 np.linalg.norm(candidate1.embedding)
                 * np.linalg.norm(candidate2.embedding)
             )
-            return max(0.0, min(1.0, similarity))
+            return cast(float, max(0.0, min(1.0, similarity)))
 
         # フォールバック: テキスト類似度（簡易実装）
         words1 = set(candidate1.content.lower().split())
@@ -549,8 +549,8 @@ class TemporalDiversifier(BaseDiversifier):
     async def select_temporally_diverse(
         self,
         candidates: list[DiversityCandidate],
-        max_results: int = None,
-        window_days: int = None,
+        max_results: int | None = None,
+        window_days: int | None = None,
     ) -> list[DiversityCandidate]:
         """時系列多様化選択"""
         max_results = max_results or self.config.max_results

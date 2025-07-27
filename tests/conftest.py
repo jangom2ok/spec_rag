@@ -33,23 +33,35 @@ def test_app() -> FastAPI:
     from app.main import create_app
 
     app = create_app()
-
-    # テスト用の認証情報を返すモック関数
-    def mock_current_user():
-        return {
-            "sub": "test@example.com",
-            "role": "admin",
-            "permissions": ["read", "write", "admin"],
-        }
-
-    # 認証依存関係をオーバーライド
-    from app.api.auth import get_current_user
-    from app.api.documents import get_current_user_or_api_key
-
-    app.dependency_overrides[get_current_user_or_api_key] = mock_current_user
-    app.dependency_overrides[get_current_user] = mock_current_user
-
     return app
+
+
+@pytest.fixture(autouse=True)
+def setup_auth_overrides(request, test_app):
+    """認証のオーバーライドを設定"""
+    # no_auth_middlewareマーカーがある場合、認証をバイパス
+    if "no_auth_middleware" in request.keywords:
+        # テスト用の認証情報を返すモック関数
+        def mock_current_user():
+            return {
+                "sub": "test@example.com",
+                "role": "admin",
+                "permissions": ["read", "write", "admin"],
+            }
+
+        # 認証依存関係をオーバーライド
+        from app.api.auth import get_current_user
+        from app.api.documents import get_current_user_or_api_key
+
+        test_app.dependency_overrides[get_current_user_or_api_key] = mock_current_user
+        test_app.dependency_overrides[get_current_user] = mock_current_user
+
+        yield
+
+        # クリーンアップ
+        test_app.dependency_overrides.clear()
+    else:
+        yield
 
 
 @pytest.fixture
@@ -81,6 +93,46 @@ def mock_external_services() -> Generator[dict[str, Any], None, None]:
     mock_client.return_value = mock_client_instance
 
     mocks["aperturedb"] = mock_client_instance
+
+    # FlagModelのモック
+    import numpy as np
+
+    class MockFlagModel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def encode(self, sentences, **kwargs):
+            if isinstance(sentences, str):
+                sentences = [sentences]
+
+            # 返り値の形式を指定
+            return_dense = kwargs.get("return_dense", True)
+            return_sparse = kwargs.get("return_sparse", False)
+            return_colbert_vecs = kwargs.get("return_colbert_vecs", False)
+
+            results = {}
+
+            if return_dense:
+                results["dense_vecs"] = np.random.rand(len(sentences), 1024).astype(
+                    np.float32
+                )
+
+            if return_sparse:
+                results["lexical_weights"] = [
+                    {i: np.random.rand() for i in range(0, 1000, 100)}
+                    for _ in sentences
+                ]
+
+            if return_colbert_vecs:
+                results["colbert_vecs"] = [
+                    np.random.rand(10, 1024).astype(np.float32) for _ in sentences
+                ]
+
+            return results
+
+    flag_model_patch = patch("app.services.embedding_service.FlagModel", MockFlagModel)
+    patches.append(flag_model_patch)
+    flag_model_patch.start()
 
     try:
         yield mocks
