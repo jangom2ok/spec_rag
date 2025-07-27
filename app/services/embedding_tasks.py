@@ -106,18 +106,16 @@ except ImportError:
 
 try:
     from app.repositories.chunk_repository import (
-        DocumentChunkRepository as ChunkRepository,
+        DocumentChunkRepository as ChunkRepository,  # type: ignore[assignment]
     )
 except ImportError:
     # テスト用ダミークラス
-    class MockChunkRepository:
+    class ChunkRepository:  # type: ignore
         def __init__(self, session=None) -> None:
             pass
 
         async def get_by_document_id(self, document_id):
             return []
-
-    ChunkRepository = MockChunkRepository  # type: ignore
 
 
 logger = logging.getLogger(__name__)

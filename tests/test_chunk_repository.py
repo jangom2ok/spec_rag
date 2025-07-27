@@ -361,9 +361,7 @@ class TestDocumentChunkRepository:
         ]
 
         # 範囲内のチャンクのみを返すようモック設定
-        filtered_chunks = [
-            (chunks.chunks if hasattr(chunks, "chunks") else [])[1]
-        ]  # content_length=21のチャンクのみ
+        filtered_chunks = [chunks[1]]  # content_length=21のチャンクのみ
         mock_scalars = Mock()
         mock_scalars.all.return_value = filtered_chunks
         mock_result = Mock()

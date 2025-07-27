@@ -2,6 +2,7 @@
 
 import pytest
 import sqlalchemy as sa
+from sqlalchemy import exc
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -84,7 +85,7 @@ class TestDocument:
         await async_session.commit()
 
         async_session.add(document2)
-        with pytest.raises(sa.exc.IntegrityError):
+        with pytest.raises(exc.IntegrityError):
             await async_session.commit()
 
     async def test_document_relationships(self, async_session: AsyncSession):
@@ -121,13 +122,9 @@ class TestDocument:
         )
         chunks = list(result.scalars().all())
 
-        assert len(chunks.chunks if hasattr(chunks, "chunks") else []) == 1
-        assert (chunks.chunks if hasattr(chunks, "chunks") else [])[
-            0
-        ].document_id == document.id
-        assert (chunks.chunks if hasattr(chunks, "chunks") else [])[
-            0
-        ].content == "チャンクコンテンツ"
+        assert len(chunks) == 1
+        assert chunks[0].document_id == document.id
+        assert chunks[0].content == "チャンクコンテンツ"
 
 
 class TestDocumentChunk:
@@ -205,7 +202,7 @@ class TestDocumentChunk:
         await async_session.commit()
 
         async_session.add(chunk2)
-        with pytest.raises(sa.exc.IntegrityError):
+        with pytest.raises(exc.IntegrityError):
             await async_session.commit()
 
     async def test_chunk_cascade_delete(self, async_session: AsyncSession):
@@ -241,4 +238,4 @@ class TestDocumentChunk:
             sa.select(DocumentChunk).where(DocumentChunk.document_id == document.id)
         )
         chunks = result.scalars().all()
-        assert len(chunks.chunks if hasattr(chunks, "chunks") else []) == 0
+        assert len(chunks) == 0

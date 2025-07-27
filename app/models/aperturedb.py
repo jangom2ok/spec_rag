@@ -8,10 +8,10 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 try:
-    from aperturedb import Client
+    from aperturedb import Client  # type: ignore
 except ImportError:
     # Use mock for testing and CI/CD environments
-    from app.models.aperturedb_mock import Client
+    from app.models.aperturedb_mock import Client  # type: ignore
 from pydantic import BaseModel, Field
 
 

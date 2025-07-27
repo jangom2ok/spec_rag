@@ -1,4 +1,3 @@
-
 """Test module for achieving 100% coverage of app/api/search.py.
 
 This module contains targeted tests for all uncovered lines in the search API,
@@ -249,9 +248,7 @@ class TestUtilityFunctions:
 
         result = convert_enhanced_filters_to_legacy(enhanced_filters)
 
-        assert (
-            len(result.chunks if hasattr(result, "chunks") else []) == 5
-        )  # 2 source_types + 2 languages + 1 tags + 2 date_range
+        assert len(result) == 5  # 2 source_types + 2 languages + 1 tags + 2 date_range
 
         # Check source types filter
         source_filter = next(f for f in result if f.field == "source_type")

@@ -1,4 +1,14 @@
-import uuid
+#!/usr/bin/env python3
+"""
+Final fix for Cursor errors - fix main.py structure
+"""
+
+from pathlib import Path
+
+
+def fix_main_py_structure():
+    """Fix main.py by restructuring exception classes and handlers"""
+    content = '''import uuid
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Request
@@ -21,42 +31,36 @@ from app.core.middleware import (
 
 # Handle DBException import
 try:
-    from aperturedb import DBException  # type: ignore
+    from aperturedb import DBException
 except ImportError:
-
-    class DBException(Exception):  # type: ignore
+    class DBException(Exception):
         """Mock ApertureDB exception."""
-
         pass
 
 
 # Custom exception classes
 class DatabaseException(Exception):
     """Database-related exception."""
-
     pass
 
 
 class VectorDatabaseException(Exception):
     """Vector database exception."""
-
     pass
 
 
 class AuthenticationException(Exception):
     """Authentication exception."""
-
     pass
 
 
 class RAGSystemException(Exception):
     """RAG system exception."""
-
     pass
 
 
 # Exception handlers
-async def database_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+async def database_exception_handler(request: Request, exc: DatabaseException) -> JSONResponse:
     """Handle database exceptions."""
     return JSONResponse(
         status_code=500,
@@ -68,13 +72,11 @@ async def database_exception_handler(request: Request, exc: Exception) -> JSONRe
             },
             "timestamp": datetime.now().isoformat(),
             "request_id": str(uuid.uuid4()),
-        },
+        }
     )
 
 
-async def vector_database_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def vector_database_exception_handler(request: Request, exc: VectorDatabaseException) -> JSONResponse:
     """Handle vector database exceptions."""
     return JSONResponse(
         status_code=500,
@@ -86,13 +88,11 @@ async def vector_database_exception_handler(
             },
             "timestamp": datetime.now().isoformat(),
             "request_id": str(uuid.uuid4()),
-        },
+        }
     )
 
 
-async def authentication_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def authentication_exception_handler(request: Request, exc: AuthenticationException) -> JSONResponse:
     """Handle authentication exceptions."""
     return JSONResponse(
         status_code=401,
@@ -104,13 +104,11 @@ async def authentication_exception_handler(
             },
             "timestamp": datetime.now().isoformat(),
             "request_id": str(uuid.uuid4()),
-        },
+        }
     )
 
 
-async def rag_system_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def rag_system_exception_handler(request: Request, exc: RAGSystemException) -> JSONResponse:
     """Handle RAG system exceptions."""
     return JSONResponse(
         status_code=500,
@@ -122,7 +120,7 @@ async def rag_system_exception_handler(
             },
             "timestamp": datetime.now().isoformat(),
             "request_id": str(uuid.uuid4()),
-        },
+        }
     )
 
 
@@ -138,7 +136,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             },
             "timestamp": datetime.now().isoformat(),
             "request_id": str(uuid.uuid4()),
-        },
+        }
     )
 
 
@@ -179,9 +177,7 @@ def create_app() -> FastAPI:
 
     # Register custom exception handlers
     app.add_exception_handler(DatabaseException, database_exception_handler)
-    app.add_exception_handler(
-        VectorDatabaseException, vector_database_exception_handler
-    )
+    app.add_exception_handler(VectorDatabaseException, vector_database_exception_handler)
     app.add_exception_handler(AuthenticationException, authentication_exception_handler)
     app.add_exception_handler(RAGSystemException, rag_system_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
@@ -193,9 +189,7 @@ def setup_error_handlers(app: FastAPI) -> None:
     """エラーハンドラーを設定する"""
 
     @app.exception_handler(404)
-    async def not_found_handler(
-        request: Request, exc: HTTPException
-    ) -> JSONResponse:  # noqa: F841
+    async def not_found_handler(request: Request, exc: HTTPException) -> JSONResponse:
         return JSONResponse(
             status_code=404,
             content={
@@ -210,7 +204,7 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(405)
-    async def method_not_allowed_handler(  # noqa: F841
+    async def method_not_allowed_handler(
         request: Request, exc: HTTPException
     ) -> JSONResponse:
         return JSONResponse(
@@ -227,7 +221,7 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(  # noqa: F841
+    async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
         return JSONResponse(
@@ -245,7 +239,7 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(  # noqa: F841
+    async def http_exception_handler(
         request: Request, exc: HTTPException
     ) -> JSONResponse:
         # 認証関連のHTTPExceptionの場合
@@ -279,3 +273,18 @@ def setup_error_handlers(app: FastAPI) -> None:
 
 # Create the app instance
 app = create_app()
+'''
+
+    file_path = Path(__file__).parent.parent / "app" / "main.py"
+    file_path.write_text(content, encoding="utf-8")
+    print(f"Restructured {file_path}")
+
+
+def main():
+    """Main function"""
+    fix_main_py_structure()
+    print("Fixed main.py structure!")
+
+
+if __name__ == "__main__":
+    main()

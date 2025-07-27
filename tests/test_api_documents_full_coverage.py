@@ -104,7 +104,7 @@ class TestDocumentEndpointsCoverage:
         # Pydantic validates the source_type at creation time
         with pytest.raises(ValidationError) as exc_info:
             ProcessingConfigRequest(
-                source_type="invalid_type",  # This should trigger the validation
+                source_type="invalid_type",  # type: ignore[arg-type]  # This should trigger the validation
                 source_path="/test",
             )
 
@@ -376,7 +376,7 @@ class TestProcessingConfigConversion:
         # Test jira source type
         jira_request = ProcessingConfigRequest(
             source_type=SourceType.jira,
-            parameters={"url": "https://jira.example.com", "api_key": "secret"},
+            source_path="https://jira.example.com",
         )
         jira_config = _convert_to_processing_config(jira_request)
         assert jira_config.collection_config.source_type.value == SourceType.jira.value
@@ -385,7 +385,7 @@ class TestProcessingConfigConversion:
         """Test conversion with optional parameters."""
         # Test with minimal parameters
         request = ProcessingConfigRequest(
-            source_type=SourceType.test, parameters={"path": "/test"}
+            source_type=SourceType.test, source_path="/test"
         )
         config = _convert_to_processing_config(request)
 

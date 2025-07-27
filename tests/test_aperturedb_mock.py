@@ -47,124 +47,89 @@ class TestMockClient:
     def test_query_empty(self):
         """空のクエリのテスト"""
         client = MockClient()
-        result, data = client.query([])
+        result, _data = client.query([])
         assert result == []
-        assert data == []
+        assert _data == []
 
     def test_query_find_descriptor_set(self):
         """FindDescriptorSetクエリのテスト"""
         client = MockClient()
         query = [{"FindDescriptorSet": {"name": "test_set"}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "FindDescriptorSet"
-            in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "FindDescriptorSet"
-        ]["count"] == 0
+        assert len(result) == 1
+        assert "FindDescriptorSet" in result[0]
+        assert result[0]["FindDescriptorSet"]["count"] == 0
 
     def test_query_add_descriptor_set(self):
         """AddDescriptorSetクエリのテスト"""
         client = MockClient()
         query = [{"AddDescriptorSet": {"name": "test_set", "dimensions": 128}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "AddDescriptorSet"
-            in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "AddDescriptorSet"
-        ]["status"] == 0
+        assert len(result) == 1
+        assert "AddDescriptorSet" in result[0]
+        assert result[0]["AddDescriptorSet"]["status"] == 0
 
     def test_query_add_descriptor(self):
         """AddDescriptorクエリのテスト"""
         client = MockClient()
         query = [{"AddDescriptor": {"set": "test_set", "label": "test"}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "AddDescriptor"
-            in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "AddDescriptor"
-        ]["status"] == 0
+        assert len(result) == 1
+        assert "AddDescriptor" in result[0]
+        assert result[0]["AddDescriptor"]["status"] == 0
 
     def test_query_find_descriptor(self):
         """FindDescriptorクエリのテスト"""
         client = MockClient()
         query = [{"FindDescriptor": {"set": "test_set", "k_neighbors": 10}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "FindDescriptor"
-            in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "FindDescriptor"
-        ]["returned"] == 0
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "FindDescriptor"
-        ]["entities"] == []
+        assert len(result) == 1
+        assert "FindDescriptor" in result[0]
+        assert result[0]["FindDescriptor"]["returned"] == 0
+        assert result[0]["FindDescriptor"]["entities"] == []
 
     def test_query_delete_descriptor(self):
         """DeleteDescriptorクエリのテスト"""
         client = MockClient()
         query = [{"DeleteDescriptor": {"set": "test_set", "label": "test"}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "DeleteDescriptor"
-            in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "DeleteDescriptor"
-        ]["status"] == 0
+        assert len(result) == 1
+        assert "DeleteDescriptor" in result[0]
+        assert result[0]["DeleteDescriptor"]["status"] == 0
 
     def test_query_add_entity(self):
         """AddEntityクエリのテスト"""
         client = MockClient()
         query = [{"AddEntity": {"class": "TestEntity", "properties": {"name": "test"}}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "AddEntity" in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "AddEntity"
-        ]["status"] == 0
+        assert len(result) == 1
+        assert "AddEntity" in result[0]
+        assert result[0]["AddEntity"]["status"] == 0
 
     def test_query_get_status(self):
         """GetStatusクエリのテスト"""
         client = MockClient()
         query = [{"GetStatus": {}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "GetStatus" in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (result.chunks if hasattr(result, "chunks") else [])[0][
-            "GetStatus"
-        ]["status"] == "ready"
+        assert len(result) == 1
+        assert "GetStatus" in result[0]
+        assert result[0]["GetStatus"]["status"] == "ready"
 
     def test_query_unknown_type(self):
         """未知のクエリタイプのテスト"""
         client = MockClient()
         query = [{"UnknownQuery": {"param": "value"}}]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (result.chunks if hasattr(result, "chunks") else [])[0] == {}
+        assert len(result) == 1
+        assert result[0] == {}
 
     def test_query_multiple_queries(self):
         """複数クエリのテスト（最初のクエリのみ処理される）"""
@@ -173,14 +138,11 @@ class TestMockClient:
             {"FindDescriptorSet": {"name": "test_set"}},
             {"AddDescriptor": {"set": "test_set", "label": "test"}},
         ]
-        result, data = client.query(query)
+        result, _data = client.query(query)
 
         # 最初のクエリの結果のみが返される
-        assert len(result.chunks if hasattr(result, "chunks") else []) == 1
-        assert (
-            "FindDescriptorSet"
-            in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
+        assert len(result) == 1
+        assert "FindDescriptorSet" in result[0]
 
 
 class TestDBError:

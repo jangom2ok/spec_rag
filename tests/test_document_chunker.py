@@ -154,7 +154,7 @@ Future work should explore additional optimization techniques.""",
         assert len(result.chunks) > 0
 
         # チャンクサイズの検証
-        for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks:
+        for chunk in result.chunks:
             assert isinstance(chunk, DocumentChunk)
             assert (
                 len(chunk.content)
@@ -200,12 +200,11 @@ Future work should explore additional optimization techniques.""",
         chunker = DocumentChunker(config=semantic_config)
 
         result = await chunker.chunk_document(sample_document)
-
         assert result.success is True
         assert len(result.chunks) > 0
 
         # セマンティックチャンクの特性を検証
-        for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks:
+        for chunk in result.chunks:
             assert chunk.chunk_type in [ChunkType.TEXT, ChunkType.SECTION]
             # セマンティック境界で分割されているため、文の途中で切れていないことを確認
             assert chunk.content.strip()  # 空でないこと
@@ -218,17 +217,16 @@ Future work should explore additional optimization techniques.""",
         chunker = DocumentChunker(config=hierarchical_config)
 
         result = await chunker.chunk_document(sample_document)
-
         assert result.success is True
         assert len(result.chunks) > 0
 
         # 階層情報の検証
         heading_chunks = [
-            chunk for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks if chunk.chunk_type == ChunkType.HEADING
+            chunk for chunk in result.chunks if chunk.chunk_type == ChunkType.HEADING
         ]
         assert len(heading_chunks) > 0  # ヘッディングが検出されること
 
-        for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks:
+        for chunk in result.chunks:
             if chunk.hierarchy_path:
                 # 階層パスが適切な形式であることを確認
                 path_parts = chunk.hierarchy_path.split("/")
@@ -248,7 +246,7 @@ Future work should explore additional optimization techniques.""",
         result = await chunker.chunk_document(sample_document)
 
         # 段落境界でのみ分割されることを確認（段落は通常文で終わるので文の終わりもOK）
-        for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks:
+        for chunk in result.chunks:
             content = chunk.content.strip()
             if chunk.chunk_index < len(result.chunks) - 1:
                 # 最後のチャンク以外は段落境界で終わるべき（文の終わりで終わることも含む）
@@ -276,7 +274,7 @@ Future work should explore additional optimization techniques.""",
         result = await chunker.chunk_document(sample_document)
 
         # 文の途中で分割されていないことを確認
-        for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks:
+        for chunk in result.chunks:
             content = chunk.content.strip()
             if chunk.chunk_index < len(result.chunks) - 1:
                 # 最後のチャンク以外は文境界で終わるべき
@@ -300,12 +298,11 @@ Future work should explore additional optimization techniques.""",
         chunker = DocumentChunker(config=basic_config)
 
         result = await chunker.chunk_document(japanese_document)
-
         assert result.success is True
         assert len(result.chunks) > 0
 
         # 日本語特有の処理の確認
-        for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks:
+        for chunk in result.chunks:
             assert chunk.language == "ja"
             # 日本語文字が含まれていることを確認
             japanese_chars = any(
@@ -325,7 +322,7 @@ Future work should explore additional optimization techniques.""",
 
         result = await chunker.chunk_document(sample_document)
 
-        for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks:
+        for chunk in result.chunks:
             # 基本メタデータの確認
             assert chunk.content_length == len(chunk.content)
             assert chunk.token_count is not None and chunk.token_count > 0
@@ -348,7 +345,6 @@ Future work should explore additional optimization techniques.""",
 
         chunker = DocumentChunker(config=basic_config)
         result = await chunker.chunk_document(empty_document)
-
         assert result.success is False
         assert len(result.chunks) == 0
         assert result.error_message and "empty" in result.error_message.lower()
@@ -365,7 +361,6 @@ Future work should explore additional optimization techniques.""",
 
         chunker = DocumentChunker(config=basic_config)
         result = await chunker.chunk_document(short_document)
-
         assert result.success is True
         assert len(result.chunks) == 1
         assert result.chunks[0].content == "Short text."
@@ -386,7 +381,7 @@ Future work should explore additional optimization techniques.""",
         result = await chunker.chunk_document(document_with_duplication)
 
         # 重複したチャンクが排除されることを確認
-        unique_contents = {chunk.content for chunk in (result.chunks if hasattr(result, "chunks") else []).chunks}
+        unique_contents = {chunk.content for chunk in result.chunks}
         assert len(unique_contents) == len(result.chunks)
 
     @pytest.mark.unit

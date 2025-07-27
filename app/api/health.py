@@ -5,13 +5,19 @@ from datetime import datetime
 from typing import Any
 
 import psutil
-
-try:
-    from aperturedb import DBException
-except ImportError:
-    from app.models.aperturedb_mock import DBException
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
+
+# Handle DBException import
+try:
+    from aperturedb import DBException  # type: ignore
+except ImportError:
+    # Define a local DBException class when aperturedb is not available
+    class DBException(Exception):  # type: ignore
+        """Mock ApertureDB exception."""
+
+        pass
+
 
 router = APIRouter(prefix="/v1/health", tags=["health"])
 

@@ -42,8 +42,8 @@ class TestMainCoverage:
             if hasattr(response, "__await__"):  # Check if it's awaitable
                 response = await response  # type: ignore[misc]
 
-        assert response.status_code == 500
-        content = json.loads(response.body)
+        assert response.status_code == 500  # type: ignore[attr-defined]
+        content = json.loads(response.body)  # type: ignore[attr-defined]
         assert content["error"]["code"] == "INTERNAL_SERVER_ERROR"
         assert content["error"]["message"] == "Internal server error"
 
