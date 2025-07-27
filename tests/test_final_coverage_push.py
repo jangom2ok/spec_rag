@@ -2,6 +2,7 @@
 Final push for 100% coverage - testing specific missing lines.
 """
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -67,8 +68,10 @@ class TestHealthAPILines:
             detail = exc.value.detail
             # Handle both dict and string types for detail
             if isinstance(detail, dict):
-                assert detail["ready"] is False
-                assert "timestamp" in detail
+                # Type assertion to help Pylance
+                detail_dict: dict[str, Any] = detail
+                assert detail_dict["ready"] is False
+                assert "timestamp" in detail_dict
             else:
                 # If detail is converted to string, just check it contains expected text
                 assert "ready" in str(detail)
