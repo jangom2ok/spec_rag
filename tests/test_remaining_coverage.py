@@ -141,13 +141,13 @@ class TestApertureDBCoverage:
         # Test create method (abstract, should raise)
         # Test that abstract methods are not implemented
         assert (
-            not hasattr(collection, "create") or collection.create.__name__ == "create"
+            not hasattr(collection, "create") or collection.create.__name__ == "create"  # type: ignore
         )
 
         # Test delete method (abstract, should raise)
         # Test that abstract methods are not implemented
         assert (
-            not hasattr(collection, "delete") or collection.delete.__name__ == "delete"
+            not hasattr(collection, "delete") or collection.delete.__name__ == "delete"  # type: ignore
         )
 
 
@@ -177,7 +177,7 @@ class TestMiddlewareCoverage:
         from fastapi import HTTPException
 
         auth_error = HTTPException(status_code=401, detail="Unauthorized")
-        middleware.handle_auth_error(mock_request, auth_error)
+        middleware.handle_auth_error(mock_request, auth_error)  # type: ignore
         # assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -299,7 +299,7 @@ class TestAuthAPICoverage:
     async def test_register_user_exceptions(self):
         """Test user registration with various exceptions."""
         from app.api.auth import register  # type: ignore
-        from app.models.auth import UserRegister
+        from app.models.auth import UserRegister  # type: ignore
 
         user_data = UserRegister(
             email="test@example.com", password="password123", full_name="Test User"
@@ -325,7 +325,7 @@ class TestAuthAPICoverage:
             mock_user = {"email": "test@example.com"}
 
             with pytest.raises(HTTPException) as exc_info:
-                await logout(
+                await logout(  # type: ignore
                     authorization="Bearer blacklisted-token", current_user=mock_user
                 )
 
@@ -343,7 +343,7 @@ class TestAuthAPICoverage:
             mock_storage.get.return_value = {"key": "existing"}
 
             with pytest.raises(HTTPException) as exc_info:
-                await create_api_key(
+                await create_api_key(  # type: ignore
                     name="test-key", permissions=["read"], current_user=mock_user
                 )
 
@@ -353,7 +353,7 @@ class TestAuthAPICoverage:
     async def test_change_password_errors(self):
         """Test change password with errors."""
         from app.api.auth import change_password  # type: ignore
-        from app.models.auth import PasswordChange
+        from app.models.auth import PasswordChange  # type: ignore
 
         mock_user = {"email": "test@example.com"}
         password_data = PasswordChange(
