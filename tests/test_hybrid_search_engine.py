@@ -472,7 +472,9 @@ class TestHybridSearchEngine:
         result = await search_engine.search(empty_query)
 
         assert result.success is False
-        assert "empty" in result.error_message.lower()
+        assert (
+            result.error_message is not None and "empty" in result.error_message.lower()
+        )
 
     @pytest.mark.unit
     async def test_similarity_threshold_filtering(
@@ -592,9 +594,9 @@ class TestSearchConfig:
     @pytest.mark.unit
     def test_search_mode_enum(self):
         """検索モードEnumテスト"""
-        assert SearchMode.HYBRID == "hybrid"
-        assert SearchMode.SEMANTIC == "semantic"
-        assert SearchMode.KEYWORD == "keyword"
+        assert SearchMode.HYBRID.value == "hybrid"
+        assert SearchMode.SEMANTIC.value == "semantic"
+        assert SearchMode.KEYWORD.value == "keyword"
 
 
 class TestSearchResult:
@@ -623,7 +625,7 @@ class TestSearchResult:
         assert len(result.documents) == 2
         assert result.total_hits == 2
         assert result.search_time == 0.15
-        assert "source_type" in result.facets
+        assert result.facets is not None and "source_type" in result.facets
 
     @pytest.mark.unit
     def test_search_result_summary(self):
