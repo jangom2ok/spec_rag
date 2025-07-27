@@ -29,6 +29,8 @@ class TestEmbeddingResult:
             sparse_vector=sparse_vector,
             multi_vector=multi_vector,
             processing_time=0.15,
+            chunk_id=None,
+            document_id=None,
         )
 
         assert len(result.dense_vector) == 1024
@@ -44,6 +46,8 @@ class TestEmbeddingResult:
                 sparse_vector={},
                 multi_vector=np.array([]),
                 processing_time=0.1,
+                chunk_id=None,
+                document_id=None,
             )
 
 

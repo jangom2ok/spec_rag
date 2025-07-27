@@ -72,20 +72,24 @@ class MockCelery:
 
 
 class MockAsyncResult:
-    def __init__(self, *args, **kwargs):
-        self.status = "SUCCESS"
-        self.result = {}
-        self.info = None
-        self.id = "mock_task_id"
+    def __init__(self, task_id=None, *args, **kwargs):
+        self.id = task_id or "mock_task_id"
+        self.state = kwargs.get("state", "SUCCESS")
+        self.status = self.state  # For compatibility
+        self.result = kwargs.get("result", {})
+        self.info = kwargs.get("info", None)
 
     def ready(self):
-        return True
+        return self.state in ["SUCCESS", "FAILURE"]
 
     def successful(self):
-        return True
+        return self.state == "SUCCESS"
 
     def failed(self):
-        return False
+        return self.state == "FAILURE"
+    
+    def get(self, timeout=None):
+        return self.result
 
 
 try:
@@ -259,6 +263,42 @@ class EmbeddingTaskService:
                 "message": f"Processing failed: {str(e)}",
                 "document_id": document_id,
                 "processed_count": 0,
+            }
+
+    async def process_batch_texts(self, texts: list[str]) -> dict[str, Any]:
+        """バッチテキストの埋め込み処理
+
+        Args:
+            texts: テキストリスト
+
+        Returns:
+            Dict[str, Any]: 処理結果
+        """
+        try:
+            if self.embedding_service is None:
+                raise RuntimeError("Embedding service not initialized")
+            
+            results = await self.embedding_service.embed_batch(texts)
+            
+            return {
+                "status": "completed",
+                "message": f"Processed {len(texts)} texts successfully",
+                "text_count": len(texts),
+                "results": [
+                    {
+                        "dense_vector_length": len(result.dense_vector),
+                        "sparse_vector_size": len(result.sparse_vector),
+                        "processing_time": result.processing_time,
+                    }
+                    for result in results
+                ],
+            }
+        except Exception as e:
+            logger.error(f"Batch text processing failed: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "text_count": len(texts) if texts else 0,
             }
 
 
