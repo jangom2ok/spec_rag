@@ -56,14 +56,12 @@ class TestEmbeddingTaskService:
         return mock_repo
 
     @pytest.fixture
-    def embedding_task_service(
-        self, local_embedding_service, mock_chunk_repository, mock_aperturedb_client
-    ):
+    def embedding_task_service(self, local_embedding_service, mock_chunk_repository):
         """EmbeddingTaskServiceのフィクスチャ"""
         service = EmbeddingTaskService()
         service.embedding_service = local_embedding_service
         service.chunk_repository = mock_chunk_repository
-        service.aperturedb_client = mock_aperturedb_client
+        # Note: EmbeddingTaskService doesn't have aperturedb_client attribute
         return service
 
     @pytest.mark.asyncio
