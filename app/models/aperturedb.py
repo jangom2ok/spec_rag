@@ -71,7 +71,7 @@ class ApertureDBCollection(ABC):
         self.host: str = host
         self.port: int = port
         self.collection_name: str = self.get_collection_name()
-        self.client: Client | None = None
+        self.client: Any | None = None  # Client type is conditional
         self.connect()
 
     def connect(self) -> None:

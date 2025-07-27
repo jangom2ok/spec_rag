@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 try:
     from aperturedb import DBException
 except ImportError:
-    from app.models.aperturedb_mock import DBException
+    from app.models.aperturedb_mock import DBException  # type: ignore[attr-defined]
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.auth import AuthHTTPError, admin_router
@@ -201,9 +201,9 @@ def setup_error_handlers(app: FastAPI) -> None:
             },
         )
 
-    @app.exception_handler(DBException)
+    @app.exception_handler(DBException)  # type: ignore[arg-type]
     async def vector_database_exception_handler(
-        request: Request, exc: DBException
+        request: Request, exc: Exception  # Use Exception as base type
     ) -> JSONResponse:
         return JSONResponse(
             status_code=500,

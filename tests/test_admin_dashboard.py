@@ -465,7 +465,7 @@ class TestRealTimeMonitoring:
 
         data_stream = []
 
-        async def data_callback(data: dict[str, Any]):
+        def data_callback(data: dict[str, Any]):
             data_stream.append(data)
 
         dashboard.set_real_time_callback(data_callback)

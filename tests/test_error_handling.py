@@ -138,9 +138,9 @@ class TestDatabaseErrorHandling:
 
             from app.api.search import get_current_user_or_api_key
 
-            test_app.dependency_overrides[get_current_user_or_api_key] = (
-                mock_current_user
-            )
+            test_app.dependency_overrides[
+                get_current_user_or_api_key
+            ] = mock_current_user
 
             client = TestClient(test_app)
             response = client.post(

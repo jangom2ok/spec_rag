@@ -846,7 +846,7 @@ class TestAlertingIntegration:
         triggered_alerts = []
 
         # アラートコールバック
-        async def alert_callback(alert_data: dict[str, Any]):
+        def alert_callback(alert_data: dict[str, Any]):
             triggered_alerts.append(alert_data)
 
         service.set_alert_callback(alert_callback)

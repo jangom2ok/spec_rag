@@ -39,6 +39,8 @@ class TestMainCoverage:
             response = await handler(request, exc)
         else:
             response = handler(request, exc)
+            if hasattr(response, "__await__"):  # Check if it's awaitable
+                response = await response  # type: ignore[misc]
 
         assert response.status_code == 500
         content = json.loads(response.body)

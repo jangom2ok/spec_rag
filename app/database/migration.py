@@ -48,17 +48,21 @@ class MigrationManager:
         config = self._get_config()
 
         # マイグレーションファイルを作成
-        revision = command.revision(config, message=message, autogenerate=autogenerate)
+        # command.revision returns a list of Script objects
+        revisions = command.revision(config, message=message, autogenerate=autogenerate)
 
-        if revision is None:
+        if not revisions:
             raise RuntimeError("Failed to create migration")
+
+        # Get the first revision from the list
+        revision = revisions[0] if isinstance(revisions, list) else revisions
 
         # revisionがScript型であることを保証
         if hasattr(revision, "revision") and hasattr(revision, "path"):
             return {
                 "revision": revision.revision,
                 "message": message,
-                "path": revision.path,
+                "path": str(revision.path),
             }
         else:
             raise RuntimeError("Unexpected revision type returned")
@@ -164,17 +168,21 @@ def create_migration(
     config: Config, message: str, autogenerate: bool = True
 ) -> dict[str, Any]:
     """マイグレーションファイルを作成（ユーティリティ関数）"""
-    revision = command.revision(config, message=message, autogenerate=autogenerate)
+    # command.revision returns a list of Script objects
+    revisions = command.revision(config, message=message, autogenerate=autogenerate)
 
-    if revision is None:
+    if not revisions:
         raise RuntimeError("Failed to create migration")
+
+    # Get the first revision from the list
+    revision = revisions[0] if isinstance(revisions, list) else revisions
 
     # revisionがScript型であることを保証
     if hasattr(revision, "revision") and hasattr(revision, "path"):
         return {
             "revision": revision.revision,
             "message": message,
-            "path": revision.path,
+            "path": str(revision.path),
         }
     else:
         raise RuntimeError("Unexpected revision type returned")

@@ -226,9 +226,7 @@ def test_validation_error_handler_with_body():
     assert response.status_code == 422
     data = response.json()
     assert data["error"]["code"] == "VALIDATION_ERROR"
-    assert (
-        data["error"]["message"] == "Validation error"
-    )  # 実際のメッセージに合わせて修正
+    assert data["error"]["message"] == "Validation error"  # 実際のメッセージに合わせて修正
     assert data["error"]["type"] == "validation_error"
     assert "details" in data["error"]
     assert isinstance(data["error"]["details"], list)
@@ -255,9 +253,7 @@ def test_validation_error_handler_with_query():
     assert response.status_code == 422
     data = response.json()
     assert data["error"]["code"] == "VALIDATION_ERROR"
-    assert (
-        data["error"]["message"] == "Validation error"
-    )  # 実際のメッセージに合わせて修正
+    assert data["error"]["message"] == "Validation error"  # 実際のメッセージに合わせて修正
     assert data["error"]["type"] == "validation_error"
     assert "details" in data["error"]
     assert isinstance(data["error"]["details"], list)

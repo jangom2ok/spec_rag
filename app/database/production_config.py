@@ -565,7 +565,7 @@ class DatabaseHealthChecker:
                     message="PostgreSQL connection mocked (asyncpg not available)",
                 )
 
-            conn = await asyncpg.connect(postgres_url, timeout=self.config.timeout)
+            conn = await asyncpg.connect(postgres_url, timeout=int(self.config.timeout))
 
             try:
                 # 簡単なクエリ実行

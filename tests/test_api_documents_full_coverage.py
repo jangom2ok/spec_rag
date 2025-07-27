@@ -105,7 +105,7 @@ class TestDocumentEndpointsCoverage:
         with pytest.raises(ValidationError) as exc_info:
             ProcessingConfigRequest(
                 source_type="invalid_type",  # This should trigger the validation
-                parameters={"path": "/test"},
+                source_path="/test",
             )
 
         # Check that the validation error is about the source_type
@@ -152,7 +152,7 @@ class TestDocumentEndpointsCoverage:
                 with pytest.raises(HTTPException) as exc_info:
                     await process_documents_sync(
                         config=ProcessingConfigRequest(
-                            source_type=SourceType.test, parameters={"path": "/test"}
+                            source_type=SourceType.test, source_path="/test"
                         ),
                         current_user={"permissions": ["write"]},
                         processing_service=mock_service,
@@ -201,8 +201,11 @@ class TestDocumentEndpointsCoverage:
                     with pytest.raises(HTTPException) as exc_info:
                         await reprocess_document(
                             document_id="test-id",
-                            db=mock_session,
+                            config=ProcessingConfigRequest(
+                                source_type=SourceType.test, source_path="/test"
+                            ),
                             current_user={"permissions": ["write"]},
+                            processing_service=mock_processing_service,
                         )
 
                     assert exc_info.value.status_code == 500
@@ -349,20 +352,19 @@ class TestProcessingConfigConversion:
         # Test FILE source type
         file_request = ProcessingConfigRequest(
             source_type=SourceType.test,
-            parameters={"path": "/test/file.pdf"},
-            chunk_size=1000,
-            chunk_overlap=200,
+            source_path="/test/file.pdf",
+            file_patterns=["*.pdf"],
         )
         file_config = _convert_to_processing_config(file_request)
         assert file_config.collection_config.source_type.value == SourceType.test.value
-        assert file_config.chunking_config.chunk_size == 1000
-        assert file_config.chunking_config.overlap_size == 200
+        # Default chunking config values
+        assert file_config.chunking_config.chunk_size > 0
+        assert file_config.chunking_config.overlap_size >= 0
 
         # Test confluence source type
         confluence_request = ProcessingConfigRequest(
             source_type=SourceType.confluence,
-            parameters={"url": "https://confluence.example.com"},
-            chunk_size=2000,
+            source_path="https://confluence.example.com",
         )
         confluence_config = _convert_to_processing_config(confluence_request)
         assert (
