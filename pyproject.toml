@@ -79,6 +79,7 @@ exclude = [
 "tests/*" = ["S101", "S105", "S106"]  # allow asserts and hardcoded passwords in tests
 "app/database/production_config.py" = ["S105"]  # allow hardcoded passwords in config
 "app/services/external_source_integration.py" = ["S105"]  # allow enum values that look like passwords
+"scripts/*" = ["S603", "S607"]  # allow subprocess usage in scripts
 
 # Black configuration
 [tool.black]
@@ -223,7 +224,7 @@ precision = 2
 
 # Bandit configuration
 [tool.bandit]
-exclude_dirs = ["tests", "venv", ".venv"]
+exclude_dirs = ["tests", "venv", ".venv", "scripts"]
 skips = ["B101"]  # Skip assert_used test
 
 [tool.hatch.build.targets.wheel]

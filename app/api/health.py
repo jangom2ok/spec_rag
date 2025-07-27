@@ -13,7 +13,7 @@ try:
     from aperturedb import DBException  # type: ignore
 except ImportError:
     # Define a local DBException class when aperturedb is not available
-    class DBException(Exception):  # type: ignore
+    class DBException(Exception):  # type: ignore  # noqa: N818
         """Mock ApertureDB exception."""
 
         pass

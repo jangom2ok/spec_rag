@@ -78,6 +78,17 @@ pre-commit run --all-files
 ./scripts/check_code_quality.sh   # Bash版
 # または
 python scripts/check_code_quality.py  # Python版
+
+# コード品質問題の検出と自動修正
+python scripts/collect_code_issues.py  # 問題を検出
+python scripts/fix_code_issues.py      # 自動修正を実行
+```
+
+### Claude Code Slash Commands
+
+```bash
+# コード品質問題を自動修正
+/fix-code-issues
 ```
 
 ### Database Operations

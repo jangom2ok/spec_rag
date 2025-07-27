@@ -1,0 +1,27 @@
+# Cursor Rules for spec_rag
+
+## Custom Commands
+
+### /fix-code-issues
+Runs the code quality checker and automatically fixes all detected issues:
+1. Execute `python scripts/collect_code_issues.py` to identify issues
+2. Fix Black formatting issues
+3. Fix Ruff linting issues
+4. Fix mypy type checking issues
+5. Fix failing tests
+6. Re-run the checker to confirm all issues are resolved
+
+Usage: Just type `/fix-code-issues` in the chat
+
+## Project Context
+
+This is a RAG (Retrieval-Augmented Generation) system for system development documentation. The system integrates BGE-M3 hybrid search to provide high-precision search functionality to external systems.
+
+**Core Tech Stack**: FastAPI + ApertureDB + PostgreSQL + BGE-M3 + Celery + Docker
+
+## Development Guidelines
+
+- Always run code quality checks before committing
+- Use `./scripts/check_code_quality.sh` or `python scripts/check_code_quality.py` for comprehensive checks
+- Target ≥80% test coverage
+- Follow Black formatting and Ruff linting rules

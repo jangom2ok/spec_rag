@@ -7,14 +7,6 @@ including authentication, search endpoints, and error handling scenarios.
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-
-def patch_async_service(service_class, return_value):
-    """Helper to patch async service methods"""
-    mock = AsyncMock()
-    mock.return_value = return_value
-    return patch.object(service_class, "__call__", mock)
-
-
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient

@@ -13,13 +13,9 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Handle errors in requests."""
-        try:
-            response = await call_next(request)
-            return response
-        except Exception as e:
-            # Log the error
-            print(f"Unhandled error: {e}")
-            raise
+        # Just pass through - let exception handlers deal with errors
+        response = await call_next(request)
+        return response
 
 
 async def add_security_headers(request: Request, call_next: Callable) -> Response:

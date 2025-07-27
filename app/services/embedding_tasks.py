@@ -87,7 +87,7 @@ class MockAsyncResult:
 
     def failed(self):
         return self.state == "FAILURE"
-    
+
     def get(self, timeout=None):
         return self.result
 
@@ -277,9 +277,9 @@ class EmbeddingTaskService:
         try:
             if self.embedding_service is None:
                 raise RuntimeError("Embedding service not initialized")
-            
+
             results = await self.embedding_service.embed_batch(texts)
-            
+
             return {
                 "status": "completed",
                 "message": f"Processed {len(texts)} texts successfully",
