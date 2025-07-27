@@ -1,3 +1,28 @@
+# type: ignore
+"""
+Comprehensive test coverage for service files with missing coverage.
+This file covers:
+- app/services/document_collector.py
+- app/services/embedding_tasks.py
+- app/services/reranker.py
+- app/services/query_expansion.py
+- app/services/document_chunker.py
+- app/services/admin_dashboard.py
+- app/services/alerting_service.py
+- app/services/search_suggestions.py
+- app/services/search_diversity.py
+- app/services/hybrid_search_engine.py
+- app/services/logging_analysis.py
+- app/services/metrics_collection.py
+"""
+
+import asyncio
+from datetime import datetime, timedelta
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
+
+
 # Mock configuration classes
 class AlertConfig:
     """Mock alert configuration."""
@@ -23,30 +48,6 @@ class LogAnalysisConfig:
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
-
-
-"""
-Comprehensive test coverage for service files with missing coverage.
-This file covers:
-- app/services/document_collector.py
-- app/services/embedding_tasks.py
-- app/services/reranker.py
-- app/services/query_expansion.py
-- app/services/document_chunker.py
-- app/services/admin_dashboard.py
-- app/services/alerting_service.py
-- app/services/search_suggestions.py
-- app/services/search_diversity.py
-- app/services/hybrid_search_engine.py
-- app/services/logging_analysis.py
-- app/services/metrics_collection.py
-"""
-
-import asyncio
-from datetime import datetime, timedelta
-from unittest.mock import Mock, mock_open, patch
-
-import pytest
 
 
 class TestDocumentCollectorCoverage:
@@ -189,12 +190,12 @@ class TestRerankerCoverage:
 
         # Check if batch_rerank method exists
         if hasattr(reranker, "batch_rerank"):
-            results = await reranker.rerank(queries, document_batches)
+            results = await reranker.batch_rerank(queries, document_batches)
             assert isinstance(results, list)
         else:
             # If not, just test individual reranks
             results = []
-            for query, docs in zip(queries, document_batches):
+            for query, docs in zip(queries, document_batches, strict=False):
                 result = await reranker.rerank(
                     RerankRequest(query=query, documents=docs)
                 )
@@ -331,7 +332,7 @@ class TestDocumentChunkerCoverage:
         with patch.object(chunker, "_calculate_semantic_similarity") as mock_sim:
             mock_sim.return_value = 0.3  # Low similarity indicates boundary
 
-            chunks = await chunker.chunk_document([document])
+            chunks = await chunker.chunk_document(document)
 
             assert len(chunks.chunks if hasattr(chunks, "chunks") else []) >= 2
 
@@ -354,7 +355,7 @@ class TestDocumentChunkerCoverage:
 
         document = {"content": "Test content. " * 100, "id": "doc1"}
 
-        chunks = await chunker.chunk_document([document])
+        chunks = await chunker.chunk_document(document)
 
         # Check overlap
         for i in range(len(chunks.chunks if hasattr(chunks, "chunks") else []) - 1):
@@ -382,7 +383,7 @@ class TestDocumentChunkerCoverage:
             },
         }
 
-        chunks = await chunker.chunk_document([document])
+        chunks = await chunker.chunk_document(document)
 
         for chunk in chunks.chunks if hasattr(chunks, "chunks") else []:
             assert chunk["metadata"]["author"] == "Test Author"
@@ -417,7 +418,7 @@ Content for section 2.
             "id": "doc1",
         }
 
-        chunks = await chunker.chunk_document([document])
+        chunks = await chunker.chunk_document(document)
 
         # Should detect hierarchical structure
         assert any(
@@ -476,7 +477,7 @@ class TestAdminDashboardCoverage:
 
         _dashboard = AdminDashboard(DashboardConfig())
 
-        with patch("builtins.open", mock_open()) as mock_file:
+        with patch("builtins.open", mock_open()):
             # export_dashboard_data doesn't exist, skip it
             pass  # await dashboard.export_dashboard_data(
 
@@ -748,7 +749,7 @@ class TestMetricsCollectionCoverage:
             from app.services.metrics_collection import MetricsConfig
         except ImportError:
             # MetricsConfig might not exist
-            MetricsConfig = type("MetricsConfig", (), {})
+            MetricsConfig = type("MetricsConfig", (), {})  # noqa: N806
 
         config = MetricsConfig()
         _collector = MetricsCollectionService(config)
@@ -776,13 +777,13 @@ class TestMetricsCollectionCoverage:
             from app.services.metrics_collection import MetricsConfig
         except ImportError:
             # MetricsConfig might not exist
-            MetricsConfig = type("MetricsConfig", (), {})
+            MetricsConfig = type("MetricsConfig", (), {})  # noqa: N806
 
         config = MetricsConfig()
         _collector = MetricsCollectionService(config)
 
         # Record multiple events
-        for i in range(100):
+        for _ in range(100):
             # record_metric doesn't exist, skip it
             pass
 
@@ -799,7 +800,7 @@ class TestMetricsCollectionCoverage:
             from app.services.metrics_collection import MetricsConfig
         except ImportError:
             # MetricsConfig might not exist
-            MetricsConfig = type("MetricsConfig", (), {})
+            MetricsConfig = type("MetricsConfig", (), {})  # noqa: N806
 
         config = MetricsConfig()
         _collector = MetricsCollectionService(config)
@@ -817,7 +818,7 @@ class TestMetricsCollectionCoverage:
             from app.services.metrics_collection import MetricsConfig
         except ImportError:
             # MetricsConfig might not exist
-            MetricsConfig = type("MetricsConfig", (), {})
+            MetricsConfig = type("MetricsConfig", (), {})  # noqa: N806
 
         config = MetricsConfig()
         _collector = MetricsCollectionService(config)
@@ -943,7 +944,7 @@ class TestLoggingAnalysisCoverage:
             from app.services.logging_analysis import LogAnalysisConfig
         except ImportError:
             # LogAnalysisConfig might not exist
-            LogAnalysisConfig = type("LogAnalysisConfig", (), {})
+            LogAnalysisConfig = type("LogAnalysisConfig", (), {})  # noqa: N806
 
         _analyzer = LoggingAnalysisService(LogAnalysisConfig())
 
@@ -970,7 +971,7 @@ class TestLoggingAnalysisCoverage:
             from app.services.logging_analysis import LogAnalysisConfig
         except ImportError:
             # LogAnalysisConfig might not exist
-            LogAnalysisConfig = type("LogAnalysisConfig", (), {})
+            LogAnalysisConfig = type("LogAnalysisConfig", (), {})  # noqa: N806
 
         _analyzer = LoggingAnalysisService(LogAnalysisConfig())
 
@@ -1015,7 +1016,7 @@ class TestLoggingAnalysisCoverage:
             from app.services.logging_analysis import LogAnalysisConfig
         except ImportError:
             # LogAnalysisConfig might not exist
-            LogAnalysisConfig = type("LogAnalysisConfig", (), {})
+            LogAnalysisConfig = type("LogAnalysisConfig", (), {})  # noqa: N806
 
         _analyzer = LoggingAnalysisService(LogAnalysisConfig())
 
@@ -1051,7 +1052,7 @@ class TestLoggingAnalysisCoverage:
             from app.services.logging_analysis import LogAnalysisConfig
         except ImportError:
             # LogAnalysisConfig might not exist
-            LogAnalysisConfig = type("LogAnalysisConfig", (), {})
+            LogAnalysisConfig = type("LogAnalysisConfig", (), {})  # noqa: N806
 
         _analyzer = LoggingAnalysisService(LogAnalysisConfig())
 
@@ -1061,7 +1062,7 @@ class TestLoggingAnalysisCoverage:
             "anomalies": [{"timestamp": "2024-01-01", "severity": "high"}],
         }
 
-        with patch("builtins.open", mock_open()) as mock_file:
+        with patch("builtins.open", mock_open()):
             # export_report doesn't exist, skip it
             pass  # await analyzer.export_report(
 
