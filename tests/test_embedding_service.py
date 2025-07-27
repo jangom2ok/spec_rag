@@ -28,11 +28,13 @@ class TestEmbeddingResult:
             sparse_vector=sparse_vector,
             multi_vector=multi_vector,
             processing_time=0.15,
+            chunk_id=None,
+            document_id=None,
         )
 
         assert len(result.dense_vector) == 1024
         assert result.sparse_vector == sparse_vector
-        assert result.multi_vector.shape == (2, 2)
+        assert result.multi_vector.shape == (2, 2)  # type: ignore[union-attr]
         assert result.processing_time == 0.15
 
     def test_embedding_result_validation(self):
@@ -43,6 +45,8 @@ class TestEmbeddingResult:
                 sparse_vector={},
                 multi_vector=np.array([]),
                 processing_time=0.1,
+                chunk_id=None,
+                document_id=None,
             )
 
 

@@ -12,6 +12,7 @@ from app.services.hybrid_search_engine import (
     HybridSearchEngine,
     RankingAlgorithm,
     SearchConfig,
+    SearchQuery,
     VectorSearchResult,
 )
 
@@ -523,14 +524,17 @@ class TestSearchRankingOptimization:
         rrf_engine = HybridSearchEngine(config=ranking_config)
         weighted_engine = HybridSearchEngine(config=weighted_sum_config)
 
+        # テスト用クエリを作成
+        test_query = SearchQuery(text="test query")
+
         # RRF結果
         rrf_results = rrf_engine._fuse_search_results(
-            sample_dense_results, sample_sparse_results, None
+            sample_dense_results, sample_sparse_results, test_query
         )
 
         # 重み付き和結果
         weighted_results = weighted_engine._fuse_search_results(
-            sample_dense_results, sample_sparse_results, None
+            sample_dense_results, sample_sparse_results, test_query
         )
 
         # 異なるアルゴリズムで異なる結果が得られることを確認

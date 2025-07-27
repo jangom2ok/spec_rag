@@ -19,25 +19,38 @@ class TestSearchAPIMissingCoverage:
         from app.api.search import EnhancedFilters, convert_enhanced_filters_to_legacy
 
         # Test with source_types (line 273)
-        filters = EnhancedFilters(source_types=["manual", "api"])
+        filters = EnhancedFilters(
+            source_types=["manual", "api"], languages=[], date_range=None, tags=[]
+        )
         result = convert_enhanced_filters_to_legacy(filters)
         assert len(result) == 1
         assert result[0].field == "source_type"
 
         # Test with languages (line 280)
-        filters = EnhancedFilters(languages=["en", "ja"])
+        filters = EnhancedFilters(
+            source_types=[], languages=["en", "ja"], date_range=None, tags=[]
+        )
         result = convert_enhanced_filters_to_legacy(filters)
         assert len(result) == 1
         assert result[0].field == "language"
 
         # Test with tags (line 287)
-        filters = EnhancedFilters(tags=["test", "example"])
+        filters = EnhancedFilters(
+            source_types=[], languages=[], date_range=None, tags=["test", "example"]
+        )
         result = convert_enhanced_filters_to_legacy(filters)
         assert len(result) == 1
         assert result[0].field == "metadata.tags"
 
         # Test with date_range (line 296)
-        filters = EnhancedFilters(date_range={"from": "2024-01-01", "to": "2024-12-31"})
+        from app.api.search import DateRange
+
+        filters = EnhancedFilters(
+            source_types=[],
+            languages=[],
+            date_range=DateRange(**{"from": "2024-01-01", "to": "2024-12-31"}),
+            tags=[],
+        )
         result = convert_enhanced_filters_to_legacy(filters)
         assert len(result) == 2  # start and end filters
 
@@ -68,9 +81,22 @@ class TestSearchAPIMissingCoverage:
 
         request = SearchRequest(
             query="test",
+            filters=None,
             search_options=SearchOptions(
-                search_type="hybrid", highlight=True, include_metadata=True
+                search_type="hybrid",
+                max_results=10,
+                min_score=0.0,
+                highlight=True,
+                include_metadata=True,
             ),
+            ranking_options=None,
+            max_results=None,
+            offset=0,
+            search_mode=None,
+            dense_weight=None,
+            sparse_weight=None,
+            similarity_threshold=None,
+            enable_reranking=None,
         )
 
         response = await search_documents(
@@ -93,7 +119,19 @@ class TestSearchAPIMissingCoverage:
         # Test semantic search exception (lines 609-721)
         mock_engine.search = AsyncMock(side_effect=Exception("Semantic error"))
 
-        request = SearchRequest(query="test")
+        request = SearchRequest(
+            query="test",
+            filters=None,
+            search_options=None,
+            ranking_options=None,
+            max_results=None,
+            offset=0,
+            search_mode=None,
+            dense_weight=None,
+            sparse_weight=None,
+            similarity_threshold=None,
+            enable_reranking=None,
+        )
 
         with pytest.raises(HTTPException) as exc:
             await semantic_search(
@@ -167,7 +205,19 @@ class TestSearchAPIMissingCoverage:
         with patch("app.api.search.semantic_search") as mock_semantic:
             mock_semantic.return_value = {"success": True}
 
-            request = SearchRequest(query="test")
+            request = SearchRequest(
+                query="test",
+                filters=None,
+                search_options=None,
+                ranking_options=None,
+                max_results=None,
+                offset=0,
+                search_mode=None,
+                dense_weight=None,
+                sparse_weight=None,
+                similarity_threshold=None,
+                enable_reranking=None,
+            )
             await search_semantic(
                 request=request, current_user=mock_user, search_engine=mock_engine
             )

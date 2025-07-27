@@ -565,7 +565,7 @@ class DatabaseHealthChecker:
                     message="PostgreSQL connection mocked (asyncpg not available)",
                 )
 
-            conn = await asyncpg.connect(postgres_url, timeout=self.config.timeout)
+            conn = await asyncpg.connect(postgres_url, timeout=int(self.config.timeout))
 
             try:
                 # 簡単なクエリ実行
@@ -611,7 +611,7 @@ class DatabaseHealthChecker:
         try:
             # aperturedbを使用した接続テスト（実際の実装では本物の接続を使用）
             try:
-                from aperturedb import Client
+                from aperturedb import Client  # type: ignore
             except ImportError:
                 # テスト環境でaperturedbが利用できない場合のフォールバック
                 return HealthCheckResult(
@@ -833,7 +833,7 @@ class ProductionDatabaseManager:
     async def _initialize_postgres_pool(self) -> None:
         """PostgreSQL接続プール初期化"""
         try:
-            import asyncpg  # noqa: F401
+            import asyncpg  # type: ignore # noqa: F401
         except ImportError:
             logger.warning(
                 "asyncpg not available, skipping PostgreSQL pool initialization"
@@ -934,7 +934,7 @@ class ProductionDatabaseManager:
     async def _initialize_aperturedb_connection(self) -> None:
         """ApertureDB接続初期化"""
         try:
-            from aperturedb import Client
+            from aperturedb import Client  # type: ignore
         except ImportError:
             logger.warning(
                 "aperturedb not available, skipping ApertureDB connection initialization"

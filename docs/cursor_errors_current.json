@@ -1,0 +1,630 @@
+[{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/app/api/health.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"DBException\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 10,
+    "startColumn": 28,
+    "endLineNumber": 10,
+    "endColumn": 39
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/app/database/production_config.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"Client\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 4,
+    "startColumn": 29,
+    "endLineNumber": 4,
+    "endColumn": 35
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/app/main.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"DBException\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 18,
+    "startColumn": 28,
+    "endLineNumber": 18,
+    "endColumn": 39
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/app/main.py",
+    "owner": "python",
+    "code": {
+        "value": "reportUnusedFunction",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportUnusedFunction"
+        }
+    },
+    "severity": 4,
+    "message": "関数 \"vector_database_exception_handler\" はどこからも呼び出されていません",
+    "source": "Pylance",
+    "startLineNumber": 103,
+    "startColumn": 16,
+    "endLineNumber": 103,
+    "endColumn": 49
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/app/main.py",
+    "owner": "python",
+    "code": {
+        "value": "reportUnusedFunction",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportUnusedFunction"
+        }
+    },
+    "severity": 4,
+    "message": "関数 \"validation_exception_handler\" はどこからも呼び出されていません",
+    "source": "Pylance",
+    "startLineNumber": 119,
+    "startColumn": 16,
+    "endLineNumber": 119,
+    "endColumn": 45
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/app/models/aperturedb.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"Client\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 4,
+    "startColumn": 28,
+    "endLineNumber": 4,
+    "endColumn": 34
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/conftest.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"AsyncClient\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 18,
+    "startColumn": 24,
+    "endLineNumber": 18,
+    "endColumn": 35
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_auth.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"HTTPException\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 8,
+    "startColumn": 21,
+    "endLineNumber": 8,
+    "endColumn": 34
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_auth.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"status\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 8,
+    "startColumn": 36,
+    "endLineNumber": 8,
+    "endColumn": 42
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_auth.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"status_codes\" は \"starlette\" の既知の属性ではありません",
+    "source": "Pylance",
+    "startLineNumber": 208,
+    "startColumn": 21,
+    "endLineNumber": 208,
+    "endColumn": 33
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_documents.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "属性 \"_chunks\" へのアクセスは private です",
+    "source": "Pylance",
+    "startLineNumber": 213,
+    "startColumn": 25,
+    "endLineNumber": 213,
+    "endColumn": 32
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_documents.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "属性 \"_chunks\" へのアクセスは private です",
+    "source": "Pylance",
+    "startLineNumber": 217,
+    "startColumn": 15,
+    "endLineNumber": 217,
+    "endColumn": 22
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_search_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"ChunkResult\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 8,
+    "startColumn": 31,
+    "endLineNumber": 8,
+    "endColumn": 42
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_search_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"patch_async_service\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 17,
+    "startColumn": 29,
+    "endLineNumber": 17,
+    "endColumn": 48
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_search_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportArgumentType",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportArgumentType"
+        }
+    },
+    "severity": 8,
+    "message": "引数の型 \"list[str]\" を、パラメーター \"__value\" の型 \"ChunkingConfig\" に割り当てることはできません\n  \"list[str]\" を \"ChunkingConfig\" に代入することはできません",
+    "source": "Pylance",
+    "startLineNumber": 205,
+    "startColumn": 41,
+    "endLineNumber": 205,
+    "endColumn": 61
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_api_search_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportArgumentType",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportArgumentType"
+        }
+    },
+    "severity": 8,
+    "message": "引数の型 \"list[dict[str, Any]]\" を、パラメーター \"__value\" の型 \"ChunkingConfig\" に割り当てることはできません\n  \"list[dict[str, Any]]\" を \"ChunkingConfig\" に代入することはできません",
+    "source": "Pylance",
+    "startLineNumber": 231,
+    "startColumn": 41,
+    "endLineNumber": 231,
+    "endColumn": 73
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_embedding_service.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"HTTPException\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 17,
+    "startColumn": 21,
+    "endLineNumber": 17,
+    "endColumn": 34
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_embedding_service.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"model_name\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 50,
+    "startColumn": 39,
+    "endLineNumber": 50,
+    "endColumn": 39
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_embedding_service.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"model_name\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 66,
+    "startColumn": 39,
+    "endLineNumber": 66,
+    "endColumn": 39
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"ChunkResult\" は不明なインポート シンボルです",
+    "source": "Pylance",
+    "startLineNumber": 10,
+    "startColumn": 31,
+    "endLineNumber": 10,
+    "endColumn": 42
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 191,
+    "startColumn": 36,
+    "endLineNumber": 191,
+    "endColumn": 36
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 217,
+    "startColumn": 31,
+    "endLineNumber": 217,
+    "endColumn": 31
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 249,
+    "startColumn": 34,
+    "endLineNumber": 249,
+    "endColumn": 34
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportAttributeAccessIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportAttributeAccessIssue"
+        }
+    },
+    "severity": 8,
+    "message": "\"_detect_file_changes\" は \"LoggingAnalysisService\" の既知の属性ではありません",
+    "source": "Pylance",
+    "startLineNumber": 277,
+    "startColumn": 36,
+    "endLineNumber": 277,
+    "endColumn": 56
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 303,
+    "startColumn": 34,
+    "endLineNumber": 303,
+    "endColumn": 34
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 328,
+    "startColumn": 35,
+    "endLineNumber": 328,
+    "endColumn": 35
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 353,
+    "startColumn": 40,
+    "endLineNumber": 353,
+    "endColumn": 40
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 379,
+    "startColumn": 38,
+    "endLineNumber": 379,
+    "endColumn": 38
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 404,
+    "startColumn": 39,
+    "endLineNumber": 404,
+    "endColumn": 39
+},
+{
+    "resource": "/Users/jangom2ok/work/git/spec_rag/tests/test_services_missing_coverage.py",
+    "owner": "python",
+    "code": {
+        "value": "reportCallIssue",
+        "target": {
+            "$mid": 1,
+            "path": "/microsoft/pyright/blob/main/docs/configuration.md",
+            "scheme": "https",
+            "authority": "github.com",
+            "fragment": "reportCallIssue"
+        }
+    },
+    "severity": 8,
+    "message": "実引数がないため、パラメーター \"config\" に対応する引数がありません",
+    "source": "Pylance",
+    "startLineNumber": 430,
+    "startColumn": 43,
+    "endLineNumber": 430,
+    "endColumn": 43
+}]

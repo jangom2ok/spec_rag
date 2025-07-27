@@ -8,10 +8,10 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 try:
-    from aperturedb import Client
+    from aperturedb import Client  # type: ignore
 except ImportError:
     # Use mock for testing and CI/CD environments
-    from app.models.aperturedb_mock import Client
+    from app.models.aperturedb_mock import Client  # type: ignore
 from pydantic import BaseModel, Field
 
 
@@ -71,7 +71,7 @@ class ApertureDBCollection(ABC):
         self.host: str = host
         self.port: int = port
         self.collection_name: str = self.get_collection_name()
-        self.client: Client | None = None
+        self.client: Any | None = None  # Client type is conditional
         self.connect()
 
     def connect(self) -> None:

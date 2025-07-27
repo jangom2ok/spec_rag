@@ -1,16 +1,15 @@
 """Final coverage tests for remaining API lines"""
 
 import os
-
-os.environ["TESTING"] = "true"
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app.main import app
+os.environ["TESTING"] = "true"
+
+from app.main import app  # noqa: E402
 
 
 class TestRemainingSearchCoverage:

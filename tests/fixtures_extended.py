@@ -336,7 +336,7 @@ async def test_db_session() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.create_all)
 
     async_session_maker = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
+        bind=engine, class_=AsyncSession, expire_on_commit=False  # type: ignore[arg-type]
     )
 
     async with async_session_maker() as session:

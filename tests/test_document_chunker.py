@@ -177,9 +177,7 @@ Future work should explore additional optimization techniques.""",
 
         result = await chunker.chunk_document(sample_document)
 
-        assert (
-            len(result.chunks) >= 2
-        )  # 十分長いドキュメントなので複数チャンクになるはず
+        assert len(result.chunks) >= 2  # 十分長いドキュメントなので複数チャンクになるはず
 
         # オーバーラップの検証
         for i in range(len(result.chunks) - 1):
@@ -202,7 +200,6 @@ Future work should explore additional optimization techniques.""",
         chunker = DocumentChunker(config=semantic_config)
 
         result = await chunker.chunk_document(sample_document)
-
         assert result.success is True
         assert len(result.chunks) > 0
 
@@ -220,7 +217,6 @@ Future work should explore additional optimization techniques.""",
         chunker = DocumentChunker(config=hierarchical_config)
 
         result = await chunker.chunk_document(sample_document)
-
         assert result.success is True
         assert len(result.chunks) > 0
 
@@ -302,7 +298,6 @@ Future work should explore additional optimization techniques.""",
         chunker = DocumentChunker(config=basic_config)
 
         result = await chunker.chunk_document(japanese_document)
-
         assert result.success is True
         assert len(result.chunks) > 0
 
@@ -350,7 +345,6 @@ Future work should explore additional optimization techniques.""",
 
         chunker = DocumentChunker(config=basic_config)
         result = await chunker.chunk_document(empty_document)
-
         assert result.success is False
         assert len(result.chunks) == 0
         assert result.error_message and "empty" in result.error_message.lower()
@@ -367,7 +361,6 @@ Future work should explore additional optimization techniques.""",
 
         chunker = DocumentChunker(config=basic_config)
         result = await chunker.chunk_document(short_document)
-
         assert result.success is True
         assert len(result.chunks) == 1
         assert result.chunks[0].content == "Short text."

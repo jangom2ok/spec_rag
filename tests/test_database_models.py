@@ -2,6 +2,7 @@
 
 import pytest
 import sqlalchemy as sa
+from sqlalchemy import exc
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -84,7 +85,7 @@ class TestDocument:
         await async_session.commit()
 
         async_session.add(document2)
-        with pytest.raises(sa.exc.IntegrityError):
+        with pytest.raises(exc.IntegrityError):
             await async_session.commit()
 
     async def test_document_relationships(self, async_session: AsyncSession):
@@ -201,7 +202,7 @@ class TestDocumentChunk:
         await async_session.commit()
 
         async_session.add(chunk2)
-        with pytest.raises(sa.exc.IntegrityError):
+        with pytest.raises(exc.IntegrityError):
             await async_session.commit()
 
     async def test_chunk_cascade_delete(self, async_session: AsyncSession):

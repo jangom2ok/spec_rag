@@ -1067,6 +1067,7 @@ class MetricsCollectionService:
     async def _aggregate_metric_type(self, metric_type: MetricType) -> None:
         """特定メトリクスタイプの集約"""
         cache_key = f"aggregated_{metric_type}_{datetime.now().strftime('%Y%m%d%H%M')}"
+        aggregated: dict[str, Any]
 
         if metric_type == MetricType.SEARCH_METRICS:
             search_metrics = list(self._search_metrics_buffer)
@@ -1077,11 +1078,11 @@ class MetricsCollectionService:
             system_metrics = list(self._system_metrics_buffer)
             aggregated = {"count": len(system_metrics)}
             if system_metrics:
-                aggregated["avg_cpu_usage"] = mean(
-                    [m.cpu_usage for m in system_metrics]
+                aggregated["avg_cpu_usage"] = float(
+                    mean([m.cpu_usage for m in system_metrics])
                 )
-                aggregated["avg_memory_usage"] = mean(
-                    [m.memory_usage for m in system_metrics]
+                aggregated["avg_memory_usage"] = float(
+                    mean([m.memory_usage for m in system_metrics])
                 )
         else:
             return

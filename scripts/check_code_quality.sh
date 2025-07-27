@@ -43,7 +43,8 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
 
     # 3. mypy 型チェック
     echo -e "\n${YELLOW}3. mypy 型チェック${NC}"
-    if ! mypy app/; then
+    # Use wrapper script to handle transformers internal error
+    if ! "${BASH_SOURCE%/*}/mypy_wrapper.sh"; then
         echo -e "${RED}mypy型エラーが見つかりました${NC}"
         all_passed=false
     else

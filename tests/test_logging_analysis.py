@@ -247,9 +247,7 @@ class TestLoggingAnalysisService:
         for entry in sample_log_entries:
             await service.ingest_log_entry(entry)
 
-        assert (
-            len(service._log_buffer) == len(sample_log_entries) - 1
-        )  # DEBUGログが除外される
+        assert len(service._log_buffer) == len(sample_log_entries) - 1  # DEBUGログが除外される
 
         # ログレベルフィルタリングの確認（DEBUG以下は除外される）
         filtered_logs = [
@@ -257,9 +255,7 @@ class TestLoggingAnalysisService:
             for log in service._log_buffer
             if log.level.value_int >= basic_logging_config.log_level.value_int
         ]
-        assert (
-            len(filtered_logs) == len(sample_log_entries) - 1
-        )  # DEBUGログが1件除外される
+        assert len(filtered_logs) == len(sample_log_entries) - 1  # DEBUGログが1件除外される
 
 
 class TestLogEntryManagement:
@@ -365,7 +361,9 @@ class TestPatternAnalysis:
             await service.ingest_log_entry(entry)
 
         # ロガー頻度分析
-        logger_stats = await service._analyze_logger_frequency(list(service._log_buffer))
+        logger_stats = await service._analyze_logger_frequency(
+            list(service._log_buffer)
+        )
 
         # frequent_loggerが最も多いことを確認
         most_frequent = max(logger_stats.items(), key=lambda x: x[1])
@@ -410,7 +408,7 @@ class TestAnomalyDetection:
             await service.ingest_log_entry(entry)
 
         # 異常検知実行
-        anomalies = await service._detect_anomalies(service._log_buffer)
+        anomalies = await service._detect_anomalies(list(service._log_buffer))
 
         # 異常が検出されることを確認
         response_time_anomalies = [a for a in anomalies if "response_time" in a.field]
@@ -463,7 +461,9 @@ class TestAnomalyDetection:
             await service.ingest_log_entry(entry)
 
         # エラー率異常検知
-        anomalies = await service._detect_error_rate_anomalies(list(service._log_buffer))
+        anomalies = await service._detect_error_rate_anomalies(
+            list(service._log_buffer)
+        )
 
         # エラー率異常検知機能が正常に動作することを確認
         assert isinstance(anomalies, list)

@@ -164,7 +164,10 @@ class TestCeleryTasks:
                 mock_run.return_value = {"status": "success"}
 
                 # This is a Celery task, when called directly it uses asyncio.run
-                process_document_embedding_task("doc123")
+                # Need to pass self as first argument for bound tasks
+                mock_self = Mock()
+                mock_self.update_state = Mock()
+                process_document_embedding_task(mock_self, "doc123")
 
                 # Verify asyncio.run was called
                 mock_run.assert_called_once()
@@ -182,7 +185,10 @@ class TestCeleryTasks:
         with patch("app.services.embedding_tasks.asyncio.run") as mock_run:
             mock_run.side_effect = Exception("Batch processing failed")
 
-            result = process_batch_texts_task(texts)
+            # Need to pass self as first argument for bound tasks
+            mock_self = Mock()
+            mock_self.update_state = Mock()
+            result = process_batch_texts_task(mock_self, texts)
 
             assert result["status"] == "error"
             assert "Batch processing failed" in result["error"]
