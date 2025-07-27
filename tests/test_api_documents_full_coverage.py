@@ -174,9 +174,9 @@ class TestDocumentEndpointsCoverage:
             with patch("app.api.documents.get_current_user_or_api_key"):
                 # When service returns None, endpoint should handle it
                 result = await get_processing_status(
-                    document_id="unknown-task", 
+                    document_id="unknown-task",
                     current_user={"permissions": ["read"]},
-                    processing_service=mock_service
+                    processing_service=mock_service,
                 )
 
                 # Should return None or handle appropriately

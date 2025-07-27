@@ -18,7 +18,9 @@ NC = "\033[0m"  # No Color
 def run_command(command: list[str], check: bool = True) -> tuple[int, str, str]:
     """コマンドを実行して結果を返す"""
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=check)  # noqa: S603
+        result = subprocess.run(
+            command, capture_output=True, text=True, check=check
+        )  # noqa: S603
         return result.returncode, result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
         return e.returncode, e.stdout, e.stderr

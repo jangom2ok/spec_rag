@@ -102,7 +102,9 @@ class TestSearchDiversity:
             metadata={"category": "test", "author": "John"},
         )
 
-        assert candidate2.embedding is not None and np.array_equal(candidate2.embedding, custom_embedding)
+        assert candidate2.embedding is not None and np.array_equal(
+            candidate2.embedding, custom_embedding
+        )
         assert candidate2.metadata["category"] == "test"
         assert candidate2.metadata["author"] == "John"
 
