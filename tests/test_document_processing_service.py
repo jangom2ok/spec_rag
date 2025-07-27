@@ -579,12 +579,8 @@ class TestDocumentProcessingService:
         )
 
         assert len(result.chunks if hasattr(result, "chunks") else []) == 2
-        assert (
-            "embeddings" in (result.chunks if hasattr(result, "chunks") else [])[0]
-        )
-        assert (
-            "embeddings" in (result.chunks if hasattr(result, "chunks") else [])[1]
-        )
+        assert "embeddings" in (result.chunks if hasattr(result, "chunks") else [])[0]
+        assert "embeddings" in (result.chunks if hasattr(result, "chunks") else [])[1]
         assert (result.chunks if hasattr(result, "chunks") else [])[0][
             "embeddings"
         ] == [0.1] * 1024
@@ -605,8 +601,7 @@ class TestDocumentProcessingService:
 
         assert result == chunks
         assert (
-            "embeddings"
-            not in (result.chunks if hasattr(result, "chunks") else [])[0]
+            "embeddings" not in (result.chunks if hasattr(result, "chunks") else [])[0]
         )
 
     @pytest.mark.asyncio
@@ -627,8 +622,7 @@ class TestDocumentProcessingService:
 
         assert result == chunks
         assert (
-            "embeddings"
-            not in (result.chunks if hasattr(result, "chunks") else [])[0]
+            "embeddings" not in (result.chunks if hasattr(result, "chunks") else [])[0]
         )
 
     @pytest.mark.asyncio
@@ -672,7 +666,7 @@ class TestDocumentProcessingService:
         self, processing_service, mock_repositories
     ):
         """ドキュメント保存失敗のテスト"""
-        document_repo, chunk_repo = mock_repositories
+        document_repo, _ = mock_repositories
         document_repo.create = AsyncMock(side_effect=Exception("DB error"))
 
         document = {
@@ -681,7 +675,7 @@ class TestDocumentProcessingService:
             "content": "Test content",
             "source_type": "test",
         }
-        chunks = []
+        chunks: list = []
 
         with pytest.raises(Exception) as exc_info:
             await processing_service._store_document_and_chunks(document, chunks)

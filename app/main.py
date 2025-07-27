@@ -24,32 +24,32 @@ try:
     from aperturedb import DBException  # type: ignore
 except ImportError:
 
-    class DBException(Exception):  # type: ignore
+    class DBException(Exception):  # type: ignore  # noqa: N818
         """Mock ApertureDB exception."""
 
         pass
 
 
 # Custom exception classes
-class DatabaseException(Exception):
+class DatabaseException(Exception):  # noqa: N818
     """Database-related exception."""
 
     pass
 
 
-class VectorDatabaseException(Exception):
+class VectorDatabaseException(Exception):  # noqa: N818
     """Vector database exception."""
 
     pass
 
 
-class AuthenticationException(Exception):
+class AuthenticationException(Exception):  # noqa: N818
     """Authentication exception."""
 
     pass
 
 
-class RAGSystemException(Exception):
+class RAGSystemException(Exception):  # noqa: N818
     """RAG system exception."""
 
     pass
@@ -193,7 +193,7 @@ def setup_error_handlers(app: FastAPI) -> None:
     """エラーハンドラーを設定する"""
 
     @app.exception_handler(404)
-    async def not_found_handler(
+    async def not_found_handler(  # type: ignore[reportUnusedFunction]
         request: Request, exc: HTTPException
     ) -> JSONResponse:  # noqa: F841
         return JSONResponse(
@@ -210,7 +210,7 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(405)
-    async def method_not_allowed_handler(  # noqa: F841
+    async def method_not_allowed_handler(  # type: ignore[reportUnusedFunction]  # noqa: F841
         request: Request, exc: HTTPException
     ) -> JSONResponse:
         return JSONResponse(
@@ -227,7 +227,7 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(  # noqa: F841
+    async def validation_exception_handler(  # type: ignore[reportUnusedFunction]  # noqa: F841
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
         return JSONResponse(
@@ -245,7 +245,7 @@ def setup_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(  # noqa: F841
+    async def http_exception_handler(  # type: ignore[reportUnusedFunction]  # noqa: F841
         request: Request, exc: HTTPException
     ) -> JSONResponse:
         # 認証関連のHTTPExceptionの場合
