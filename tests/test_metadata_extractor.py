@@ -453,7 +453,7 @@ The API returns standard HTTP status codes:
         result = await extractor.extract_metadata(empty_document)
 
         assert result.success is False
-        assert "empty" in result.error_message.lower()
+        assert result.error_message and "empty" in result.error_message.lower()
 
     @pytest.mark.unit
     async def test_large_document_handling(self, basic_config: ExtractionConfig):

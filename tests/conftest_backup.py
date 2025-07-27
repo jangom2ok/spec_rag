@@ -150,7 +150,7 @@ def disable_auth() -> Generator[None, None, None]:
     with patch("app.core.middleware.auth_middleware") as mock_middleware:
 
         async def mock_auth_middleware(request: Request, call_next: Any) -> Response:
-            return await call_next(request)
+            return await call_next(request)  # type: ignore
 
         mock_middleware.side_effect = mock_auth_middleware
         yield

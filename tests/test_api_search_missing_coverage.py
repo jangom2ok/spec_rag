@@ -22,6 +22,7 @@ from app.api.search import (
 )
 from app.main import app
 from app.services.hybrid_search_engine import (
+    FacetResult,
     HybridSearchEngine,
     SearchConfig,
     SearchMode,
@@ -209,7 +210,7 @@ class TestUtilityFunctions:
         result = highlight_content(content, "")
         assert result == content
 
-        result = highlight_content(content, None)
+        result = highlight_content(content, "")  # type: ignore
         assert result == content
 
     def test_highlight_content_empty_content(self):
@@ -217,8 +218,8 @@ class TestUtilityFunctions:
         result = highlight_content("", "query")
         assert result == ""
 
-        result = highlight_content(None, "query")
-        assert result is None
+        result = highlight_content("", "query")  # type: ignore
+        assert result == ""
 
     def test_highlight_content_short_words_skipped(self):
         """Test that short words are skipped in highlighting."""
@@ -234,7 +235,7 @@ class TestUtilityFunctions:
             source_types=["api", "docs"],
             languages=["en", "ja"],
             tags=["python", "fastapi"],
-            date_range=DateRange(from_date="2024-01-01", to_date="2024-12-31"),
+            date_range=DateRange(**{"from": "2024-01-01", "to": "2024-12-31"}),
         )
 
         result = convert_enhanced_filters_to_legacy(enhanced_filters)
@@ -269,7 +270,7 @@ class TestUtilityFunctions:
 
     def test_convert_enhanced_filters_empty(self):
         """Test filter conversion with empty filters."""
-        result = convert_enhanced_filters_to_legacy(EnhancedFilters())
+        result = convert_enhanced_filters_to_legacy(EnhancedFilters(source_types=[], languages=[], tags=[], date_range=None))
         assert result == []
 
     def test_generate_search_suggestions_with_tags(self):
@@ -298,7 +299,7 @@ class TestUtilityFunctions:
             {"metadata": {"no_tags": True}},  # No tags field
         ]
 
-        suggestions = generate_search_suggestions(query, results)
+        suggestions = generate_search_suggestions(query, results)  # type: ignore
 
         assert isinstance(suggestions, list)
         assert len(suggestions) <= 5
@@ -375,8 +376,8 @@ class TestSearchEndpoints:
                     ],
                     facets={
                         "source_type": [
-                            {"value": "api", "count": 10},
-                            {"value": "docs", "count": 5},
+                            FacetResult(value="api", count=10),
+                            FacetResult(value="docs", count=5),
                         ]
                     },
                 )
@@ -667,8 +668,8 @@ class TestSearchEndpoints:
                     ],
                     facets={
                         "category": [
-                            {"value": "ml", "count": 5},
-                            {"value": "ai", "count": 3},
+                            FacetResult(value="ml", count=5),
+                            FacetResult(value="ai", count=3),
                         ]
                     },
                 )

@@ -353,7 +353,7 @@ Future work should explore additional optimization techniques.""",
 
         assert result.success is False
         assert len(result.chunks) == 0
-        assert "empty" in result.error_message.lower()
+        assert result.error_message and "empty" in result.error_message.lower()
 
     @pytest.mark.unit
     async def test_very_short_document_handling(self, basic_config: ChunkingConfig):
@@ -394,18 +394,18 @@ Future work should explore additional optimization techniques.""",
     @pytest.mark.unit
     def test_chunking_strategy_enum(self):
         """チャンク戦略Enumのテスト"""
-        assert ChunkingStrategy.FIXED_SIZE == "fixed_size"
-        assert ChunkingStrategy.SEMANTIC == "semantic"
-        assert ChunkingStrategy.HIERARCHICAL == "hierarchical"
+        assert ChunkingStrategy.FIXED_SIZE.value == "fixed_size"
+        assert ChunkingStrategy.SEMANTIC.value == "semantic"
+        assert ChunkingStrategy.HIERARCHICAL.value == "hierarchical"
 
     @pytest.mark.unit
     def test_chunk_type_enum(self):
         """チャンクタイプEnumのテスト"""
-        assert ChunkType.TEXT == "text"
-        assert ChunkType.HEADING == "heading"
-        assert ChunkType.SECTION == "section"
-        assert ChunkType.LIST == "list"
-        assert ChunkType.TABLE == "table"
+        assert ChunkType.TEXT.value == "text"
+        assert ChunkType.HEADING.value == "heading"
+        assert ChunkType.SECTION.value == "section"
+        assert ChunkType.LIST.value == "list"
+        assert ChunkType.TABLE.value == "table"
 
 
 class TestChunkingConfig:

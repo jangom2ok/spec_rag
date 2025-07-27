@@ -188,6 +188,7 @@ class TestAPIKeyManagement:
 
         # 保存されたAPI Key情報を取得
         stored_data = get_api_key_info("ak_" + "test_1234567890abcdef")
+        assert stored_data is not None
         assert stored_data["user_id"] == "user123"
         assert stored_data["name"] == "Test Key"
         assert stored_data["permissions"] == ["read", "write"]

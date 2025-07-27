@@ -711,11 +711,11 @@ class TestProductionDatabaseIntegration:
 
             if "redis" not in sys.modules:
                 sys.modules["redis"] = Mock()
-                sys.modules["redis.asyncio"] = Mock()
-                sys.modules["redis.asyncio"].ConnectionPool = Mock()
-                sys.modules["redis.asyncio"].ConnectionPool.from_url = Mock(
-                    return_value=Mock()
-                )
+                redis_asyncio_mock = Mock()
+                connection_pool_mock = Mock()
+                connection_pool_mock.from_url = Mock(return_value=Mock())
+                redis_asyncio_mock.ConnectionPool = connection_pool_mock
+                sys.modules["redis.asyncio"] = redis_asyncio_mock
 
             with patch(
                 "app.models.aperturedb.Client", return_value=mock_aperturedb_client

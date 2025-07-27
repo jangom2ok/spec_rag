@@ -119,19 +119,19 @@ def mock_external_services() -> Generator[dict[str, Any], None, None]:
 
             if return_sparse:
                 results["lexical_weights"] = [
-                    {i: np.random.rand() for i in range(0, 1000, 100)}
+                    {i: float(np.random.rand()) for i in range(0, 1000, 100)}
                     for _ in sentences
-                ]
+                ]  # type: ignore
 
             if return_colbert_vecs:
                 results["colbert_vecs"] = [
                     np.random.rand(10, 1024).astype(np.float32) for _ in sentences
-                ]
+                ]  # type: ignore
 
             return results
 
     flag_model_patch = patch("app.services.embedding_service.FlagModel", MockFlagModel)
-    patches.append(flag_model_patch)
+    patches.append(flag_model_patch)  # type: ignore
     flag_model_patch.start()
 
     try:

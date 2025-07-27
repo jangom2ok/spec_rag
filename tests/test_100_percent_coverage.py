@@ -33,7 +33,11 @@ class TestMainCoverage:
 
         # Test with a general exception
         exc = Exception("Test error")
-        response = await handler(request, exc)
+        from inspect import iscoroutinefunction
+        if iscoroutinefunction(handler):
+            response = await handler(request, exc)
+        else:
+            response = handler(request, exc)
 
         assert response.status_code == 500
         content = json.loads(response.body)

@@ -328,7 +328,7 @@ class TestSearchMetricsCollection:
 
         # 集約実行
         aggregated = await service._aggregate_search_metrics(
-            service._search_metrics_buffer, AggregationType.AVG
+            list(service._search_metrics_buffer), AggregationType.AVG
         )
 
         # 平均レスポンス時間の検証
@@ -469,7 +469,7 @@ class TestPerformanceMetricsCollection:
 
         # 平均スループットの計算
         avg_throughput = await service._calculate_average_throughput(
-            service._performance_metrics_buffer, time_window=timedelta(seconds=60)
+            list(service._performance_metrics_buffer), time_window=timedelta(seconds=60)
         )
 
         assert avg_throughput == 18.0
@@ -524,7 +524,7 @@ class TestBusinessMetricsCollection:
 
         # 平均満足度の計算
         avg_satisfaction = await service._calculate_average_satisfaction(
-            service._business_metrics_buffer
+            list(service._business_metrics_buffer)
         )
 
         expected_avg = sum(satisfaction_scores) / len(satisfaction_scores)
@@ -641,7 +641,7 @@ class TestMetricsAggregation:
 
         # 時間ベース集約の実行
         aggregated = await service._aggregate_by_time_window(
-            service._search_metrics_buffer, TimeWindow.MINUTE, AggregationType.AVG
+            list(service._search_metrics_buffer), TimeWindow.MINUTE, AggregationType.AVG
         )
 
         assert len(aggregated) > 0
@@ -667,7 +667,7 @@ class TestMetricsAggregation:
             AggregationType.COUNT,
         ]:
             aggregated = await service._aggregate_search_metrics(
-                service._search_metrics_buffer, agg_type
+                list(service._search_metrics_buffer), agg_type
             )
 
             assert len(aggregated) > 0
@@ -795,7 +795,7 @@ class TestMetricsIntegration:
         collected_metrics = []
 
         # リアルタイムメトリクスのコールバック
-        async def metrics_callback(metric_data: dict[str, Any]):
+        def metrics_callback(metric_data: dict[str, Any]) -> None:
             collected_metrics.append(metric_data)
 
         await service.start_collection()

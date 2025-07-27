@@ -333,7 +333,7 @@ class TestPatternAnalysis:
             await service.ingest_log_entry(entry)
 
         # パターン分析実行
-        patterns = await service._analyze_patterns(service._log_buffer)
+        patterns = await service._analyze_patterns(list(service._log_buffer))
 
         # エラーパターンが検出されることを確認
         error_patterns = [p for p in patterns if "error" in p.pattern_name.lower()]
@@ -365,7 +365,7 @@ class TestPatternAnalysis:
             await service.ingest_log_entry(entry)
 
         # ロガー頻度分析
-        logger_stats = await service._analyze_logger_frequency(service._log_buffer)
+        logger_stats = await service._analyze_logger_frequency(list(service._log_buffer))
 
         # frequent_loggerが最も多いことを確認
         most_frequent = max(logger_stats.items(), key=lambda x: x[1])
@@ -463,7 +463,7 @@ class TestAnomalyDetection:
             await service.ingest_log_entry(entry)
 
         # エラー率異常検知
-        anomalies = await service._detect_error_rate_anomalies(service._log_buffer)
+        anomalies = await service._detect_error_rate_anomalies(list(service._log_buffer))
 
         # エラー率異常検知機能が正常に動作することを確認
         assert isinstance(anomalies, list)
@@ -499,7 +499,7 @@ class TestTrendAnalysis:
                 await service.ingest_log_entry(entry)
 
         # トレンド分析実行
-        trends = await service._analyze_trends(service._log_buffer)
+        trends = await service._analyze_trends(list(service._log_buffer))
 
         # 増加トレンドが検出されることを確認
         volume_trends = [t for t in trends if "volume" in t.metric]
@@ -531,7 +531,7 @@ class TestTrendAnalysis:
                 await service.ingest_log_entry(entry)
 
         # エラー率トレンド分析
-        trends = await service._analyze_error_rate_trends(service._log_buffer)
+        trends = await service._analyze_error_rate_trends(list(service._log_buffer))
 
         # エラー率増加トレンドが検出されることを確認
         assert len(trends) > 0
@@ -561,7 +561,7 @@ class TestAlertingSystem:
             await service.ingest_log_entry(entry)
 
         # アラート評価
-        alerts = await service._evaluate_alert_rules(service._log_buffer)
+        alerts = await service._evaluate_alert_rules(list(service._log_buffer))
 
         # アラート機能が正常に動作することを確認
         assert isinstance(alerts, list)
@@ -602,7 +602,7 @@ class TestAlertingSystem:
         await service.ingest_log_entry(entry)
 
         # アラート評価
-        alerts = await service._evaluate_alert_rules(service._log_buffer)
+        alerts = await service._evaluate_alert_rules(list(service._log_buffer))
 
         # critical_errorsアラートが発動することを確認
         critical_alerts = [a for a in alerts if a.rule_name == "critical_errors"]
@@ -868,7 +868,7 @@ class TestLogIntegration:
         triggered_alerts = []
 
         # アラートコールバック
-        async def alert_callback(alert_data: dict[str, Any]):
+        def alert_callback(alert_data: dict[str, Any]) -> None:
             triggered_alerts.append(alert_data)
 
         await service.start_analysis()
