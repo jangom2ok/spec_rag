@@ -326,7 +326,7 @@ class TestAuthAPICoverage:
 
             with pytest.raises(HTTPException) as exc_info:
                 await logout(  # type: ignore
-                    authorization="Bearer blacklisted-token", current_user=mock_user
+                    current_user=mock_user, token="blacklisted-token"
                 )
 
             assert exc_info.value.status_code == 401
@@ -334,7 +334,7 @@ class TestAuthAPICoverage:
     @pytest.mark.asyncio
     async def test_api_key_operations_exceptions(self):
         """Test API key operations with exceptions."""
-        from app.api.auth import create_api_key
+        from app.api.auth import APIKeyCreate, create_api_key  # type: ignore
 
         mock_user = {"email": "test@example.com", "permissions": ["admin"]}
 
@@ -342,10 +342,9 @@ class TestAuthAPICoverage:
         with patch("app.api.auth.api_keys_storage") as mock_storage:
             mock_storage.get.return_value = {"key": "existing"}
 
+            api_key_data = APIKeyCreate(name="test-key", permissions=["read"])
             with pytest.raises(HTTPException) as exc_info:
-                await create_api_key(  # type: ignore
-                    name="test-key", permissions=["read"], current_user=mock_user
-                )
+                await create_api_key(api_key_data=api_key_data, current_user=mock_user)
 
             assert exc_info.value.status_code == 400
 
@@ -430,7 +429,7 @@ class TestCoreAuthCoverage:
 
         # Test invalid refresh token
         with pytest.raises(Exception):  # noqa: B017
-            verify_refresh_token("invalid-token")
+            verify_refresh_token("invalid-token")  # type: ignore
 
     def test_api_key_validation_not_found(self):
         """Test API key validation when key not found."""
