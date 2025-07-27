@@ -91,6 +91,31 @@ except ImportError:
         async def dispatch(self, request, call_next):
             return await call_next(request)
 
+        def authenticate(self, request):
+            """Mock authenticate method that supports both JWT and API key."""
+            # Try JWT authentication first
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+                try:
+                    # Mock JWT validation
+                    payload = jwt.decode(token, self.jwt_secret, algorithms=["HS256"])
+                    return payload
+                except jwt.InvalidTokenError:
+                    pass
+
+            # Fall back to API key authentication
+            api_key = request.headers.get("X-API-Key", "")
+            if api_key:
+                # Mock API key validation
+                if api_key == "valid_key":
+                    return {"key_id": "test_key", "permissions": ["read"]}
+                else:
+                    raise HTTPException(status_code=401, detail="Invalid API key")
+
+            # No valid authentication found
+            raise HTTPException(status_code=401, detail="Authentication required")
+
     class RateLimitMiddleware(BaseHTTPMiddleware):  # type: ignore[no-redef]
         """Mock Rate Limit middleware."""
 
