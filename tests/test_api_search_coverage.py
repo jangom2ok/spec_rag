@@ -18,8 +18,9 @@ class TestSearchAPICoverage:
     @pytest.fixture
     def client(self):
         """Create test client with mocked auth."""
-        with patch("app.core.middleware.AuthMiddleware.__call__") as mock_auth:
-            mock_auth.return_value = None
+        # Mock auth dependencies directly
+        with patch("app.core.auth.verify_token") as mock_verify:
+            mock_verify.return_value = {"sub": "test@example.com"}
             yield TestClient(app)
 
     def test_get_current_user_or_api_key_jwt_path(self):
