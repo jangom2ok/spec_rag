@@ -94,13 +94,53 @@ except ImportError:
     class RateLimitMiddleware(BaseHTTPMiddleware):  # type: ignore[no-redef]
         """Mock Rate Limit middleware."""
 
-        def __init__(self, app=None):
+        def __init__(self, app=None, max_requests: int = 100, window_seconds: int = 60):
             if app:
                 super().__init__(app)
-            self.request_counts = {}
+            self.request_counts: dict[str, list[float]] = {}
+            self.max_requests = max_requests
+            self.window_seconds = window_seconds
 
         async def dispatch(self, request, call_next):
             return await call_next(request)
+
+        def check_rate_limit(self, request) -> bool:
+            """Check if request is within rate limit."""
+            # Get client identifier
+            client_id = request.headers.get("X-API-Key")
+            if not client_id:
+                client_id = (
+                    request.client.host
+                    if hasattr(request.client, "host")
+                    else "unknown"
+                )
+
+            # Initialize counts for new clients
+            if client_id not in self.request_counts:
+                self.request_counts[client_id] = []
+
+            # Initialize IP count if not present (for test compatibility)
+            if (
+                hasattr(request.client, "host")
+                and request.client.host not in self.request_counts
+            ):
+                self.request_counts[request.client.host] = []
+
+            # Clean old timestamps
+            current_time = time.time()
+            self.request_counts[client_id] = [
+                t
+                for t in self.request_counts[client_id]
+                if current_time - t < self.window_seconds
+            ]
+
+            # Check rate limit
+            if len(self.request_counts[client_id]) >= self.max_requests:
+                raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
+            # Add current request timestamp
+            self.request_counts[client_id].append(current_time)
+            return True
 
 
 class TestJWTAuthenticationMiddleware:
