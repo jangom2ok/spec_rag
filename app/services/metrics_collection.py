@@ -1075,7 +1075,7 @@ class MetricsCollectionService:
             )
         elif metric_type == MetricType.SYSTEM_METRICS:
             system_metrics = list(self._system_metrics_buffer)
-            aggregated: dict[str, Any] = {"count": len(system_metrics)}
+            aggregated = {"count": len(system_metrics)}
             if system_metrics:
                 aggregated["avg_cpu_usage"] = float(
                     mean([m.cpu_usage for m in system_metrics])
