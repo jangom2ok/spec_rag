@@ -345,12 +345,10 @@ GET /v1/documents/process/status
 
 ## 今後の拡張予定
 
-- Confluence統合の本番実装
 - JIRA統合の本番実装
 - Google Drive統合モジュール
 - Slack統合モジュール
-- Microsoft Teams統合
-- GitHub/GitLab統合
+- GitHub統合
 - リアルタイムストリーミング投入
 
 ## 関連ドキュメント
