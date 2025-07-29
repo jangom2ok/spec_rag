@@ -72,10 +72,93 @@ docker-compose up -d
 
 #### 2.5 データベースの初期化
 
+##### 初回セットアップ
+
 ```bash
-# マイグレーションの実行
+# PostgreSQLドライバのインストール（必須）
+pip install psycopg2-binary
+
+# Alembicの初期化（初回のみ）
+alembic init alembic
+```
+
+初回実行時は、以下の設定が必要です：
+
+1. **alembic.ini の編集**
+   ```ini
+   # sqlalchemy.url の行をコメントアウト
+   # sqlalchemy.url = driver://user:pass@localhost/dbname
+   ```
+
+2. **alembic/env.py の編集**
+   ```python
+   # ファイルの先頭に追加
+   import os
+   import sys
+   from pathlib import Path
+
+   # プロジェクトルートをPythonパスに追加
+   sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+   # アプリケーションの設定とモデルをインポート
+   from app.core.config import settings
+   from app.models.database import Base, Document, DocumentChunk
+
+   # データベースURLを環境変数から設定
+   config.set_main_option("sqlalchemy.url", settings.database_url)
+
+   # target_metadataを設定
+   target_metadata = Base.metadata
+   ```
+
+3. **初期マイグレーションの作成**
+   ```bash
+   # 自動的にモデルからマイグレーションを生成
+   alembic revision --autogenerate -m "Initial migration"
+   ```
+
+4. **マイグレーションの適用**
+   ```bash
+   # データベースにテーブルを作成
+   alembic upgrade head
+   ```
+
+##### 2回目以降の実行
+
+既にAlembicが初期化されている場合は、以下のコマンドのみ実行：
+
+```bash
+# 最新のマイグレーションを適用
 alembic upgrade head
 ```
+
+##### マイグレーションの確認
+
+```bash
+# 現在のマイグレーション状態を確認
+alembic current
+
+# 適用可能なマイグレーションの一覧
+alembic history
+```
+
+##### トラブルシューティング
+
+**エラー: `No module named 'psycopg2'`**
+```bash
+pip install psycopg2-binary
+```
+
+**エラー: `FAILED: No 'script_location' key found in configuration`**
+- プロジェクトルートディレクトリで実行していることを確認
+- `alembic init alembic` を実行してAlembicを初期化
+
+**エラー: `name 'app' is not defined`**
+- マイグレーションファイルに `import app.models.database` を追加
+
+**エラー: `data type json has no default operator class for access method "gin"`**
+- PostgreSQLのJSON型はGINインデックスをサポートしていません
+- JSONB型を使用するか、GINインデックスを削除してください
 
 ### 3. アプリケーションの起動
 
