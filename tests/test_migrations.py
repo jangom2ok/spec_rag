@@ -5,10 +5,10 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from alembic import command
-from alembic.config import Config
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from alembic import command
+from alembic.config import Config
 from app.database.migration import (
     MigrationManager,
     create_alembic_config,

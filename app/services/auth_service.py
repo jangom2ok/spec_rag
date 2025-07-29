@@ -2,7 +2,7 @@
 
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional, cast
+from typing import cast
 
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext

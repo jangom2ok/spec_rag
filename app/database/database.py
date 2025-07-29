@@ -20,7 +20,7 @@ if "sqlite" not in settings.DATABASE_URL:
         echo=False,
     )
     AsyncSessionLocal = async_sessionmaker(
-        async_engine, 
+        async_engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
