@@ -469,11 +469,28 @@ class TestMiddlewareConfiguration:
         response = middleware.handle_auth_error(request, auth_error)
 
         assert response.status_code == 401
-        assert "AUTHENTICATION_ERROR" in response.body.decode()
+        # JSONResponse.body is a bytes-like object that needs proper conversion
+        if hasattr(response, "body") and response.body:
+            body_content = (
+                bytes(response.body).decode()
+                if isinstance(response.body, bytes | memoryview)
+                else str(response.body)
+            )
+        else:
+            body_content = ""
+        assert "AUTHENTICATION_ERROR" in body_content
 
         # 認可エラー
         authz_error = HTTPException(status_code=403, detail="Authorization failed")
         response = middleware.handle_authz_error(request, authz_error)
 
         assert response.status_code == 403
-        assert "AUTHORIZATION_ERROR" in response.body.decode()
+        if hasattr(response, "body") and response.body:
+            body_content = (
+                bytes(response.body).decode()
+                if isinstance(response.body, bytes | memoryview)
+                else str(response.body)
+            )
+        else:
+            body_content = ""
+        assert "AUTHORIZATION_ERROR" in body_content

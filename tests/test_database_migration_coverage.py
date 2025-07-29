@@ -7,9 +7,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from alembic.config import Config
 from sqlalchemy.engine import Engine
 
+from alembic.config import Config
 from app.database.migration import (
     AsyncMigrationManager,
     MigrationManager,

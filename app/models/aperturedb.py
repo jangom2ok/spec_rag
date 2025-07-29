@@ -11,7 +11,9 @@ try:
     from aperturedb import Client  # type: ignore
 except ImportError:
     # Use mock for testing and CI/CD environments
-    from app.models.aperturedb_mock import Client  # type: ignore
+    from app.models import aperturedb_mock
+
+    Client: type[Any] = aperturedb_mock.Client  # type: ignore[attr-defined,no-redef]
 from pydantic import BaseModel, Field
 
 

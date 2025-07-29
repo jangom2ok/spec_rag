@@ -358,7 +358,8 @@ class TestMissingCoverage:
 
             # Check that default JQL is used
             if connector._session:
-                call_args = connector._session.request.call_args
+                # Access call_args on the mock object
+                call_args = connector._session.request.call_args  # type: ignore[attr-defined]
                 payload = call_args[1]["json"]
                 assert payload["jql"] == "order by created DESC"
 
