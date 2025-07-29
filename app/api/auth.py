@@ -28,12 +28,14 @@ api_keys_storage: dict[str, dict[str, Any]] = {}
 
 def get_password_hash(password: str) -> str:
     """パスワードをハッシュ化"""
-    return pwd_context.hash(password)
+    hash_result: str = pwd_context.hash(password)
+    return hash_result
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """パスワードを検証"""
-    return pwd_context.verify(plain_password, hashed_password)
+    result: bool = pwd_context.verify(plain_password, hashed_password)
+    return result
 
 
 def authenticate_user(email: str, password: str) -> dict | None:
