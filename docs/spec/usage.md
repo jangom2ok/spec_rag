@@ -145,18 +145,22 @@ alembic history
 ##### トラブルシューティング
 
 **エラー: `No module named 'psycopg2'`**
+
 ```bash
 pip install psycopg2-binary
 ```
 
 **エラー: `FAILED: No 'script_location' key found in configuration`**
+
 - プロジェクトルートディレクトリで実行していることを確認
 - `alembic init alembic` を実行してAlembicを初期化
 
 **エラー: `name 'app' is not defined`**
+
 - マイグレーションファイルに `import app.models.database` を追加
 
 **エラー: `data type json has no default operator class for access method "gin"`**
+
 - PostgreSQLのJSON型はGINインデックスをサポートしていません
 - JSONB型を使用するか、GINインデックスを削除してください
 
@@ -168,6 +172,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 起動後、以下のURLでアクセス可能：
+
 - API: http://localhost:8000
 - API Documentation (Swagger UI): http://localhost:8000/docs
 - Alternative API Documentation (ReDoc): http://localhost:8000/redoc
@@ -180,25 +185,44 @@ spec_ragは2種類の認証方式をサポートしています：
 
 #### JWT Token認証
 
+**注意**: 現在、認証システムはメモリ内ストレージを使用しています。アプリケーションを再起動すると、すべてのユーザーデータが失われます。
+
+##### 1. ユーザー登録
+
 ```bash
-# ログインしてトークンを取得
-curl -X POST http://localhost:8000/api/v1/auth/login \
+# 新しいユーザーを登録
+curl -X POST http://localhost:8000/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "password": "your-password"
+    "password": "your-password",
+    "full_name": "Test User"
   }'
+```
+
+##### 2. ログイン（OAuth2標準フォーマット）
+
+```bash
+# ログインしてトークンを取得
+curl -X POST http://localhost:8000/v1/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=user@example.com&password=your-password"
 
 # レスポンス例
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
   "expires_in": 1800
 }
+```
 
+##### 3. 認証が必要なAPIへのアクセス
+
+```bash
 # トークンを使用してAPIにアクセス
 curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  http://localhost:8000/api/v1/search
+  http://localhost:8000/v1/search
 ```
 
 #### API Key認証
@@ -206,7 +230,7 @@ curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
 ```bash
 # API Keyを使用してアクセス
 curl -H "X-API-Key: your-api-key-here" \
-  http://localhost:8000/api/v1/search
+  http://localhost:8000/v1/search
 ```
 
 ### 主要APIエンドポイント
@@ -216,7 +240,7 @@ curl -H "X-API-Key: your-api-key-here" \
 システムの中心機能である、BGE-M3を使用したハイブリッド検索です。
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/search \
+curl -X POST http://localhost:8000/v1/search \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -250,7 +274,7 @@ curl -X POST http://localhost:8000/api/v1/search \
 新しいドキュメントをシステムに登録します。
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/documents \
+curl -X POST http://localhost:8000/v1/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -276,7 +300,7 @@ curl -X POST http://localhost:8000/api/v1/documents \
 #### 3. ドキュメント一覧取得
 
 ```bash
-curl -X GET "http://localhost:8000/api/v1/documents?page=1&per_page=20" \
+curl -X GET "http://localhost:8000/v1/documents?page=1&per_page=20" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -285,14 +309,14 @@ curl -X GET "http://localhost:8000/api/v1/documents?page=1&per_page=20" \
 ユーザーの入力に基づいて検索候補を提供します。
 
 ```bash
-curl -X GET "http://localhost:8000/api/v1/search/suggestions?q=JWT" \
+curl -X GET "http://localhost:8000/v1/search/suggestions?q=JWT" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 #### 5. システム状態の確認
 
 ```bash
-curl -X GET http://localhost:8000/api/v1/status \
+curl -X GET http://localhost:8000/v1/status \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -394,7 +418,7 @@ asyncio.run(batch_import_documents(documents))
 
 ```bash
 # メトリクスの取得
-curl -X GET http://localhost:8000/api/v1/metrics \
+curl -X GET http://localhost:8000/v1/metrics \
   -H "Authorization: Bearer $TOKEN"
 ```
 
