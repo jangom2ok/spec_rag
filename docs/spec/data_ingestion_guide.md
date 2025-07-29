@@ -71,13 +71,13 @@
 
 個別のドキュメントをAPI経由で投入する方法です。
 
-#### エンドポイント
+#### 単一ドキュメントの投入エンドポイント
 
 ```http
 POST /v1/documents/
 ```
 
-#### リクエスト例
+#### 単一ドキュメントの投入リクエスト例
 
 ```bash
 curl -X POST http://localhost:8000/v1/documents/ \
@@ -107,12 +107,13 @@ curl -X POST http://localhost:8000/v1/documents/ \
 
 複数のドキュメントを一括で処理する方法です。
 
-#### エンドポイント
-```
+#### バッチ処理エンドポイント
+
+```http
 POST /v1/documents/process
 ```
 
-#### リクエスト例
+#### バッチ処理リクエスト例
 
 ```bash
 curl -X POST http://localhost:8000/v1/documents/process \
