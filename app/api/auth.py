@@ -1,25 +1,64 @@
 """認証エンドポイント"""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 
 from app.core.auth import (
     add_token_to_blacklist,
-    api_keys_storage,
-    authenticate_user,
     create_access_token,
     create_refresh_token,
-    generate_api_key,
-    get_password_hash,
     is_token_blacklisted,
-    store_api_key,
-    users_storage,
     verify_token,
 )
+from app.services.auth_service import AuthService, get_auth_service
+
+# パスワードハッシュ化
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Temporary in-memory storage (will be removed)
+users_storage: dict[str, dict[str, Any]] = {}
+api_keys_storage: dict[str, dict[str, Any]] = {}
+
+
+def get_password_hash(password: str) -> str:
+    """パスワードをハッシュ化"""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """パスワードを検証"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def authenticate_user(email: str, password: str) -> dict | None:
+    """ユーザーを認証（一時的な実装）"""
+    user = users_storage.get(email)
+    if not user:
+        return None
+    if not verify_password(password, user["password"]):
+        return None
+    user_info = user.copy()
+    user_info["email"] = email
+    return user_info
+
+
+def generate_api_key() -> str:
+    """APIキーを生成"""
+    import secrets
+
+    return secrets.token_urlsafe(32)
+
+
+def store_api_key(api_key_info: dict) -> None:
+    """APIキー情報を保存"""
+    api_keys_storage[api_key_info["key"]] = api_key_info
+
 
 router = APIRouter(prefix="/v1/auth", tags=["authentication"])
 
@@ -32,6 +71,7 @@ class UserRegister(BaseModel):
 
     email: EmailStr
     password: str
+    full_name: str | None = None
     role: str = "user"
 
 
@@ -97,7 +137,10 @@ class AuthHTTPError(HTTPException):
         self.error_type = "authentication"
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> dict:
     """現在のユーザーを取得"""
     try:
         # トークンブラックリストチェック
@@ -109,14 +152,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         if email is None:
             raise AuthHTTPError("Could not validate credentials")
 
-        user = users_storage.get(email)
+        # データベースからユーザーを取得
+        user = await auth_service.get_user_by_email(email)
         if user is None:
             raise AuthHTTPError("User not found")
 
-        # ユーザー情報にemailを追加して返す
-        user_info = user.copy()
-        user_info["email"] = email
-        return user_info
+        # ユーザー情報を辞書形式で返す
+        return {
+            "email": user.email,
+            "role": user.role,
+            "permissions": user.permissions,
+            "id": user.id,
+        }
     except AuthHTTPError:
         raise  # 認証エラーはそのまま再発生
     except Exception as err:
@@ -127,41 +174,36 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 @router.post(
     "/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED
 )
-async def register_user(user_data: UserRegister) -> MessageResponse:
+async def register_user(
+    user_data: UserRegister, auth_service: AuthService = Depends(get_auth_service)
+) -> MessageResponse:
     """ユーザー登録"""
-    # ユーザーが既に存在するかチェック
-    if user_data.email in users_storage:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="User already exists"
+    try:
+        # データベースにユーザーを作成
+        await auth_service.create_user(
+            email=user_data.email,
+            password=user_data.password,
+            full_name=user_data.full_name,
+            role=user_data.role,
         )
-
-    # パスワードハッシュ化
-    hashed_password = get_password_hash(user_data.password)
-
-    # ロールに応じた権限を設定
-    if user_data.role == "admin":
-        permissions = ["read", "write", "delete", "admin"]
-    elif user_data.role == "editor":
-        permissions = ["read", "write"]
-    elif user_data.role == "manager":
-        permissions = ["read", "write", "delete"]
-    else:
-        permissions = ["read"]
-
-    # ユーザー情報を保存
-    users_storage[user_data.email] = {
-        "password": hashed_password,
-        "role": user_data.role,
-        "permissions": permissions,
-    }
-
-    return MessageResponse(message="User registered successfully")
+        return MessageResponse(message="User registered successfully")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to register user",
+        ) from e
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    auth_service: AuthService = Depends(get_auth_service),
+):
     """ログイン"""
-    user = authenticate_user(form_data.username, form_data.password)
+    # データベースでユーザーを認証
+    user = await auth_service.authenticate_user(form_data.username, form_data.password)
     if not user:
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -178,14 +220,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
         data={
-            "sub": user["email"],
-            "role": user["role"],
-            "permissions": user["permissions"],
+            "sub": user.email,
+            "role": user.role,
+            "permissions": user.permissions,
         },
         expires_delta=access_token_expires,
     )
 
-    refresh_token = create_refresh_token(data={"sub": user["email"]})
+    refresh_token = create_refresh_token(data={"sub": user.email})
 
     return TokenResponse(
         access_token=access_token,
@@ -196,7 +238,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(request: RefreshTokenRequest) -> TokenResponse:
+async def refresh_token(
+    request: RefreshTokenRequest, auth_service: AuthService = Depends(get_auth_service)
+) -> TokenResponse:
     """トークンリフレッシュ"""
     try:
         payload = verify_token(request.refresh_token)
@@ -207,7 +251,8 @@ async def refresh_token(request: RefreshTokenRequest) -> TokenResponse:
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
             )
 
-        user = users_storage.get(email)
+        # データベースからユーザーを取得
+        user = await auth_service.get_user_by_email(email)
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
@@ -217,9 +262,9 @@ async def refresh_token(request: RefreshTokenRequest) -> TokenResponse:
         access_token_expires = timedelta(minutes=30)
         access_token = create_access_token(
             data={
-                "sub": email,
-                "role": user["role"],
-                "permissions": user["permissions"],
+                "sub": user.email,
+                "role": user.role,
+                "permissions": user.permissions,
             },
             expires_delta=access_token_expires,
         )

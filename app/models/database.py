@@ -152,3 +152,121 @@ class DocumentChunk(Base):
 
     def __repr__(self) -> str:
         return f"<DocumentChunk(id={self.id}, document_id={self.document_id}, chunk_index={self.chunk_index})>"
+
+
+class User(Base):
+    """ユーザーテーブル"""
+
+    __tablename__ = "users"
+
+    # プライマリキー
+    id: Mapped[str] = mapped_column(
+        UUIDType(36),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+
+    # 基本情報
+    email: Mapped[str] = mapped_column(sa.String(255), nullable=False, unique=True)
+    hashed_password: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    full_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True, nullable=False)
+    is_superuser: Mapped[bool] = mapped_column(
+        sa.Boolean, default=False, nullable=False
+    )
+
+    # 権限・ロール
+    role: Mapped[str] = mapped_column(sa.String(50), default="user", nullable=False)
+    permissions: Mapped[list[str]] = mapped_column(
+        JSON, default=lambda: ["read"], nullable=False
+    )
+
+    # タイムスタンプ
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # APIキー関連
+    api_keys: Mapped[list["APIKey"]] = relationship(
+        "APIKey",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+
+    # インデックス
+    __table_args__ = (
+        Index("idx_users_email", "email"),
+        Index("idx_users_role", "role"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<User(id={self.id}, email={self.email}, role={self.role})>"
+
+
+class APIKey(Base):
+    """APIキーテーブル"""
+
+    __tablename__ = "api_keys"
+
+    # プライマリキー
+    id: Mapped[str] = mapped_column(
+        UUIDType(36),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+
+    # 外部キー
+    user_id: Mapped[str] = mapped_column(
+        UUIDType(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # APIキー情報
+    key_hash: Mapped[str] = mapped_column(sa.String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(sa.String(100), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True, nullable=False)
+
+    # タイムスタンプ
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    # リレーション
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="api_keys",
+        lazy="select",
+    )
+
+    # インデックス
+    __table_args__ = (
+        Index("idx_api_keys_key_hash", "key_hash"),
+        Index("idx_api_keys_user", "user_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<APIKey(id={self.id}, name={self.name}, user_id={self.user_id})>"
